@@ -1,0 +1,12 @@
+[package]
+name = "demosuperimpose-goldsrc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bincode = "1.3.3"
+hldemo = {git = "https://github.com/YaLTeR/hldemo-rs.git"}
+nom = "7.1.3"
+serde = "1.0.171"
