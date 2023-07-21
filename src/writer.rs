@@ -5,8 +5,9 @@ use std::io::Write;
 pub struct DemoWriter {
     pub filename: String,
     data: Vec<u8>,
+    // Offset isn't really needed because we do vector and we can find offset easily.
+    // But all in the spirit of 🚀.
     offset: usize,
-    has_written_next_section: bool,
 }
 
 impl DemoWriter {
@@ -15,7 +16,6 @@ impl DemoWriter {
             filename,
             data: Vec::new(),
             offset: 0,
-            has_written_next_section: false,
         }
     }
 
@@ -28,35 +28,16 @@ impl DemoWriter {
             .unwrap();
 
         self.write_demo(demo);
-        // println!("{:?}", self.data);
+
         let _ = file.write_all(&self.data);
     }
 
     fn write_demo(&mut self, demo: Demo) {
-        // magic has 8 bytes in total
+        // Magic has 8 bytes in total
         self.append_u8_slice("HLDEMO\x00\x00".as_bytes());
 
         self.write_header(demo.header);
-
-        for entry in &demo.directory.entries {
-            for frame in &entry.frames {
-                self.has_written_next_section = false;
-                self.write_frame(frame);
-            }
-
-            if !self.has_written_next_section {
-                self.append_u8(5u8);
-                self.append_i32(0i32);
-                self.append_i32(0i32);
-                self.has_written_next_section = true;
-            }
-        }
-
-        self.append_u32(demo.directory.entries.len() as u32);
-
-        for entry in demo.directory.entries {
-            self.write_directory_entry(entry);
-        }
+        self.write_directory(demo.directory);
     }
 
     fn write_header(&mut self, header: Header) {
@@ -65,21 +46,56 @@ impl DemoWriter {
         self.append_u8_slice(header.map_name);
         self.append_u8_slice(header.game_dir);
         self.append_u32(header.map_crc);
-        self.append_i32(header.directory_offset);
     }
 
-    // fn write_directory(&mut self, directory: Directory) {
-    //     for entry in directory.entries {}
-    // }
+    fn write_directory(&mut self, directory: Directory) {
+        let directory_offset_pos = self.offset;
+        let mut entry_offsets: Vec<usize> = Vec::new();
 
-    fn write_directory_entry(&mut self, entry: DirectoryEntry) {
+        // Delay writing directory offset
+        self.append_i32(0i32);
+
+        for entry in &directory.entries {
+            let mut has_written_next_section = false;
+
+            entry_offsets.push(self.offset);
+
+            for frame in &entry.frames {
+                self.write_frame(&frame);
+
+                if matches!(frame.data, FrameData::NextSection) {
+                    has_written_next_section = true;
+                }
+            }
+
+            if !has_written_next_section {
+                self.append_u8(5u8);
+                self.append_f32(0.);
+                self.append_i32(0);
+            }
+        }
+
+        let director_offset = self.offset;
+        self.append_i32(directory.entries.len() as i32);
+
+        for (entry, offset) in directory.entries.iter().zip(entry_offsets.iter()) {
+            self.write_directory_entry(entry, offset);
+        }
+
+        self.data.splice(
+            directory_offset_pos..directory_offset_pos + 4,
+            (director_offset as u32).to_le_bytes(),
+        );
+    }
+
+    fn write_directory_entry(&mut self, entry: &DirectoryEntry, new_offset: &usize) {
         self.append_i32(entry.entry_type);
         self.append_u8_slice(entry.description);
         self.append_i32(entry.flags);
         self.append_i32(entry.cd_track);
         self.append_f32(entry.track_time);
         self.append_i32(entry.frame_count);
-        self.append_i32(entry.offset);
+        self.append_i32(*new_offset as i32);
         self.append_i32(entry.file_length);
     }
 
@@ -88,10 +104,7 @@ impl DemoWriter {
             FrameData::DemoStart => self.append_u8(2u8),
             FrameData::ConsoleCommand(_) => self.append_u8(3u8),
             FrameData::ClientData(_) => self.append_u8(4u8),
-            FrameData::NextSection => {
-                self.append_u8(5u8);
-                self.has_written_next_section = true;
-            }
+            FrameData::NextSection => self.append_u8(5u8),
             FrameData::Event(_) => self.append_u8(6u8),
             FrameData::WeaponAnim(_) => self.append_u8(7u8),
             FrameData::Sound(_) => self.append_u8(8u8),
@@ -138,7 +151,7 @@ impl DemoWriter {
             }
             FrameData::Sound(frame) => {
                 self.append_i32(frame.channel);
-                self.append_u32(frame.sample.len() as u32);
+                self.append_i32(frame.sample.len() as i32);
                 self.append_u8_slice(frame.sample);
                 self.append_f32(frame.attenuation);
                 self.append_f32(frame.volume);
@@ -146,10 +159,10 @@ impl DemoWriter {
                 self.append_i32(frame.pitch);
             }
             FrameData::DemoBuffer(frame) => {
-                self.append_u32(frame.buffer.len() as u32);
+                self.append_i32(frame.buffer.len() as i32);
                 self.append_u8_slice(frame.buffer);
             }
-            FrameData::NetMsg((type_, data)) => {
+            FrameData::NetMsg((_type_, data)) => {
                 self.append_f32(data.info.timestamp);
                 // ref_params
                 self.append_f32_array(data.info.ref_params.vieworg);
@@ -240,7 +253,8 @@ impl DemoWriter {
                 self.append_i32(data.outgoing_sequence);
                 self.append_i32(data.reliable_sequence);
                 self.append_i32(data.last_reliable_sequence);
-                self.append_u32(data.msg.len() as u32);
+
+                self.append_i32(data.msg.len() as i32);
                 self.append_u8_slice(data.msg);
             }
         }
