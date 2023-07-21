@@ -34,9 +34,7 @@ impl DemoWriter {
 
     fn write_demo(&mut self, demo: Demo) {
         // magic has 8 bytes in total
-        self.data.extend_from_slice("HLDEMO".as_bytes());
-        self.data.extend_from_slice("\x00\x00".as_bytes());
-        // self.append_u8_slice("HLDEMO\x00\x00".as_bytes());
+        self.append_u8_slice("HLDEMO\x00\x00".as_bytes());
 
         self.write_header(demo.header);
 
@@ -47,15 +45,14 @@ impl DemoWriter {
             }
 
             if !self.has_written_next_section {
-                self.data.extend(5u8.to_le_bytes());
-                self.data.extend(0f32.to_be_bytes());
-                self.data.extend(0i32.to_be_bytes());
+                self.append_u8(5u8);
+                self.append_i32(0i32);
+                self.append_i32(0i32);
                 self.has_written_next_section = true;
             }
         }
 
-        self.data
-            .extend((demo.directory.entries.len() as u32).to_le_bytes());
+        self.append_u32(demo.directory.entries.len() as u32);
 
         for entry in demo.directory.entries {
             self.write_directory_entry(entry);
@@ -63,12 +60,12 @@ impl DemoWriter {
     }
 
     fn write_header(&mut self, header: Header) {
-        self.data.extend(header.demo_protocol.to_le_bytes());
-        self.data.extend(header.net_protocol.to_le_bytes());
-        self.data.extend_from_slice(header.map_name);
-        self.data.extend_from_slice(header.game_dir);
-        self.data.extend(header.map_crc.to_le_bytes());
-        self.data.extend(header.directory_offset.to_le_bytes());
+        self.append_i32(header.demo_protocol);
+        self.append_i32(header.net_protocol);
+        self.append_u8_slice(header.map_name);
+        self.append_u8_slice(header.game_dir);
+        self.append_u32(header.map_crc);
+        self.append_i32(header.directory_offset);
     }
 
     // fn write_directory(&mut self, directory: Directory) {
@@ -76,320 +73,175 @@ impl DemoWriter {
     // }
 
     fn write_directory_entry(&mut self, entry: DirectoryEntry) {
-        self.data.extend(entry.entry_type.to_le_bytes());
-        self.data.extend_from_slice(entry.description);
-        self.data.extend(entry.flags.to_le_bytes());
-        self.data.extend(entry.cd_track.to_le_bytes());
-        self.data.extend(entry.track_time.to_le_bytes());
-        self.data.extend(entry.frame_count.to_le_bytes());
-        self.data.extend(entry.offset.to_le_bytes());
-        self.data.extend(entry.file_length.to_le_bytes());
+        self.append_i32(entry.entry_type);
+        self.append_u8_slice(entry.description);
+        self.append_i32(entry.flags);
+        self.append_i32(entry.cd_track);
+        self.append_f32(entry.track_time);
+        self.append_i32(entry.frame_count);
+        self.append_i32(entry.offset);
+        self.append_i32(entry.file_length);
     }
 
     fn write_frame(&mut self, frame: &Frame) {
         match frame.data {
-            FrameData::DemoStart => self.data.extend(2u8.to_le_bytes()),
-            FrameData::ConsoleCommand(_) => self.data.extend(3u8.to_le_bytes()),
-            FrameData::ClientData(_) => self.data.extend(4u8.to_le_bytes()),
+            FrameData::DemoStart => self.append_u8(2u8),
+            FrameData::ConsoleCommand(_) => self.append_u8(3u8),
+            FrameData::ClientData(_) => self.append_u8(4u8),
             FrameData::NextSection => {
-                self.data.extend(5u8.to_le_bytes());
+                self.append_u8(5u8);
                 self.has_written_next_section = true;
             }
-            FrameData::Event(_) => self.data.extend(6u8.to_le_bytes()),
-            FrameData::WeaponAnim(_) => self.data.extend(7u8.to_le_bytes()),
-            FrameData::Sound(_) => self.data.extend(8u8.to_le_bytes()),
-            FrameData::DemoBuffer(_) => self.data.extend(9u8.to_le_bytes()),
-            // For some reasons 0 loads faster than 1.
-            FrameData::NetMsg(_) => self.data.extend(0u8.to_le_bytes()),
+            FrameData::Event(_) => self.append_u8(6u8),
+            FrameData::WeaponAnim(_) => self.append_u8(7u8),
+            FrameData::Sound(_) => self.append_u8(8u8),
+            FrameData::DemoBuffer(_) => self.append_u8(9u8),
+            FrameData::NetMsg(_) => self.append_u8(0u8),
         }
 
-        self.data.extend(frame.time.to_le_bytes());
-        self.data.extend(frame.frame.to_le_bytes());
+        self.append_f32(frame.time);
+        self.append_i32(frame.frame);
         self.write_frame_data(&frame.data);
     }
     fn write_frame_data(&mut self, frame: &FrameData) {
         match frame {
             FrameData::DemoStart => (),
-            FrameData::ConsoleCommand(frame) => self.data.extend_from_slice(frame.command),
+            FrameData::ConsoleCommand(frame) => self.append_u8_slice(frame.command),
             FrameData::ClientData(frame) => {
-                self.data
-                    .extend(frame.origin.iter().map(|x| x.to_le_bytes()).flatten());
-                self.data
-                    .extend(frame.viewangles.iter().map(|x| x.to_le_bytes()).flatten());
-                self.data.extend(frame.weapon_bits.to_le_bytes());
-                self.data.extend(frame.fov.to_le_bytes());
+                self.append_f32_array(frame.origin);
+                self.append_f32_array(frame.viewangles);
+                self.append_i32(frame.weapon_bits);
+                self.append_f32(frame.fov);
             }
             FrameData::NextSection => (),
             FrameData::Event(frame) => {
-                self.data.extend(frame.flags.to_le_bytes());
-                self.data.extend(frame.index.to_le_bytes());
-                self.data.extend(frame.delay.to_le_bytes());
+                self.append_i32(frame.flags);
+                self.append_i32(frame.index);
+                self.append_f32(frame.delay);
 
-                self.data.extend(frame.args.flags.to_le_bytes());
-                self.data.extend(frame.args.entity_index.to_le_bytes());
-                self.data
-                    .extend(frame.args.origin.iter().map(|x| x.to_le_bytes()).flatten());
-                self.data
-                    .extend(frame.args.angles.iter().map(|x| x.to_le_bytes()).flatten());
-                self.data.extend(
-                    frame
-                        .args
-                        .velocity
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data.extend(frame.args.ducking.to_le_bytes());
-                self.data.extend(frame.args.fparam1.to_le_bytes());
-                self.data.extend(frame.args.fparam2.to_le_bytes());
-                self.data.extend(frame.args.iparam1.to_le_bytes());
-                self.data.extend(frame.args.iparam2.to_le_bytes());
-                self.data.extend(frame.args.bparam1.to_le_bytes());
-                self.data.extend(frame.args.bparam2.to_le_bytes());
+                self.append_i32(frame.args.flags);
+                self.append_i32(frame.args.entity_index);
+                self.append_f32_array(frame.args.origin);
+                self.append_f32_array(frame.args.angles);
+                self.append_f32_array(frame.args.velocity);
+                self.append_i32(frame.args.ducking);
+                self.append_f32(frame.args.fparam1);
+                self.append_f32(frame.args.fparam2);
+                self.append_i32(frame.args.iparam1);
+                self.append_i32(frame.args.iparam2);
+                self.append_i32(frame.args.bparam1);
+                self.append_i32(frame.args.bparam2);
             }
             FrameData::WeaponAnim(frame) => {
-                self.data.extend(frame.anim.to_le_bytes());
-                self.data.extend(frame.body.to_le_bytes());
+                self.append_i32(frame.anim);
+                self.append_i32(frame.body);
             }
             FrameData::Sound(frame) => {
-                self.data.extend(frame.channel.to_le_bytes());
-                self.data.extend((frame.sample.len() as i32).to_le_bytes());
-                self.data.extend_from_slice(frame.sample);
-                self.data.extend(frame.attenuation.to_le_bytes());
-                self.data.extend(frame.volume.to_le_bytes());
-                self.data.extend(frame.flags.to_le_bytes());
-                self.data.extend(frame.pitch.to_le_bytes());
+                self.append_i32(frame.channel);
+                self.append_u32(frame.sample.len() as u32);
+                self.append_u8_slice(frame.sample);
+                self.append_f32(frame.attenuation);
+                self.append_f32(frame.volume);
+                self.append_i32(frame.flags);
+                self.append_i32(frame.pitch);
             }
             FrameData::DemoBuffer(frame) => {
-                self.data.extend((frame.buffer.len() as u32).to_le_bytes());
-                self.data.extend_from_slice(frame.buffer);
+                self.append_u32(frame.buffer.len() as u32);
+                self.append_u8_slice(frame.buffer);
             }
             FrameData::NetMsg((type_, data)) => {
-                self.data.extend(data.info.timestamp.to_le_bytes());
+                self.append_f32(data.info.timestamp);
                 // ref_params
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .vieworg
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .viewangles
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .forward
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .right
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .up
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data
-                    .extend(data.info.ref_params.frametime.to_le_bytes());
-                self.data.extend(data.info.ref_params.time.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.intermission.to_le_bytes());
-                self.data.extend(data.info.ref_params.paused.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.spectator.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.onground.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.waterlevel.to_le_bytes());
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .simvel
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .simorg
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .viewheight
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data
-                    .extend(data.info.ref_params.idealpitch.to_le_bytes());
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .cl_viewangles
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data.extend(data.info.ref_params.health.to_le_bytes());
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .crosshairangle
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data
-                    .extend(data.info.ref_params.viewsize.to_le_bytes());
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .punchangle
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data
-                    .extend(data.info.ref_params.maxclients.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.viewentity.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.playernum.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.max_entities.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.demoplayback.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.hardware.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.smoothing.to_le_bytes());
-                self.data.extend(data.info.ref_params.ptr_cmd.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.ptr_movevars.to_le_bytes());
-                self.data.extend(
-                    data.info
-                        .ref_params
-                        .viewport
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data
-                    .extend(data.info.ref_params.next_view.to_le_bytes());
-                self.data
-                    .extend(data.info.ref_params.only_client_draw.to_le_bytes());
+                self.append_f32_array(data.info.ref_params.vieworg);
+                self.append_f32_array(data.info.ref_params.viewangles);
+                self.append_f32_array(data.info.ref_params.forward);
+                self.append_f32_array(data.info.ref_params.right);
+                self.append_f32_array(data.info.ref_params.up);
+                self.append_f32(data.info.ref_params.frametime);
+                self.append_f32(data.info.ref_params.time);
+                self.append_i32(data.info.ref_params.intermission);
+                self.append_i32(data.info.ref_params.paused);
+                self.append_i32(data.info.ref_params.spectator);
+                self.append_i32(data.info.ref_params.onground);
+                self.append_i32(data.info.ref_params.waterlevel);
+                self.append_f32_array(data.info.ref_params.simvel);
+                self.append_f32_array(data.info.ref_params.simorg);
+                self.append_f32_array(data.info.ref_params.viewheight);
+                self.append_f32(data.info.ref_params.idealpitch);
+                self.append_f32_array(data.info.ref_params.cl_viewangles);
+                self.append_i32(data.info.ref_params.health);
+                self.append_f32_array(data.info.ref_params.crosshairangle);
+                self.append_f32(data.info.ref_params.viewsize);
+                self.append_f32_array(data.info.ref_params.punchangle);
+                self.append_i32(data.info.ref_params.maxclients);
+                self.append_i32(data.info.ref_params.viewentity);
+                self.append_i32(data.info.ref_params.playernum);
+                self.append_i32(data.info.ref_params.max_entities);
+                self.append_i32(data.info.ref_params.demoplayback);
+                self.append_i32(data.info.ref_params.hardware);
+                self.append_i32(data.info.ref_params.smoothing);
+                self.append_i32(data.info.ref_params.ptr_cmd);
+                self.append_i32(data.info.ref_params.ptr_movevars);
+                self.append_i32_array_4(data.info.ref_params.viewport);
+                self.append_i32(data.info.ref_params.next_view);
+                self.append_i32(data.info.ref_params.only_client_draw);
                 // usercmd
-                self.data.extend(data.info.usercmd.lerp_msec.to_le_bytes());
-                self.data.extend(data.info.usercmd.msec.to_le_bytes());
-                self.data.extend(0u8.to_le_bytes()); // unknown
-                self.data.extend(
-                    data.info
-                        .usercmd
-                        .viewangles
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
-                self.data
-                    .extend(data.info.usercmd.forwardmove.to_le_bytes());
-                self.data.extend(data.info.usercmd.sidemove.to_le_bytes());
-                self.data.extend(data.info.usercmd.upmove.to_le_bytes());
-                self.data.extend(data.info.usercmd.lightlevel.to_le_bytes());
-                self.data.extend(0u8.to_le_bytes()); // unknown
-                self.data.extend(data.info.usercmd.buttons.to_le_bytes());
-                self.data.extend(data.info.usercmd.impulse.to_le_bytes());
-                self.data
-                    .extend(data.info.usercmd.weaponselect.to_le_bytes());
-                self.data.extend(0u8.to_le_bytes()); // unknown
-                self.data.extend(0u8.to_le_bytes()); // unknown
-                self.data
-                    .extend(data.info.usercmd.impact_index.to_le_bytes());
-                self.data.extend(
-                    data.info
-                        .usercmd
-                        .impact_position
-                        .iter()
-                        .map(|x| x.to_le_bytes())
-                        .flatten(),
-                );
+                self.append_i16(data.info.usercmd.lerp_msec);
+                self.append_u8(data.info.usercmd.msec);
+                self.append_u8(0u8); // unknown
+                self.append_f32_array(data.info.usercmd.viewangles);
+                self.append_f32(data.info.usercmd.forwardmove);
+                self.append_f32(data.info.usercmd.sidemove);
+                self.append_f32(data.info.usercmd.upmove);
+                self.append_i8(data.info.usercmd.lightlevel);
+                self.append_u8(0u8); // unknown
+                self.append_u16(data.info.usercmd.buttons);
+                self.append_i8(data.info.usercmd.impulse);
+                self.append_i8(data.info.usercmd.weaponselect);
+                self.append_u8(0u8); // unknown
+                self.append_u8(0u8); // unknown
+                self.append_i32(data.info.usercmd.impact_index);
+                self.append_f32_array(data.info.usercmd.impact_position);
                 // movevars
-                self.data.extend(data.info.movevars.gravity.to_le_bytes());
-                self.data.extend(data.info.movevars.stopspeed.to_le_bytes());
-                self.data.extend(data.info.movevars.maxspeed.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.spectatormaxspeed.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.accelerate.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.airaccelerate.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.wateraccelerate.to_le_bytes());
-                self.data.extend(data.info.movevars.friction.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.edgefriction.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.waterfriction.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.entgravity.to_le_bytes());
-                self.data.extend(data.info.movevars.bounce.to_le_bytes());
-                self.data.extend(data.info.movevars.stepsize.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.maxvelocity.to_le_bytes());
-                self.data.extend(data.info.movevars.zmax.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.wave_height.to_le_bytes());
-                self.data.extend(data.info.movevars.footsteps.to_le_bytes());
-                self.data.extend_from_slice(data.info.movevars.sky_name);
-                self.data.extend(data.info.movevars.rollangle.to_le_bytes());
-                self.data.extend(data.info.movevars.rollspeed.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.skycolor_r.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.skycolor_g.to_le_bytes());
-                self.data
-                    .extend(data.info.movevars.skycolor_b.to_le_bytes());
-                self.data.extend(data.info.movevars.skyvec_x.to_le_bytes());
-                self.data.extend(data.info.movevars.skyvec_y.to_le_bytes());
-                self.data.extend(data.info.movevars.skyvec_z.to_le_bytes());
+                self.append_f32(data.info.movevars.gravity);
+                self.append_f32(data.info.movevars.stopspeed);
+                self.append_f32(data.info.movevars.maxspeed);
+                self.append_f32(data.info.movevars.spectatormaxspeed);
+                self.append_f32(data.info.movevars.accelerate);
+                self.append_f32(data.info.movevars.airaccelerate);
+                self.append_f32(data.info.movevars.wateraccelerate);
+                self.append_f32(data.info.movevars.friction);
+                self.append_f32(data.info.movevars.edgefriction);
+                self.append_f32(data.info.movevars.waterfriction);
+                self.append_f32(data.info.movevars.entgravity);
+                self.append_f32(data.info.movevars.bounce);
+                self.append_f32(data.info.movevars.stepsize);
+                self.append_f32(data.info.movevars.maxvelocity);
+                self.append_f32(data.info.movevars.zmax);
+                self.append_f32(data.info.movevars.wave_height);
+                self.append_i32(data.info.movevars.footsteps);
+                self.append_u8_slice(data.info.movevars.sky_name);
+                self.append_f32(data.info.movevars.rollangle);
+                self.append_f32(data.info.movevars.rollspeed);
+                self.append_f32(data.info.movevars.skycolor_r);
+                self.append_f32(data.info.movevars.skycolor_g);
+                self.append_f32(data.info.movevars.skycolor_b);
+                self.append_f32(data.info.movevars.skyvec_x);
+                self.append_f32(data.info.movevars.skyvec_y);
+                self.append_f32(data.info.movevars.skyvec_z);
                 // still in info
-                self.data
-                    .extend(data.info.view.iter().map(|x| x.to_le_bytes()).flatten());
-                self.data.extend(data.info.viewmodel.to_le_bytes());
+                self.append_f32_array(data.info.view);
+                self.append_i32(data.info.viewmodel);
                 // now other data
-                self.data.extend(data.incoming_sequence.to_le_bytes());
-                self.data.extend(data.incoming_acknowledged.to_le_bytes());
-                self.data
-                    .extend(data.incoming_reliable_acknowledged.to_le_bytes());
-                self.data
-                    .extend(data.incoming_reliable_sequence.to_le_bytes());
-                self.data.extend(data.outgoing_sequence.to_le_bytes());
-                self.data.extend(data.reliable_sequence.to_le_bytes());
-                self.data.extend(data.last_reliable_sequence.to_le_bytes());
-                self.data.extend((data.msg.len() as u32).to_le_bytes());
-                self.data.extend_from_slice(data.msg);
+                self.append_i32(data.incoming_sequence);
+                self.append_i32(data.incoming_acknowledged);
+                self.append_i32(data.incoming_reliable_acknowledged);
+                self.append_i32(data.incoming_reliable_sequence);
+                self.append_i32(data.outgoing_sequence);
+                self.append_i32(data.reliable_sequence);
+                self.append_i32(data.last_reliable_sequence);
+                self.append_u32(data.msg.len() as u32);
+                self.append_u8_slice(data.msg);
             }
         }
     }
@@ -410,8 +262,18 @@ impl DemoWriter {
     }
 
     fn append_u8(&mut self, i: u8) {
-        self.data.push(i);
+        self.data.extend(i.to_le_bytes());
         self.offset += 1;
+    }
+
+    fn append_i8(&mut self, i: i8) {
+        self.data.extend(i.to_le_bytes());
+        self.offset += 1;
+    }
+
+    fn append_u16(&mut self, i: u16) {
+        self.data.extend(i.to_le_bytes());
+        self.offset += 2;
     }
 
     fn append_i16(&mut self, i: i16) {
@@ -428,5 +290,11 @@ impl DemoWriter {
         self.data
             .extend(i.iter().map(|x| x.to_le_bytes()).flatten());
         self.offset += 4 * 3;
+    }
+
+    fn append_i32_array_4(&mut self, i: [i32; 4]) {
+        self.data
+            .extend(i.iter().map(|x| x.to_le_bytes()).flatten());
+        self.offset += 4 * 4;
     }
 }
