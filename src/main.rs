@@ -3,67 +3,14 @@ extern crate hldemo;
 use std::fs::File;
 use std::io::Read;
 
+mod demo_doer;
 mod types;
 mod writer;
 
+use demo_doer::example;
 use hldemo::{FrameData, NetMsgData};
-use nom::{
-    bytes::complete::{tag, take_until, take_until1},
-    character::complete::char,
-    combinator::map,
-    multi::count,
-    number::complete::{le_i32, le_u8},
-    sequence::{terminated, tuple},
-    AsChar, IResult,
-};
-use types::{EngineMessageType, ServerInfo};
+use types::EngineMessageType;
 use writer::DemoWriter;
-
-fn parse_server_info(i: &[u8]) -> IResult<&[u8], ServerInfo> {
-    map(
-        tuple((
-            le_i32,
-            le_i32,
-            le_i32,
-            count(le_u8, 16),
-            le_u8,
-            le_u8,
-            le_u8,
-            terminated(take_until("\x00"), tag("\x00")),
-            terminated(take_until("\x00"), tag("\x00")),
-            terminated(take_until("\x00"), tag("\x00")),
-            terminated(take_until("\x00"), tag("\x00")),
-            le_u8,
-        )),
-        |(
-            protocol,
-            spawn_count,
-            map_checksum,
-            client_dll_hash,
-            max_players,
-            player_index,
-            is_deathmatch,
-            game_dir,
-            hostname,
-            map_file_name,
-            map_cycle,
-            unknown,
-        )| ServerInfo {
-            protocol,
-            spawn_count,
-            map_checksum,
-            client_dll_hash,
-            max_players,
-            player_index,
-            is_deathmatch,
-            game_dir,
-            hostname,
-            map_file_name,
-            map_cycle,
-            unknown,
-        },
-    )(i)
-}
 
 fn print_u8_array(i: &[u8]) {
     i.iter().for_each(|x| print!("{}", *x as char));
@@ -72,11 +19,12 @@ fn print_u8_array(i: &[u8]) {
 
 fn main() {
     let mut bytes = Vec::new();
-    let mut f = File::open("./example/gold.dem").unwrap();
+    let mut f = File::open("./example/anubis.dem").unwrap();
     f.read_to_end(&mut bytes);
 
-    let demo = hldemo::Demo::parse(&bytes).unwrap();
-    let mut what = DemoWriter::new(String::from("out_gold.dem"));
+    let mut demo = hldemo::Demo::parse(&bytes).unwrap();
+    example::example(&mut demo);
+    let mut what = DemoWriter::new(String::from("out_example.dem"));
     what.write_file(demo);
 
     // println!("{:?}", demo.directory.entries[1].frame_count);
