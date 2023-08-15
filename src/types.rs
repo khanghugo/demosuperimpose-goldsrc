@@ -3,16 +3,95 @@
 //     pub data: NetMsgMessageData,
 // }
 
+use std::{collections::HashMap, ops::BitAnd};
+
 pub struct Vec3<T> {
     pub x: T,
     pub y: T,
     pub z: T,
 }
 
+pub struct DeltaFieldDecoder<'a> {
+    pub bits: u32,
+    pub divisor: f32,
+    pub flags: DeltaType,
+    pub name: &'a [u8],
+    pub offset: i32,
+    pub pre_multiplier: i32,
+    pub size: u32,
+}
+
+#[repr(u32)]
+#[derive(Clone, Copy)]
+pub enum DeltaType {
+    Byte = 1,
+    Short = 1 << 1,
+    Float = 1 << 2,
+    Integer = 1 << 3,
+    Angle = 1 << 4,
+    TimeWindow8 = 1 << 5,
+    TimeWindowBig = 1 << 6,
+    String = 1 << 7,
+    Signed = 1 << 31,
+}
+
+impl BitAnd for DeltaType {
+    type Output = u32;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        self & rhs
+    }
+}
+
+pub type Delta = HashMap<String, String>;
+
+struct delta_s {
+    dynamic: i32,
+    field_count: i32,
+    conditional_encode_name: [u8; 32],
+    // TODO
+}
+
+pub struct delta_description_s {
+    pub field_type: i32,
+    pub field_name: [u8; 32],
+    pub field_offset: i32,
+    pub field_size: i16,
+    pub significant_bits: i32,
+    pub premultiply: f32,
+    pub postmultiply: f32,
+    pub flags: i16,
+    pub stats: delta_stats_t,
+}
+
+pub struct delta_stats_t {
+    pub send_count: i32,
+    pub received_count: i32,
+}
+
+pub struct DeltaDecoderS<'a> {
+    pub name: &'a [u8],
+    pub bits: u32,
+    pub divisor: i32,
+    pub flags: DeltaType,
+}
+
+pub type DeltaDecoder<'a> = Vec<DeltaDecoderS<'a>>;
+pub type DeltaDecoderTable<'a> = HashMap<String, &'a [u8]>;
+
+// pub struct delta_description_t<'a> {
+//     flags: u32,
+//     name:
+// }
+
 // UserMessage
 pub struct NetMsgUserMessage<'a> {
     pub message: &'a [u8],
 }
+
+// SVC_BAD 0
+
+// SVC_NOP 1
 
 // SVC_DISCONNECT 2
 pub struct SvcDisconnect<'a> {
@@ -20,10 +99,21 @@ pub struct SvcDisconnect<'a> {
 }
 
 // SVC_EVENT 3
-pub struct SvcEvent {
-    pub event_count: [bool; 5],
+pub struct SvcEvent<'a> {
+    /// [bool; 5]
+    pub event_count: Vec<bool>,
+    pub events: &'a [Event],
+}
+
+pub struct Event {
+    pub event_index: [bool; 10],
+    pub has_packet_index: bool,
+    pub packet_index: Option<[bool; 11]>,
+    pub has_delta: Option<bool>,
     // TODO
-    rest: u8,
+    pub delta: u8,
+    pub has_fire_time: bool,
+    pub fire_time: [bool; 16],
 }
 
 // SVC_VERSION 4

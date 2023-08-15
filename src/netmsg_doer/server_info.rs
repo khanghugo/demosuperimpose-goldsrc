@@ -60,15 +60,10 @@ impl<'a> NetMsgDoer<'a, SvcServerInfo<'a>> for ServerInfo {
         writer.append_u8(i.max_players);
         writer.append_u8(i.player_index);
         writer.append_u8(i.is_deathmatch);
-        // Stupid: If I can make parser take null terminator then there's no need to append it here.
         writer.append_u8_slice(i.game_dir);
-        writer.append_u8(0u8);
         writer.append_u8_slice(i.hostname);
-        writer.append_u8(0u8);
         writer.append_u8_slice(i.map_file_name);
-        writer.append_u8(0u8);
         writer.append_u8_slice(i.map_cycle);
-        writer.append_u8(0u8);
         writer.append_u8(i.unknown);
 
         writer.data

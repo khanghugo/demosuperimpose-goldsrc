@@ -1,7 +1,10 @@
 use nom::{
+    bits,
+    bits::complete::take as take_bit,
+    bytes,
     bytes::complete::{tag, take, take_until, take_until1},
     character::complete::char,
-    combinator::map,
+    combinator::{map, peek},
     multi::count,
     number::complete::{le_i32, le_u8},
     sequence::{terminated, tuple},
@@ -12,6 +15,9 @@ use crate::types::*;
 use crate::writer::*;
 
 pub mod disconnect;
+pub mod event;
+// pub mod version;
+// pub mod setview;
 pub mod server_info;
 pub mod user_message;
 pub mod utils;

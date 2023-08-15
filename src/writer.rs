@@ -1,3 +1,6 @@
+use bitvec::field::BitField;
+use bitvec::slice::BitSlice;
+use bitvec::vec::BitVec;
 use hldemo::{Demo, Directory, DirectoryEntry, Frame, FrameData, Header};
 use std::fs;
 use std::io::Write;
@@ -71,6 +74,42 @@ impl ByteWriter {
         self.data
             .extend(i.iter().map(|x| x.to_le_bytes()).flatten());
         self.offset(4 * 4);
+    }
+}
+
+#[derive(Debug)]
+pub struct BitWriter {
+    pub data: BitVec<u8, bitvec::order::Lsb0>,
+    pub offset: usize,
+}
+
+impl BitWriter {
+    pub fn new() -> Self {
+        Self {
+            data: BitVec::new(),
+            offset: 0,
+        }
+    }
+
+    fn offset(&mut self, i: usize) {
+        self.offset += i;
+    }
+
+    pub fn append_bit(&mut self, i: bool) {
+        self.data.push(i);
+        self.offset(1);
+    }
+
+    pub fn append_slice(&mut self, i: &[bool]) {
+        self.data.extend(i);
+        self.offset(i.len());
+    }
+
+    pub fn get_u8_vec(&mut self) -> Vec<u8> {
+        // https://github.com/ferrilab/bitvec/issues/27
+        let mut what = self.data.to_owned();
+        what.force_align();
+        what.into_vec()
     }
 }
 
