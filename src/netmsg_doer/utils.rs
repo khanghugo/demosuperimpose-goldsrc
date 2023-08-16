@@ -116,8 +116,8 @@ pub fn bitslice_to_u8_vec(i: &BitSlice<u8>) -> Vec<u8> {
     i.chunks(8).map(|chunk| bitslice_to_u8(chunk)).collect()
 }
 
-fn check_flag(lhs: DeltaType, rhs: DeltaType) -> bool {
-    lhs as u8 & rhs as u8 != 0
+fn check_flag(lhs: u32, rhs: DeltaType) -> bool {
+    lhs as u32 & rhs as u32 != 0
 }
 
 // Wraps bytes into bits because doing this with nom is a very bad idea.
@@ -276,44 +276,44 @@ pub fn get_initial_delta<'a>() -> DeltaDecoderTable<'a> {
     let e1 = DeltaDecoderS {
         name: b"flags",
         bits: 32,
-        divisor: 1,
-        flags: DeltaType::Integer,
+        divisor: 1.,
+        flags: DeltaType::Integer as u32,
     };
     let e2 = DeltaDecoderS {
         name: b"name",
         bits: 8,
-        divisor: 1,
-        flags: DeltaType::String,
+        divisor: 1.,
+        flags: DeltaType::String as u32,
     };
     let e3 = DeltaDecoderS {
         name: b"offset",
         bits: 16,
-        divisor: 1,
-        flags: DeltaType::Integer,
+        divisor: 1.,
+        flags: DeltaType::Integer as u32,
     };
     let e4 = DeltaDecoderS {
         name: b"size",
         bits: 8,
-        divisor: 1,
-        flags: DeltaType::Integer,
+        divisor: 1.,
+        flags: DeltaType::Integer as u32,
     };
     let e5 = DeltaDecoderS {
         name: b"bits",
         bits: 8,
-        divisor: 1,
-        flags: DeltaType::Integer,
+        divisor: 1.,
+        flags: DeltaType::Integer as u32,
     };
     let e6 = DeltaDecoderS {
         name: b"divisor",
         bits: 32,
-        divisor: 4000,
-        flags: DeltaType::Float,
+        divisor: 4000.,
+        flags: DeltaType::Float as u32,
     };
     let e7 = DeltaDecoderS {
         name: b"preMultiplier",
         bits: 32,
-        divisor: 4000,
-        flags: DeltaType::Float,
+        divisor: 4000.,
+        flags: DeltaType::Float as u32,
     };
 
     let default_decoder = vec![e1, e2, e3, e4, e5, e6, e7];

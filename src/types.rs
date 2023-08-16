@@ -69,11 +69,15 @@ pub struct delta_stats_t {
     pub received_count: i32,
 }
 
+#[derive(Debug)]
+/// A simplified struct of delta_description_s
+/// 
+/// Lots of info end up unused.
 pub struct DeltaDecoderS<'a> {
     pub name: &'a [u8],
     pub bits: u32,
-    pub divisor: i32,
-    pub flags: DeltaType,
+    pub divisor: f32,
+    pub flags: u32,
 }
 
 pub type Delta = HashMap<String, Vec<u8>>;

@@ -1,4 +1,5 @@
 use super::*;
+use std::convert::TryInto;
 
 pub struct DeltaDescription {}
 impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {
@@ -12,15 +13,22 @@ impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {
         // Delta description is usually in LOADING section and first frame message.
         // It will detail the deltas being used and its index for correct decoding.
         // So this would be the only message that modifies the delta decode table.
-        // delta_decoders.insert(from_utf8(name).unwrap().to_string(), vec![]);
-        // delta_decoders.get(k)
-
         let mut br = BitReader::new(i);
         let data: Vec<Delta> = (0..total_fields)
             .map(|_| parse_delta(delta_decoders.get("delta_description_t").unwrap(), &mut br))
             .collect();
 
-        println!("{:?}", data);
+        let decoder: DeltaDecoder = data.iter().map(|entry| DeltaDecoderS {
+            name,
+            bits: u32::from_le_bytes(entry.get("bits").unwrap().as_slice().try_into().unwrap()), // huh
+            divisor: f32::from_le_bytes(entry.get("divisor").unwrap().as_slice().try_into().unwrap()),
+            flags: u32::from_le_bytes(entry.get("flags").unwrap().as_slice().try_into().unwrap()),
+        }).collect();
+
+
+        // println!("{:?}", data);
+        
+        println!("{:?}", decoder);
         todo!()
     }
 
