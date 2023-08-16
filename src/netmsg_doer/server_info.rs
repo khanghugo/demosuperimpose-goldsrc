@@ -2,7 +2,7 @@ use super::*;
 
 pub struct ServerInfo {}
 impl<'a> NetMsgDoer<'a, SvcServerInfo<'a>> for ServerInfo {
-    fn parse(i: &'a [u8]) -> IResult<&[u8], SvcServerInfo> {
+    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcServerInfo<'a>> {
         map(
             tuple((
                 le_i32,

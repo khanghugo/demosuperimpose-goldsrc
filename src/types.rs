@@ -5,6 +5,8 @@
 
 use std::{collections::HashMap, ops::BitAnd};
 
+use bitvec::{slice::BitSlice, vec::BitVec};
+
 pub struct Vec3<T> {
     pub x: T,
     pub y: T,
@@ -35,15 +37,13 @@ pub enum DeltaType {
     Signed = 1 << 31,
 }
 
-impl BitAnd for DeltaType {
-    type Output = u32;
+// impl BitAnd for DeltaType {
+//     type Output = u32;
 
-    fn bitand(self, rhs: Self) -> Self::Output {
-        self & rhs
-    }
-}
-
-pub type Delta = HashMap<String, String>;
+//     fn bitand(self, rhs: Self) -> Self::Output {
+//         self & rhs
+//     }
+// }
 
 struct delta_s {
     dynamic: i32,
@@ -76,8 +76,11 @@ pub struct DeltaDecoderS<'a> {
     pub flags: DeltaType,
 }
 
+pub type Delta = HashMap<String, Vec<u8>>;
 pub type DeltaDecoder<'a> = Vec<DeltaDecoderS<'a>>;
-pub type DeltaDecoderTable<'a> = HashMap<String, &'a [u8]>;
+pub type DeltaDecoderTable<'a> = HashMap<String, DeltaDecoder<'a>>;
+
+pub type BitType = BitVec<u8>;
 
 // pub struct delta_description_t<'a> {
 //     flags: u32,
@@ -89,44 +92,46 @@ pub struct NetMsgUserMessage<'a> {
     pub message: &'a [u8],
 }
 
-// SVC_BAD 0
+/// SVC_BAD 0
 
-// SVC_NOP 1
+/// SVC_NOP 1
 
-// SVC_DISCONNECT 2
+/// SVC_DISCONNECT 2
 pub struct SvcDisconnect<'a> {
     pub reason: &'a [u8],
 }
 
-// SVC_EVENT 3
+/// SVC_EVENT 3
 pub struct SvcEvent<'a> {
     /// [bool; 5]
     pub event_count: Vec<bool>,
-    pub events: &'a [Event],
+    pub events: Vec<EventS<'a>>,
 }
 
-pub struct Event {
-    pub event_index: [bool; 10],
+pub struct EventS<'a> {
+    /// [bool; 10]
+    pub event_index: BitType,
     pub has_packet_index: bool,
-    pub packet_index: Option<[bool; 11]>,
+    /// [bool; 11]
+    pub packet_index: Option<BitType>,
     pub has_delta: Option<bool>,
     // TODO
-    pub delta: u8,
+    pub delta: DeltaDecoder<'a>,
     pub has_fire_time: bool,
     pub fire_time: [bool; 16],
 }
 
-// SVC_VERSION 4
+/// SVC_VERSION 4
 pub struct SvcVersion {
     protocol_version: u32,
 }
 
-// SVC_SETVIEW 5
+/// SVC_SETVIEW 5
 pub struct SvcSetView {
     entity_index: i16,
 }
 
-// SVC_SOUND 6
+/// SVC_SOUND 6
 pub struct SvcSound {
     pub flags: [bool; 9],
     pub volume: Option<u8>,
@@ -153,29 +158,29 @@ pub struct OriginCoord {
     pub unknown: [bool; 2],
 }
 
-// SVC_TIME 7
+/// SVC_TIME 7
 pub struct SvcTime {
     pub time: f32,
 }
 
-// SVC_PRINT 8
+/// SVC_PRINT 8
 pub struct SvcPrint<'a> {
     pub message: &'a [u8],
 }
 
-// SVC_STUFFTEXT 9
+/// SVC_STUFFTEXT 9
 pub struct SvcStuffText<'a> {
     pub command: &'a [u8],
 }
 
-// SVC_SETANGLE 10
+/// SVC_SETANGLE 10
 pub struct SvcSetAngle {
     pub pitch: i16,
     pub yaw: i16,
     pub roll: i16,
 }
 
-// SVC_SERVERINFO 11
+/// SVC_SERVERINFO 11
 #[derive(Debug)]
 pub struct SvcServerInfo<'a> {
     pub protocol: i32,
@@ -193,13 +198,13 @@ pub struct SvcServerInfo<'a> {
     pub unknown: u8,
 }
 
-// SVC_LIGHTSTYLE 12
+/// SVC_LIGHTSTYLE 12
 pub struct SvcLightStyle<'a> {
     pub index: u8,
     pub light_info: &'a [u8],
 }
 
-// SVC_UPDATEUSERINFO 13
+/// SVC_UPDATEUSERINFO 13
 pub struct SvcUpdateUserInfo<'a> {
     pub index: u8,
     pub id: u32,
@@ -207,28 +212,32 @@ pub struct SvcUpdateUserInfo<'a> {
     pub cd_key_hash: [u8; 16],
 }
 
-// SVC_DELTADESCRIPTION 14
+/// SVC_DELTADESCRIPTION 14
 pub struct SvcDeltaDescription<'a> {
     pub name: &'a [u8],
     pub total_fields: u16,
-    // TODO
-    pub fields: u8,
+    pub fields: Vec<DeltaDecoder<'a>>,
 }
 
-// SVC_CLIENTDATA 15
+/// SVC_CLIENTDATA 15
+#[derive(Debug)]
 pub struct SvcClientData {
     pub has_delta_update_mask: bool,
-    pub delta_update_mask: Option<u8>,
-    // TODO
-    pub client_data: u8,
+    /// [bool; 8]
+    pub delta_update_mask: Option<BitType>,
+    pub client_data: Delta,
+    pub has_weapon_data: bool,
+    /// [bool; 6]
+    pub weapon_index: Option<BitType>,
+    pub weapon_data: Option<Delta>,
 }
 
-// SVC_STOPSOUND 16
+/// SVC_STOPSOUND 16
 pub struct SvcStopSound {
     pub entity_index: i16,
 }
 
-// SVC_PINGS 17
+/// SVC_PINGS 17
 pub struct SvcPings {
     pub pings: Vec<Ping>,
 }
@@ -240,7 +249,7 @@ pub struct Ping {
     pub loss: Option<u8>,
 }
 
-// SVC_PARTICLE 18
+/// SVC_PARTICLE 18
 pub struct SvcParticle {
     pub origin: Vec3<i16>,
     pub direction: Vec3<i8>,
@@ -248,9 +257,9 @@ pub struct SvcParticle {
     pub color: u8,
 }
 
-// SVC_PARTICLE 19
+/// SVC_PARTICLE 19
 
-// SVC_SPAWNSTATIC 20
+/// SVC_SPAWNSTATIC 20
 pub struct SvcSpawnStatic {
     pub model_index: i16,
     pub sequence: i8,
@@ -267,14 +276,14 @@ pub struct SvcSpawnStatic {
     pub render_color: Option<[u8; 3]>,
 }
 
-// SVC_EVENTRELIABLE 21
+/// SVC_EVENTRELIABLE 21
 pub struct SvcEventReliable {
     pub event_index: [bool; 10],
     // TODO
     pub rest: u8,
 }
 
-// SVC_SPAWNBASELINE 22
+/// SVC_SPAWNBASELINE 22
 pub struct SvcSpawnBaseline {
     pub entities: Vec<Entity>,
 }
@@ -286,7 +295,7 @@ pub struct Entity {
     pub rest: u8,
 }
 
-// SVC_TEMPENTITY 23
+/// SVC_TEMPENTITY 23
 pub struct SvcTempEntity<'a> {
     entity_type: u8,
     entity: TempEntityEntity<'a>,
@@ -374,26 +383,26 @@ pub struct TeTextMessage<'a> {
     pub mesage: &'a [u8],
 }
 
-// SVC_SETPAUSE 24
+/// SVC_SETPAUSE 24
 pub struct SvcSetPause {
     pub is_paused: u8,
 }
 
-// SVC_SIGNONNUM 25
+/// SVC_SIGNONNUM 25
 pub struct SvcSigonNum {
     sign: u8,
 }
 
-// SVC_CENTERPRINT 26
+/// SVC_CENTERPRINT 26
 pub struct SvcCenterPrint<'a> {
     message: &'a [u8],
 }
 
-// SVC_KILLEDMONSTER 27
+/// SVC_KILLEDMONSTER 27
 
-// SVC_FOUNDSECRET 28
+/// SVC_FOUNDSECRET 28
 
-// SVC_SPAWNSTATICSOUND 29
+/// SVC_SPAWNSTATICSOUND 29
 pub struct SvcSpawnStaticSound {
     pub origin: Vec3<i16>,
     pub sound_index: u16,
@@ -404,61 +413,61 @@ pub struct SvcSpawnStaticSound {
     pub flags: u8,
 }
 
-// SVC_INTERMISSION 30
+/// SVC_INTERMISSION 30
 
-// SVC_FINALE 31
+/// SVC_FINALE 31
 pub struct SvcFinale<'a> {
     pub text: &'a [u8],
 }
 
-// SVC_CDTRACK 32
+/// SVC_CDTRACK 32
 pub struct SvcCdTrack {
     pub track: i8,
     pub loop_track: i8,
 }
 
-// SVC_RESTORE 33
+/// SVC_RESTORE 33
 pub struct SvcRestore<'a> {
     pub save_name: &'a [u8],
     pub map_count: u8,
     pub map_names: &'a [u8],
 }
 
-// SVC_CUTSCENE 34
+/// SVC_CUTSCENE 34
 pub struct SvcCutScene<'a> {
     pub text: &'a [u8],
 }
 
-// SVC_WEAPONANIM 35
+/// SVC_WEAPONANIM 35
 pub struct SvcWeaponAnim {
     pub sequence_number: i8,
     pub weapon_model_body_group: i8,
 }
 
-// SVC_DECALNAME 36
+/// SVC_DECALNAME 36
 pub struct SvcDecalname<'a> {
     pub position_index: u8,
     pub decal_name: &'a [u8],
 }
 
-// SVC_ROOMTYPE 37
+/// SVC_ROOMTYPE 37
 pub struct SvcRoomType {
     pub room_type: u16,
 }
 
-// SVC_ADDANGLE 38
+/// SVC_ADDANGLE 38
 pub struct SvcAddAngle {
     pub angle_to_add: i16,
 }
 
-// SVC_NEWUSERMSG 39
+/// SVC_NEWUSERMSG 39
 pub struct SvcNewUserMsg {
     pub index: u8,
     pub size: u8,
     pub name: [u8; 16],
 }
 
-// SVC_PACKETENTITIES (40)
+/// SVC_PACKETENTITIES (40)
 struct SvcPacketEntities {
     pub entity_count: u16,
     pub entity_states: Vec<EntityState>,
@@ -475,16 +484,16 @@ pub struct EntityState {
     delta: u8,
 }
 
-// SVC_DELTAPACKETENTITIES 41
+/// SVC_DELTAPACKETENTITIES 41
 pub struct SvcDeltaPacketEntities {
     pub entity_count: u16,
     pub delta_sequence: u8,
     pub entity_states: Vec<EntityState>,
 }
 
-// SVC_CHOKE 42
+/// SVC_CHOKE 42
 
-// SVC_RESOURCELIST 43
+/// SVC_RESOURCELIST 43
 pub struct SvcResourceList<'a> {
     pub resource_count: [bool; 12],
     pub resources: Vec<Resource<'a>>,
@@ -509,7 +518,7 @@ pub struct Consistency {
     pub long_index: Option<[bool; 10]>,
 }
 
-// SVC_NEWMOVEVARS 44
+/// SVC_NEWMOVEVARS 44
 pub struct SvcNewMoveVars<'a> {
     pub gravity: f32,
     pub stop_speed: f32,
@@ -535,13 +544,13 @@ pub struct SvcNewMoveVars<'a> {
     pub sky_name: &'a [u8],
 }
 
-// SVC_RESOURCEREQUEST 45
+/// SVC_RESOURCEREQUEST 45
 pub struct SvcResourceRequest {
     pub spawn_count: i32,
     pub unknown: u32,
 }
 
-// SVC_CUSTOMIZATION 46
+/// SVC_CUSTOMIZATION 46
 pub struct SvcCustomization<'a> {
     pub player_index: u8,
     pub type_: u8,
@@ -552,13 +561,13 @@ pub struct SvcCustomization<'a> {
     pub md5_hash: Option<[u8; 16]>,
 }
 
-// SVC_CROSSHAIRANGLE 47
+/// SVC_CROSSHAIRANGLE 47
 pub struct SvcCrosshairAngle {
     pub pitch: i16,
     pub yaw: i16,
 }
 
-// SVC_SOUNDFADE 48
+/// SVC_SOUNDFADE 48
 pub struct SvcSoundFade {
     pub initial_percent: u8,
     pub hold_time: u8,
@@ -566,58 +575,58 @@ pub struct SvcSoundFade {
     pub fade_in_time: u8,
 }
 
-// SVC_FILETXFERFAILED 49
+/// SVC_FILETXFERFAILED 49
 pub struct SvcFileTxferFailed<'a> {
     pub file_name: &'a [u8],
 }
 
-// SVC_HLTV 50
+/// SVC_HLTV 50
 pub struct SvcHltv {
     pub mode: u8,
 }
 
-// SVC_DIRECTOR 51
+/// SVC_DIRECTOR 51
 pub struct SvcDirector<'a> {
     pub length: u8,
     pub flag: u8,
     pub message: &'a [u8],
 }
 
-// SVC_VOINCEINIT 52
+/// SVC_VOINCEINIT 52
 pub struct SvcVoiceInit<'a> {
     pub codec_name: &'a [u8],
     pub quality: i8,
 }
 
-// SVC_VOICEDATA 53
+/// SVC_VOICEDATA 53
 pub struct SvcVoiceData<'a> {
     pub player_index: u8,
     pub size: u16,
     pub data: &'a [u8],
 }
 
-// SVC_SENDEXTRAINFO 54
+/// SVC_SENDEXTRAINFO 54
 pub struct SvcSendExtraInfo<'a> {
     pub fallback_dir: &'a [u8],
     pub can_cheat: u8,
 }
 
-// SVC_TIMESCALE 55
+/// SVC_TIMESCALE 55
 pub struct SvcTimeScale {
     pub time_scale: f32,
 }
 
-// SVC_RESOURCELOCATION 56
+/// SVC_RESOURCELOCATION 56
 pub struct SvcResourceLocation<'a> {
     pub download_url: &'a [u8],
 }
 
-// SVC_SENDCVARVALUE 57
+/// SVC_SENDCVARVALUE 57
 pub struct SvcSendCvarValue<'a> {
     pub name: &'a [u8],
 }
 
-// SVC_SENDCVARVALUE2 58
+/// SVC_SENDCVARVALUE2 58
 pub struct SvcSendCvarValue2<'a> {
     pub request_id: u32,
     name: &'a [u8],

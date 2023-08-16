@@ -9,7 +9,7 @@ pub struct ByteWriter {
     pub data: Vec<u8>,
     // Offset isn't really needed because we do vector and we can find offset easily.
     // But all in the spirit of 🚀.
-    pub offset: usize,
+    offset: usize,
 }
 
 impl ByteWriter {

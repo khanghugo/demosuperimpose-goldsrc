@@ -2,7 +2,7 @@ use super::*;
 
 pub struct UserMessage {}
 impl<'a> NetMsgDoer<'a, NetMsgUserMessage<'a>> for UserMessage {
-    fn parse(i: &'a [u8]) -> IResult<&[u8], NetMsgUserMessage> {
+    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], NetMsgUserMessage<'a>> {
         let (i, length) = le_u8(i)?;
         map(take(length), |x| NetMsgUserMessage { message: x })(i)
     }

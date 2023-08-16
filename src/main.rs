@@ -7,7 +7,10 @@ mod demo_doer;
 mod types;
 mod writer;
 
+use bitvec::bits;
+use bitvec::prelude::*;
 use demo_doer::example;
+use demosuperimpose_goldsrc::writer::BitWriter;
 use hldemo::{FrameData, NetMsgData};
 use types::EngineMessageType;
 use writer::DemoWriter;
@@ -19,13 +22,25 @@ fn print_u8_array(i: &[u8]) {
 
 fn main() {
     let mut bytes = Vec::new();
-    let mut f = File::open("./example/anubis.dem").unwrap();
+    let mut f = File::open("./example/gold.dem").unwrap();
     f.read_to_end(&mut bytes);
 
     let mut demo = hldemo::Demo::parse(&bytes).unwrap();
     example::example(&mut demo);
-    let mut what = DemoWriter::new(String::from("out_example.dem"));
-    what.write_file(demo);
+
+    // let mut what = DemoWriter::new(String::from("out_example.dem"));
+    // what.write_file(demo);
+
+    // let mut what = BitWriter::new();
+    // for _ in 0..63 {
+    //     what.append_bit(true);
+    // }
+    // what.append_slice(&[true, true]);
+    // // let huh = what.get_u8_slice();
+    // println!("{:?}", what.get_u8_vec());
+
+    // let immut = bits![u8, Lsb0; 0, 1, 0, 0, 1, 0, 0, 1];
+    // println!("{}", immut);
 
     // println!("{:?}", demo.directory.entries[1].frame_count);
     // println!("{:?}", demo.directory.entries[1].frames.len());

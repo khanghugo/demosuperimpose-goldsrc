@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::str::from_utf8;
 
 use bitvec::prelude::*;
@@ -49,8 +48,56 @@ pub fn vec_bool_to_u32(i: Vec<bool>) -> u32 {
         .fold(0u32, |acc, (idx, e)| acc | ((*e as u32) << idx))
 }
 
+pub trait BitSliceCast {
+    fn to_u8(&self) -> u8;
+    fn to_i8(&self) -> i8;
+    fn to_u16(&self) -> u16;
+    fn to_i16(&self) -> i16;
+    fn to_u32(&self) -> u32;
+    fn to_i32(&self) -> i32;
+}
+
+impl BitSliceCast for BitSlice<u8> {
+    fn to_u8(&self) -> u8 {
+        self.load::<u8>()
+    }
+
+    fn to_i8(&self) -> i8 {
+        self.load::<i8>()
+    }
+
+    fn to_u16(&self) -> u16 {
+        self.load::<u16>()
+    }
+
+    fn to_i16(&self) -> i16 {
+        self.load::<i16>()
+    }
+
+    fn to_u32(&self) -> u32 {
+        self.load::<u32>()
+    }
+
+    fn to_i32(&self) -> i32 {
+        self.load::<i32>()
+    }
+}
+
+// https://github.com/ferrilab/bitvec/issues/64
 pub fn bitslice_to_u8(i: &BitSlice<u8>) -> u8 {
     i.load::<u8>()
+}
+
+pub fn bitslice_to_i8(i: &BitSlice<u8>) -> i8 {
+    i.load::<i8>()
+}
+
+pub fn bitslice_to_u16(i: &BitSlice<u8>) -> u16 {
+    i.load::<u16>()
+}
+
+pub fn bitslice_to_i16(i: &BitSlice<u8>) -> i16 {
+    i.load::<i16>()
 }
 
 pub fn bitslice_to_u32(i: &BitSlice<u8>) -> u32 {
@@ -61,12 +108,16 @@ pub fn bitslice_to_i32(i: &BitSlice<u8>) -> i32 {
     i.load::<i32>()
 }
 
+// pub fn bitslice_to_f32(i: &BitSlice<u8>) -> f32 {
+//     i.load::<f32>()
+// }
+
 pub fn bitslice_to_u8_vec(i: &BitSlice<u8>) -> Vec<u8> {
     i.chunks(8).map(|chunk| bitslice_to_u8(chunk)).collect()
 }
 
 fn check_flag(lhs: DeltaType, rhs: DeltaType) -> bool {
-    lhs & rhs != 0
+    lhs as u8 & rhs as u8 != 0
 }
 
 // Wraps bytes into bits because doing this with nom is a very bad idea.
@@ -77,7 +128,7 @@ pub struct BitReader {
 }
 
 impl BitReader {
-    fn new(bytes: &[u8]) -> Self {
+    pub fn new(bytes: &[u8]) -> Self {
         BitReader {
             bytes: BitVec::from_slice(bytes),
             offset: 0,
@@ -100,9 +151,13 @@ impl BitReader {
     pub fn read_string(&mut self) -> &BitSlice<u8> {
         let start = self.offset;
 
-        while self.peek_byte() != 0 {
+        // The second condition is to make sure we are aligned.
+        while self.peek_byte() != 0 || (self.peek_byte() == 0 && (self.offset - start) % 8 != 0) {
             self.offset += 1;
         }
+
+        // Includes the null terminator.
+        self.offset += 8;
 
         &self.bytes[start..self.offset]
     }
@@ -112,18 +167,29 @@ impl BitReader {
         bitslice_to_u8(&self.bytes[self.offset..self.offset + 8])
     }
 
-    fn get_offset(&self) -> usize {
+    pub fn get_offset(&self) -> usize {
         self.offset
     }
-}
-// Parser input takes in bit stream. Any struct afterward has to be included with delta parsing
-// because padding is done at the end of the message, not delta.
-// Bit parsing will be done imperatively with custom bit parsing and consumed accordingly for every byte with nom
-pub fn parse_delta(dd: DeltaDecoder, br: &mut BitReader) -> HashMap<String, Vec<u8>> {
-    let mut res: HashMap<String, Vec<u8>> = HashMap::new();
 
+    /// Returns the number of bits read into bytes.
+    pub fn get_consumed_bytes(&self) -> usize {
+        let current_bit = self.get_offset();
+        let modulo = current_bit % 8;
+        let remaining_bits = if modulo == 0 { 0 } else { 8 - modulo };
+        let consumed_bytes = (current_bit + remaining_bits) / 8;
+
+        consumed_bytes
+    }
+}
+
+// very big TODO: do whole thing with nom
+// chaining conditions right now with nom is a bit very difficult to work with
+pub fn parse_delta<'a>(dd: &DeltaDecoder, br: &'a mut BitReader) -> Delta {
+    let mut res: Delta = Delta::new();
     let mask_byte_count = bitslice_to_u8(br.read_n_bit(3)) as usize;
-    let mut mask_byte = vec![0u8; mask_byte_count];
+    let mask_byte: Vec<u8> = (0..mask_byte_count)
+        .map(|_| bitslice_to_u8(br.read_n_bit(8)))
+        .collect();
 
     for i in 0..mask_byte_count {
         for j in 0..8 {
@@ -140,38 +206,119 @@ pub fn parse_delta(dd: DeltaDecoder, br: &mut BitReader) -> HashMap<String, Vec<
             let curr = &dd[index];
             let lhs = curr.flags;
             let key = from_utf8(curr.name).unwrap().to_owned();
-            if check_flag(lhs, DeltaType::Angle) {
+
+            if check_flag(lhs, DeltaType::Byte) {
+                if check_flag(lhs, DeltaType::Signed) {
+                    let sign = if br.read_1_bit() { -1 } else { 1 };
+                    let value = bitslice_to_i8(br.read_n_bit(curr.bits as usize - 1));
+                    let res_value = ((sign * value) / curr.divisor as i8).to_le_bytes();
+                    res.insert(key, res_value.to_vec());
+                } else {
+                    let value = bitslice_to_u8(br.read_n_bit(curr.bits as usize));
+                    let res_value = (value / curr.divisor as u8).to_le_bytes();
+                    res.insert(key, res_value.to_vec());
+                }
+            } else if check_flag(lhs, DeltaType::Short) {
+                if check_flag(lhs, DeltaType::Signed) {
+                    let sign = if br.read_1_bit() { -1 } else { 1 };
+                    let value = bitslice_to_i16(br.read_n_bit(curr.bits as usize - 1));
+                    let res_value = ((sign * value) / curr.divisor as i16).to_le_bytes();
+                    res.insert(key, res_value.to_vec());
+                } else {
+                    let value = bitslice_to_u16(br.read_n_bit(curr.bits as usize));
+                    let res_value = (value / curr.divisor as u16).to_le_bytes();
+                    res.insert(key, res_value.to_vec());
+                }
+            } else if check_flag(lhs, DeltaType::Integer) {
+                if check_flag(lhs, DeltaType::Signed) {
+                    let sign = if br.read_1_bit() { -1 } else { 1 };
+                    let value = bitslice_to_i32(br.read_n_bit(curr.bits as usize - 1));
+                    let res_value = ((sign * value) / curr.divisor as i32).to_le_bytes();
+                    res.insert(key, res_value.to_vec());
+                } else {
+                    let value = bitslice_to_u32(br.read_n_bit(curr.bits as usize));
+                    let res_value = (value / curr.divisor as u32).to_le_bytes();
+                    res.insert(key, res_value.to_vec());
+                }
+            } else if check_flag(lhs, DeltaType::Float)
+                || check_flag(lhs, DeltaType::TimeWindow8)
+                || check_flag(lhs, DeltaType::TimeWindowBig)
+            {
+                if check_flag(lhs, DeltaType::Signed) {
+                    let sign = if br.read_1_bit() { -1 } else { 1 };
+                    let value = bitslice_to_i32(br.read_n_bit(curr.bits as usize - 1));
+                    let res_value = (((sign * value) as f32) / (curr.divisor as f32)).to_le_bytes();
+                    res.insert(key, res_value.to_vec());
+                } else {
+                    let value = bitslice_to_u32(br.read_n_bit(curr.bits as usize));
+                    let res_value = ((value as f32) / (curr.divisor as f32)).to_le_bytes();
+                    res.insert(key, res_value.to_vec());
+                }
+            } else if check_flag(lhs, DeltaType::Angle) {
                 let value = bitslice_to_i32(br.read_n_bit(curr.bits as usize));
                 let multiplier = 360f32 / (1 << curr.bits) as f32;
-
                 let res_value = (value as f32 * multiplier).to_le_bytes();
-
                 res.insert(key, res_value.to_vec());
             } else if check_flag(lhs, DeltaType::String) {
                 res.insert(key, bitslice_to_u8_vec(br.read_string()));
             } else {
-                // TODO minor refactor because oCD
-                // TODO read signed can just read normal 32 then cast accordingly
-                let (sign, value) = if check_flag(lhs, DeltaType::Signed) {
-                    let sign = br.read_1_bit();
-                    let value = bitslice_to_i32(br.read_n_bit(curr.bits as usize - 1));
-                    if sign {
-                        (-1, value)
-                    } else {
-                        (1, value)
-                    }
-                } else {
-                    (1, bitslice_to_i32(br.read_n_bit(curr.bits as usize)))
-                };
-                let divisor = curr.divisor;
-
-                let res_value = (sign * value) as f32 / divisor as f32;
-                let res_value = res_value.to_le_bytes();
-
-                res.insert(key, res_value.to_vec());
+                panic!("Decoded value does not match any types. Should this happens?");
             }
         }
     }
+
+    res
+}
+
+pub fn get_initial_delta<'a>() -> DeltaDecoderTable<'a> {
+    let mut res: DeltaDecoderTable = DeltaDecoderTable::new();
+
+    let e1 = DeltaDecoderS {
+        name: b"flags",
+        bits: 32,
+        divisor: 1,
+        flags: DeltaType::Integer,
+    };
+    let e2 = DeltaDecoderS {
+        name: b"name",
+        bits: 8,
+        divisor: 1,
+        flags: DeltaType::String,
+    };
+    let e3 = DeltaDecoderS {
+        name: b"offset",
+        bits: 16,
+        divisor: 1,
+        flags: DeltaType::Integer,
+    };
+    let e4 = DeltaDecoderS {
+        name: b"size",
+        bits: 8,
+        divisor: 1,
+        flags: DeltaType::Integer,
+    };
+    let e5 = DeltaDecoderS {
+        name: b"bits",
+        bits: 8,
+        divisor: 1,
+        flags: DeltaType::Integer,
+    };
+    let e6 = DeltaDecoderS {
+        name: b"divisor",
+        bits: 32,
+        divisor: 4000,
+        flags: DeltaType::Float,
+    };
+    let e7 = DeltaDecoderS {
+        name: b"preMultiplier",
+        bits: 32,
+        divisor: 4000,
+        flags: DeltaType::Float,
+    };
+
+    let default_decoder = vec![e1, e2, e3, e4, e5, e6, e7];
+
+    res.insert("delta_description_t".to_string(), default_decoder);
 
     res
 }
