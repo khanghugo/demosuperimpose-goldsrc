@@ -1,5 +1,5 @@
 use super::*;
-use std::convert::TryInto;
+use std::{convert::TryInto, str::from_utf8};
 
 pub struct DeltaDescription {}
 impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {
@@ -13,23 +13,38 @@ impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {
         // Delta description is usually in LOADING section and first frame message.
         // It will detail the deltas being used and its index for correct decoding.
         // So this would be the only message that modifies the delta decode table.
+
         let mut br = BitReader::new(i);
         let data: Vec<Delta> = (0..total_fields)
             .map(|_| parse_delta(delta_decoders.get("delta_description_t").unwrap(), &mut br))
             .collect();
 
-        let decoder: DeltaDecoder = data.iter().map(|entry| DeltaDecoderS {
-            name,
-            bits: u32::from_le_bytes(entry.get("bits").unwrap().as_slice().try_into().unwrap()), // huh
-            divisor: f32::from_le_bytes(entry.get("divisor").unwrap().as_slice().try_into().unwrap()),
-            flags: u32::from_le_bytes(entry.get("flags").unwrap().as_slice().try_into().unwrap()),
-        }).collect();
+        let decoder: DeltaDecoder = data
+            .iter()
+            .map(|entry| DeltaDecoderS {
+                name,
+                bits: u32::from_le_bytes(entry.get("bits").unwrap().as_slice().try_into().unwrap()), // heh
+                divisor: f32::from_le_bytes(
+                    entry.get("divisor").unwrap().as_slice().try_into().unwrap(),
+                ),
+                flags: u32::from_le_bytes(
+                    entry.get("flags").unwrap().as_slice().try_into().unwrap(),
+                ),
+            })
+            .collect();
 
+        let (i, _) = take(br.get_consumed_bytes())(i)?;
 
-        // println!("{:?}", data);
-        
-        println!("{:?}", decoder);
-        todo!()
+        // It really should mutate the delta decoder table here but we're respecting ownership.
+
+        Ok((
+            i,
+            SvcDeltaDescription {
+                name,
+                total_fields,
+                fields: decoder,
+            },
+        ))
     }
 
     fn write(i: SvcDeltaDescription<'a>) -> Vec<u8> {

@@ -51,7 +51,7 @@ impl<'a> NetMsgDoer<'a, SvcServerInfo<'a>> for ServerInfo {
     fn write(i: SvcServerInfo) -> Vec<u8> {
         let mut writer = ByteWriter::new();
 
-        writer.append_u8(11u8);
+        writer.append_u8(EngineMessageType::SvcServerInfo as u8);
 
         writer.append_i32(i.protocol);
         writer.append_i32(i.spawn_count);

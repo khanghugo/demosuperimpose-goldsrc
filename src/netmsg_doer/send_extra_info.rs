@@ -14,7 +14,7 @@ impl<'a> NetMsgDoer<'a, SvcSendExtraInfo<'a>> for SendExtraInfo {
     fn write(i: SvcSendExtraInfo<'a>) -> Vec<u8> {
         let mut writer = ByteWriter::new();
 
-        writer.append_u8(54u8);
+        writer.append_u8(EngineMessageType::SvcSendExtraInfo as u8);
 
         writer.append_u8_slice(i.fallback_dir);
         writer.append_u8(i.can_cheat);

@@ -1,3 +1,5 @@
+use std::str::from_utf8;
+
 use demosuperimpose_goldsrc::netmsg_doer::{
     client_data::ClientData,
     delta_description::DeltaDescription,
@@ -70,5 +72,11 @@ pub fn example(demo: &mut Demo) {
             SendExtraInfo::parse(&rest[1..], &mut delta_decoders).unwrap();
         println!("{}", rest[0]);
         let (rest, delta1) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
+        delta_decoders.insert(from_utf8(delta1.name).unwrap().to_string(), delta1.fields);
+        println!("{}", rest[0]);
+        let (rest, delta2) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
+        println!("{}", rest[0]);
+        let (rest, delta3) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
+        println!("{}", rest[0]);
     }
 }

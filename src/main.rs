@@ -12,7 +12,7 @@ use bitvec::prelude::*;
 use demo_doer::example;
 use demosuperimpose_goldsrc::writer::BitWriter;
 use hldemo::{FrameData, NetMsgData};
-use types::EngineMessageType;
+use types::EngineMessage;
 use writer::DemoWriter;
 
 fn print_u8_array(i: &[u8]) {

@@ -7,12 +7,6 @@ use std::{collections::HashMap, ops::BitAnd};
 
 use bitvec::{slice::BitSlice, vec::BitVec};
 
-pub struct Vec3<T> {
-    pub x: T,
-    pub y: T,
-    pub z: T,
-}
-
 pub struct DeltaFieldDecoder<'a> {
     pub bits: u32,
     pub divisor: f32,
@@ -71,7 +65,7 @@ pub struct delta_stats_t {
 
 #[derive(Debug)]
 /// A simplified struct of delta_description_s
-/// 
+///
 /// Lots of info end up unused.
 pub struct DeltaDecoderS<'a> {
     pub name: &'a [u8],
@@ -127,12 +121,12 @@ pub struct EventS<'a> {
 
 /// SVC_VERSION 4
 pub struct SvcVersion {
-    protocol_version: u32,
+    pub protocol_version: u32,
 }
 
 /// SVC_SETVIEW 5
 pub struct SvcSetView {
-    entity_index: i16,
+    pub entity_index: i16,
 }
 
 /// SVC_SOUND 6
@@ -213,14 +207,15 @@ pub struct SvcUpdateUserInfo<'a> {
     pub index: u8,
     pub id: u32,
     pub user_info: &'a [u8],
-    pub cd_key_hash: [u8; 16],
+    // [u8; 16]
+    pub cd_key_hash: &'a [u8],
 }
 
 /// SVC_DELTADESCRIPTION 14
 pub struct SvcDeltaDescription<'a> {
     pub name: &'a [u8],
     pub total_fields: u16,
-    pub fields: Vec<DeltaDecoder<'a>>,
+    pub fields: DeltaDecoder<'a>,
 }
 
 /// SVC_CLIENTDATA 15
@@ -255,8 +250,10 @@ pub struct Ping {
 
 /// SVC_PARTICLE 18
 pub struct SvcParticle {
-    pub origin: Vec3<i16>,
-    pub direction: Vec3<i8>,
+    // Vec3
+    pub origin: Vec<i16>,
+    // Vec3
+    pub direction: Vec<i8>,
     pub count: u8,
     pub color: u8,
 }
@@ -408,7 +405,8 @@ pub struct SvcCenterPrint<'a> {
 
 /// SVC_SPAWNSTATICSOUND 29
 pub struct SvcSpawnStaticSound {
-    pub origin: Vec3<i16>,
+    // Vec3
+    pub origin: Vec<i16>,
     pub sound_index: u16,
     pub volume: u8,
     pub attenuation: u8,
@@ -465,10 +463,11 @@ pub struct SvcAddAngle {
 }
 
 /// SVC_NEWUSERMSG 39
-pub struct SvcNewUserMsg {
+pub struct SvcNewUserMsg<'a> {
     pub index: u8,
     pub size: u8,
-    pub name: [u8; 16],
+    // [u8; 16]
+    pub name: &'a [u8],
 }
 
 /// SVC_PACKETENTITIES (40)
@@ -543,8 +542,10 @@ pub struct SvcNewMoveVars<'a> {
     pub footsteps: i32,
     pub roll_angle: f32,
     pub roll_speed: f32,
-    pub sky_color: Vec3<f32>,
-    pub sky_vec: Vec3<f32>,
+    // Vec3
+    pub sky_color: Vec<f32>,
+    // Vec3
+    pub sky_vec: Vec<f32>,
     pub sky_name: &'a [u8],
 }
 
@@ -636,11 +637,80 @@ pub struct SvcSendCvarValue2<'a> {
     name: &'a [u8],
 }
 
-pub enum NetMsgMessageBlock {
+pub enum Message<'a> {
     UserMessage,
-    EngineMessage(EngineMessageType),
+    EngineMessage(EngineMessage<'a>),
 }
 
+pub enum MessageType {
+    UserMessage,
+    EngineMessageType(EngineMessageType),
+}
+
+#[repr(u8)]
+pub enum EngineMessage<'a> {
+    SvcBad = 0,
+    SvcNop = 1,
+    SvcDisconnect = 2,
+    SvcEvent = 3,
+    SvcVersion = 4,
+    SvcSetview(SvcSetView) = 5,
+    SvcSound = 6,
+    SvcTime = 7,
+    SvcPrint(SvcPrint<'a>) = 8,
+    SvcStuffText(SvcStuffText<'a>) = 9,
+    SvcSetAngle = 10,
+    SvcServerInfo(SvcServerInfo<'a>) = 11,
+    SvcLightStyle = 12,
+    SvcUpdateuserInfo(SvcUpdateUserInfo<'a>) = 13,
+    SvcDeltaDescription(SvcDeltaDescription<'a>) = 14,
+    SvcClientData = 15,
+    SvcStopsound = 16,
+    SvcPings = 17,
+    SvcParticle = 18,
+    SvcDamage = 19,
+    SvcSpawnStatic = 20,
+    SvcEvenReliable = 21,
+    SvcSpawnBaseline = 22,
+    SvcTempEntity = 23,
+    SvcSetPause = 24,
+    SvcSignonNum = 25,
+    SvcCenterPrint = 26,
+    SvcKilledMonster = 27,
+    SvcFoundSecret = 28,
+    SvcSpawnStaticSound = 29,
+    SvcIntermission = 30,
+    SvcFinale = 31,
+    SvcCdTrack(SvcCdTrack) = 32,
+    SvcRestore = 33,
+    SvcCutscene = 34,
+    SvcWeaponAnim = 35,
+    SvcDecalName = 36,
+    SvcRoomType = 37,
+    SvcAddAngle = 38,
+    SvcNewUserMsg(SvcNewUserMsg<'a>) = 39,
+    SvcPacketEntities = 40,
+    SvcDeltaPacketEntities = 41,
+    SvcChoke = 42,
+    SvcResourceList = 43,
+    SvcNewMoveVars(SvcNewMoveVars<'a>) = 44,
+    SvcResourceRequest = 45,
+    SvcCustomization = 46,
+    SvcCrosshairAngle = 47,
+    SvcSoundFade = 48,
+    SvcFileTxferFailed = 49,
+    SvcHltv = 50,
+    SvcDirector = 51,
+    SvcVoiceInit = 52,
+    SvcVoiceData = 53,
+    SvcSendExtraInfo(SvcSendExtraInfo<'a>) = 54,
+    SvcTimeScale = 55,
+    SvcResourceLocation = 56,
+    SvcSendCvarValue = 57,
+    SvcSendCvarValue2 = 58,
+}
+
+// Eh, yes.
 #[repr(u8)]
 pub enum EngineMessageType {
     SvcBad = 0,
@@ -702,4 +772,77 @@ pub enum EngineMessageType {
     SvcResourceLocation = 56,
     SvcSendCvarValue = 57,
     SvcSendCvarValue2 = 58,
+}
+
+// impl From<u8> for EngineMessageType {
+//     fn from(self) -> EngineMessageType {
+//         todo!()
+//     }
+// }
+
+impl From<u8> for MessageType {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => MessageType::EngineMessageType(EngineMessageType::SvcBad),
+            1 => MessageType::EngineMessageType(EngineMessageType::SvcNop),
+            2 => MessageType::EngineMessageType(EngineMessageType::SvcDisconnect),
+            3 => MessageType::EngineMessageType(EngineMessageType::SvcEvent),
+            4 => MessageType::EngineMessageType(EngineMessageType::SvcVersion),
+            5 => MessageType::EngineMessageType(EngineMessageType::SvcSetview),
+            6 => MessageType::EngineMessageType(EngineMessageType::SvcSound),
+            7 => MessageType::EngineMessageType(EngineMessageType::SvcTime),
+            8 => MessageType::EngineMessageType(EngineMessageType::SvcPrint),
+            9 => MessageType::EngineMessageType(EngineMessageType::SvcStuffText),
+            10 => MessageType::EngineMessageType(EngineMessageType::SvcSetAngle),
+            11 => MessageType::EngineMessageType(EngineMessageType::SvcServerInfo),
+            12 => MessageType::EngineMessageType(EngineMessageType::SvcLightStyle),
+            13 => MessageType::EngineMessageType(EngineMessageType::SvcUpdateuserInfo),
+            14 => MessageType::EngineMessageType(EngineMessageType::SvcDeltaDescription),
+            15 => MessageType::EngineMessageType(EngineMessageType::SvcClientData),
+            16 => MessageType::EngineMessageType(EngineMessageType::SvcStopsound),
+            17 => MessageType::EngineMessageType(EngineMessageType::SvcPings),
+            18 => MessageType::EngineMessageType(EngineMessageType::SvcParticle),
+            19 => MessageType::EngineMessageType(EngineMessageType::SvcDamage),
+            20 => MessageType::EngineMessageType(EngineMessageType::SvcSpawnStatic),
+            21 => MessageType::EngineMessageType(EngineMessageType::SvcEvenReliable),
+            22 => MessageType::EngineMessageType(EngineMessageType::SvcSpawnBaseline),
+            23 => MessageType::EngineMessageType(EngineMessageType::SvcTempEntity),
+            24 => MessageType::EngineMessageType(EngineMessageType::SvcSetPause),
+            25 => MessageType::EngineMessageType(EngineMessageType::SvcSignonNum),
+            26 => MessageType::EngineMessageType(EngineMessageType::SvcCenterPrint),
+            27 => MessageType::EngineMessageType(EngineMessageType::SvcKilledMonster),
+            28 => MessageType::EngineMessageType(EngineMessageType::SvcFoundSecret),
+            29 => MessageType::EngineMessageType(EngineMessageType::SvcSpawnStaticSound),
+            30 => MessageType::EngineMessageType(EngineMessageType::SvcIntermission),
+            31 => MessageType::EngineMessageType(EngineMessageType::SvcFinale),
+            32 => MessageType::EngineMessageType(EngineMessageType::SvcCdTrack),
+            33 => MessageType::EngineMessageType(EngineMessageType::SvcRestore),
+            34 => MessageType::EngineMessageType(EngineMessageType::SvcCutscene),
+            35 => MessageType::EngineMessageType(EngineMessageType::SvcWeaponAnim),
+            36 => MessageType::EngineMessageType(EngineMessageType::SvcDecalName),
+            37 => MessageType::EngineMessageType(EngineMessageType::SvcRoomType),
+            38 => MessageType::EngineMessageType(EngineMessageType::SvcAddAngle),
+            39 => MessageType::EngineMessageType(EngineMessageType::SvcNewUserMsg),
+            40 => MessageType::EngineMessageType(EngineMessageType::SvcPacketEntities),
+            41 => MessageType::EngineMessageType(EngineMessageType::SvcDeltaPacketEntities),
+            42 => MessageType::EngineMessageType(EngineMessageType::SvcChoke),
+            43 => MessageType::EngineMessageType(EngineMessageType::SvcResourceList),
+            44 => MessageType::EngineMessageType(EngineMessageType::SvcNewMoveVars),
+            45 => MessageType::EngineMessageType(EngineMessageType::SvcResourceRequest),
+            46 => MessageType::EngineMessageType(EngineMessageType::SvcCustomization),
+            47 => MessageType::EngineMessageType(EngineMessageType::SvcCrosshairAngle),
+            48 => MessageType::EngineMessageType(EngineMessageType::SvcSoundFade),
+            49 => MessageType::EngineMessageType(EngineMessageType::SvcFileTxferFailed),
+            50 => MessageType::EngineMessageType(EngineMessageType::SvcHltv),
+            51 => MessageType::EngineMessageType(EngineMessageType::SvcDirector),
+            52 => MessageType::EngineMessageType(EngineMessageType::SvcVoiceInit),
+            53 => MessageType::EngineMessageType(EngineMessageType::SvcVoiceData),
+            54 => MessageType::EngineMessageType(EngineMessageType::SvcSendExtraInfo),
+            55 => MessageType::EngineMessageType(EngineMessageType::SvcTimeScale),
+            56 => MessageType::EngineMessageType(EngineMessageType::SvcResourceLocation),
+            57 => MessageType::EngineMessageType(EngineMessageType::SvcSendCvarValue),
+            58 => MessageType::EngineMessageType(EngineMessageType::SvcSendCvarValue2),
+            _ => MessageType::UserMessage,
+        }
+    }
 }

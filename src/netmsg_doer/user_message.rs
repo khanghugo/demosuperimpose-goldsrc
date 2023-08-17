@@ -10,6 +10,8 @@ impl<'a> NetMsgDoer<'a, NetMsgUserMessage<'a>> for UserMessage {
     fn write(i: NetMsgUserMessage) -> Vec<u8> {
         let mut writer = ByteWriter::new();
 
+        writer.append_u8(69u8); // magic for now
+
         writer.append_u8(i.message.len() as u8);
         writer.append_u8_slice(i.message);
 

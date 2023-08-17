@@ -2,6 +2,7 @@ use std::str::from_utf8;
 
 use bitvec::prelude::*;
 use bitvec::vec::BitVec;
+use nom::Parser;
 
 use super::*;
 
@@ -14,13 +15,6 @@ pub fn null_string(i: &[u8]) -> IResult<&[u8], &[u8]> {
 pub fn take_n_bit<'a>(
     n: usize,
 ) -> impl FnMut((&'a [u8], usize)) -> IResult<(&[u8], usize), Vec<bool>> {
-    // map(count(take_1_bit, n), |what| {
-    //     // TODO: make it not this trash
-    //     let mut res = BitVec::new();
-    //     what.iter().for_each(|e| res.push(*e));
-    //     res
-    // })
-
     count(take_1_bit, n)
 }
 
@@ -58,6 +52,7 @@ pub trait BitSliceCast {
 }
 
 impl BitSliceCast for BitSlice<u8> {
+    // https://github.com/ferrilab/bitvec/issues/64
     fn to_u8(&self) -> u8 {
         self.load::<u8>()
     }
@@ -83,37 +78,8 @@ impl BitSliceCast for BitSlice<u8> {
     }
 }
 
-// https://github.com/ferrilab/bitvec/issues/64
-pub fn bitslice_to_u8(i: &BitSlice<u8>) -> u8 {
-    i.load::<u8>()
-}
-
-pub fn bitslice_to_i8(i: &BitSlice<u8>) -> i8 {
-    i.load::<i8>()
-}
-
-pub fn bitslice_to_u16(i: &BitSlice<u8>) -> u16 {
-    i.load::<u16>()
-}
-
-pub fn bitslice_to_i16(i: &BitSlice<u8>) -> i16 {
-    i.load::<i16>()
-}
-
-pub fn bitslice_to_u32(i: &BitSlice<u8>) -> u32 {
-    i.load::<u32>()
-}
-
-pub fn bitslice_to_i32(i: &BitSlice<u8>) -> i32 {
-    i.load::<i32>()
-}
-
-// pub fn bitslice_to_f32(i: &BitSlice<u8>) -> f32 {
-//     i.load::<f32>()
-// }
-
 pub fn bitslice_to_u8_vec(i: &BitSlice<u8>) -> Vec<u8> {
-    i.chunks(8).map(|chunk| bitslice_to_u8(chunk)).collect()
+    i.chunks(8).map(|chunk| chunk.to_u8()).collect()
 }
 
 fn check_flag(lhs: u32, rhs: DeltaType) -> bool {
@@ -122,7 +88,7 @@ fn check_flag(lhs: u32, rhs: DeltaType) -> bool {
 
 // Wraps bytes into bits because doing this with nom is a very bad idea.
 pub struct BitReader {
-    bytes: BitVec<u8, Lsb0>,
+    pub bytes: BitVec<u8, Lsb0>,
     // Bit offset, starting from starting of `bytes`.
     offset: usize,
 }
@@ -164,7 +130,7 @@ impl BitReader {
 
     /// Peeks 8 bits and converts to utf-8.
     fn peek_byte(&self) -> u8 {
-        bitslice_to_u8(&self.bytes[self.offset..self.offset + 8])
+        self.bytes[self.offset..self.offset + 8].to_u8()
     }
 
     pub fn get_offset(&self) -> usize {
@@ -184,11 +150,12 @@ impl BitReader {
 
 // very big TODO: do whole thing with nom
 // chaining conditions right now with nom is a bit very difficult to work with
+// https://github.com/skyrim/hlviewer.js/blob/master/src/Replay/readDelta.ts
 pub fn parse_delta<'a>(dd: &DeltaDecoder, br: &'a mut BitReader) -> Delta {
     let mut res: Delta = Delta::new();
-    let mask_byte_count = bitslice_to_u8(br.read_n_bit(3)) as usize;
+    let mask_byte_count = br.read_n_bit(3).to_u8() as usize;
     let mask_byte: Vec<u8> = (0..mask_byte_count)
-        .map(|_| bitslice_to_u8(br.read_n_bit(8)))
+        .map(|_| br.read_n_bit(8).to_u8())
         .collect();
 
     for i in 0..mask_byte_count {
@@ -199,70 +166,69 @@ pub fn parse_delta<'a>(dd: &DeltaDecoder, br: &'a mut BitReader) -> Delta {
                 return res;
             }
 
-            if (mask_byte[i] & (1 << j)) == 0 {
-                return res;
-            }
+            if (mask_byte[i] & (1 << j)) != 0 {
+                let curr = &dd[index];
+                let lhs = curr.flags;
+                let key = from_utf8(curr.name).unwrap().to_owned();
 
-            let curr = &dd[index];
-            let lhs = curr.flags;
-            let key = from_utf8(curr.name).unwrap().to_owned();
-
-            if check_flag(lhs, DeltaType::Byte) {
-                if check_flag(lhs, DeltaType::Signed) {
-                    let sign = if br.read_1_bit() { -1 } else { 1 };
-                    let value = bitslice_to_i8(br.read_n_bit(curr.bits as usize - 1));
-                    let res_value = ((sign * value) / curr.divisor as i8).to_le_bytes();
+                if check_flag(lhs, DeltaType::Byte) {
+                    if check_flag(lhs, DeltaType::Signed) {
+                        let sign = if br.read_1_bit() { -1 } else { 1 };
+                        let value = br.read_n_bit(curr.bits as usize - 1).to_i8();
+                        let res_value = ((sign * value) / curr.divisor as i8).to_le_bytes();
+                        res.insert(key, res_value.to_vec());
+                    } else {
+                        let value = (br.read_n_bit(curr.bits as usize)).to_u8();
+                        let res_value = (value / curr.divisor as u8).to_le_bytes();
+                        res.insert(key, res_value.to_vec());
+                    }
+                } else if check_flag(lhs, DeltaType::Short) {
+                    if check_flag(lhs, DeltaType::Signed) {
+                        let sign = if br.read_1_bit() { -1 } else { 1 };
+                        let value = (br.read_n_bit(curr.bits as usize - 1)).to_i16();
+                        let res_value = ((sign * value) / curr.divisor as i16).to_le_bytes();
+                        res.insert(key, res_value.to_vec());
+                    } else {
+                        let value = (br.read_n_bit(curr.bits as usize)).to_u16();
+                        let res_value = (value / curr.divisor as u16).to_le_bytes();
+                        res.insert(key, res_value.to_vec());
+                    }
+                } else if check_flag(lhs, DeltaType::Integer) {
+                    if check_flag(lhs, DeltaType::Signed) {
+                        let sign = if br.read_1_bit() { -1 } else { 1 };
+                        let value = (br.read_n_bit(curr.bits as usize - 1)).to_i32();
+                        let res_value = ((sign * value) / curr.divisor as i32).to_le_bytes();
+                        res.insert(key, res_value.to_vec());
+                    } else {
+                        let value = (br.read_n_bit(curr.bits as usize)).to_u32();
+                        let res_value = (value / curr.divisor as u32).to_le_bytes();
+                        res.insert(key, res_value.to_vec());
+                    }
+                } else if check_flag(lhs, DeltaType::Float)
+                    || check_flag(lhs, DeltaType::TimeWindow8)
+                    || check_flag(lhs, DeltaType::TimeWindowBig)
+                {
+                    if check_flag(lhs, DeltaType::Signed) {
+                        let sign = if br.read_1_bit() { -1 } else { 1 };
+                        let value = (br.read_n_bit(curr.bits as usize - 1)).to_i32();
+                        let res_value =
+                            (((sign * value) as f32) / (curr.divisor as f32)).to_le_bytes();
+                        res.insert(key, res_value.to_vec());
+                    } else {
+                        let value = (br.read_n_bit(curr.bits as usize)).to_u32();
+                        let res_value = ((value as f32) / (curr.divisor as f32)).to_le_bytes();
+                        res.insert(key, res_value.to_vec());
+                    }
+                } else if check_flag(lhs, DeltaType::Angle) {
+                    let value = (br.read_n_bit(curr.bits as usize)).to_i32();
+                    let multiplier = 360f32 / (1 << curr.bits) as f32;
+                    let res_value = (value as f32 * multiplier).to_le_bytes();
                     res.insert(key, res_value.to_vec());
+                } else if check_flag(lhs, DeltaType::String) {
+                    res.insert(key, bitslice_to_u8_vec(br.read_string()));
                 } else {
-                    let value = bitslice_to_u8(br.read_n_bit(curr.bits as usize));
-                    let res_value = (value / curr.divisor as u8).to_le_bytes();
-                    res.insert(key, res_value.to_vec());
+                    panic!("Decoded value does not match any types. Should this happens?");
                 }
-            } else if check_flag(lhs, DeltaType::Short) {
-                if check_flag(lhs, DeltaType::Signed) {
-                    let sign = if br.read_1_bit() { -1 } else { 1 };
-                    let value = bitslice_to_i16(br.read_n_bit(curr.bits as usize - 1));
-                    let res_value = ((sign * value) / curr.divisor as i16).to_le_bytes();
-                    res.insert(key, res_value.to_vec());
-                } else {
-                    let value = bitslice_to_u16(br.read_n_bit(curr.bits as usize));
-                    let res_value = (value / curr.divisor as u16).to_le_bytes();
-                    res.insert(key, res_value.to_vec());
-                }
-            } else if check_flag(lhs, DeltaType::Integer) {
-                if check_flag(lhs, DeltaType::Signed) {
-                    let sign = if br.read_1_bit() { -1 } else { 1 };
-                    let value = bitslice_to_i32(br.read_n_bit(curr.bits as usize - 1));
-                    let res_value = ((sign * value) / curr.divisor as i32).to_le_bytes();
-                    res.insert(key, res_value.to_vec());
-                } else {
-                    let value = bitslice_to_u32(br.read_n_bit(curr.bits as usize));
-                    let res_value = (value / curr.divisor as u32).to_le_bytes();
-                    res.insert(key, res_value.to_vec());
-                }
-            } else if check_flag(lhs, DeltaType::Float)
-                || check_flag(lhs, DeltaType::TimeWindow8)
-                || check_flag(lhs, DeltaType::TimeWindowBig)
-            {
-                if check_flag(lhs, DeltaType::Signed) {
-                    let sign = if br.read_1_bit() { -1 } else { 1 };
-                    let value = bitslice_to_i32(br.read_n_bit(curr.bits as usize - 1));
-                    let res_value = (((sign * value) as f32) / (curr.divisor as f32)).to_le_bytes();
-                    res.insert(key, res_value.to_vec());
-                } else {
-                    let value = bitslice_to_u32(br.read_n_bit(curr.bits as usize));
-                    let res_value = ((value as f32) / (curr.divisor as f32)).to_le_bytes();
-                    res.insert(key, res_value.to_vec());
-                }
-            } else if check_flag(lhs, DeltaType::Angle) {
-                let value = bitslice_to_i32(br.read_n_bit(curr.bits as usize));
-                let multiplier = 360f32 / (1 << curr.bits) as f32;
-                let res_value = (value as f32 * multiplier).to_le_bytes();
-                res.insert(key, res_value.to_vec());
-            } else if check_flag(lhs, DeltaType::String) {
-                res.insert(key, bitslice_to_u8_vec(br.read_string()));
-            } else {
-                panic!("Decoded value does not match any types. Should this happens?");
             }
         }
     }
@@ -322,3 +288,7 @@ pub fn get_initial_delta<'a>() -> DeltaDecoderTable<'a> {
 
     res
 }
+
+// fn parse_netmsg(i: &[u8]) -> Vec<Message> {
+//     let parser = take(1).flat_map(|type_| );
+// }

@@ -9,7 +9,7 @@ impl<'a> NetMsgDoer<'a, SvcTime> for Time {
     fn write(i: SvcTime) -> Vec<u8> {
         let mut writer = ByteWriter::new();
 
-        writer.append_u8(7u8);
+        writer.append_u8(EngineMessageType::SvcTime as u8);
 
         writer.append_f32(i.time);
 
