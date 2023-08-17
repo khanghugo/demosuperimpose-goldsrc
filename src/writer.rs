@@ -1,9 +1,10 @@
-use bitvec::field::BitField;
 use bitvec::slice::BitSlice;
 use bitvec::vec::BitVec;
 use hldemo::{Demo, Directory, DirectoryEntry, Frame, FrameData, Header};
 use std::fs;
 use std::io::Write;
+
+use bitvec::prelude::Lsb0;
 
 pub struct ByteWriter {
     pub data: Vec<u8>,
@@ -100,9 +101,29 @@ impl BitWriter {
         self.offset(1);
     }
 
-    pub fn append_slice(&mut self, i: &[bool]) {
+    pub fn append_slice(&mut self, i: &BitSlice<u8>) {
         self.data.extend(i);
         self.offset(i.len());
+    }
+
+    pub fn append_vec(&mut self, i: BitVec<u8>) {
+        self.append_slice(i.as_bitslice())
+    }
+
+    pub fn append_f32(&mut self, i: f32) {
+        let bits: BitVec<u8> = i
+            .to_le_bytes()
+            .iter()
+            .map(|byte| BitVec::<u8, Lsb0>::from_element(*byte))
+            .flatten()
+            .collect();
+
+        self.append_vec(bits);
+    }
+
+    pub fn append_u8(&mut self, i: u8) {
+        let bits: BitVec<u8> = BitVec::<u8, Lsb0>::from_element(i);
+        self.append_vec(bits);
     }
 
     pub fn get_u8_vec(&mut self) -> Vec<u8> {

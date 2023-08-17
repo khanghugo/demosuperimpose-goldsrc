@@ -1,5 +1,3 @@
-use std::str::from_utf8;
-
 use super::*;
 
 pub struct UpdateUserInfo {}

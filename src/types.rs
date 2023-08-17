@@ -93,35 +93,41 @@ pub struct NetMsgUserMessage<'a> {
 }
 
 /// SVC_BAD 0
+// #[derive(Debug)]
 
 /// SVC_NOP 1
+// #[derive(Debug)]
 
 /// SVC_DISCONNECT 2
+#[derive(Debug)]
 pub struct SvcDisconnect<'a> {
     pub reason: &'a [u8],
 }
 
 /// SVC_EVENT 3
-pub struct SvcEvent<'a> {
-    /// [bool; 5]
-    pub event_count: Vec<bool>,
-    pub events: Vec<EventS<'a>>,
+#[derive(Debug)]
+pub struct SvcEvent {
+    // [bool; 5]
+    pub event_count: BitType,
+    pub events: Vec<EventS>,
 }
 
-pub struct EventS<'a> {
-    /// [bool; 10]
+#[derive(Debug)]
+pub struct EventS {
+    // [bool; 10]
     pub event_index: BitType,
     pub has_packet_index: bool,
-    /// [bool; 11]
+    // [bool; 11]
     pub packet_index: Option<BitType>,
     pub has_delta: Option<bool>,
-    // TODO
-    pub delta: DeltaDecoder<'a>,
+    pub delta: Option<Delta>,
     pub has_fire_time: bool,
-    pub fire_time: [bool; 16],
+    // [bool; 16]
+    pub fire_time: Option<BitType>,
 }
 
 /// SVC_VERSION 4
+#[derive(Debug)]
 pub struct SvcVersion {
     pub protocol_version: u32,
 }
@@ -133,23 +139,31 @@ pub struct SvcSetView {
 }
 
 /// SVC_SOUND 6
+#[derive(Debug)]
 pub struct SvcSound {
-    pub flags: [bool; 9],
-    pub volume: Option<u8>,
-    pub attenuation: Option<u8>,
-    pub channel: [bool; 3],
-    pub entity_index: [bool; 11],
-    pub sound_index_long: Option<u16>,
-    pub sound_index_short: Option<u8>,
+    // [bool; 9]
+    pub flags: BitType,
+    pub volume: Option<BitType>,
+    pub attenuation: Option<BitType>,
+    // [bool; 3]
+    pub channel: BitType,
+    // [bool; 11]
+    pub entity_index: BitType,
+    pub sound_index_long: Option<BitType>,
+    pub sound_index_short: Option<BitType>,
     pub has_x: bool,
     pub has_y: bool,
     pub has_z: bool,
-    pub origin_x: Option<OriginCoord>,
-    pub origin_y: Option<OriginCoord>,
-    pub origin_z: Option<OriginCoord>,
-    pub pitch: u8,
+    // Very messed up.
+    pub origin_x: f32,
+    // Very messed up.
+    pub origin_y: f32,
+    // Very messed up.
+    pub origin_z: f32,
+    pub pitch: BitType,
 }
 
+#[derive(Debug)]
 pub struct OriginCoord {
     pub int_flag: bool,
     pub fraction_flag: bool,
@@ -178,6 +192,7 @@ pub struct SvcStuffText<'a> {
 }
 
 /// SVC_SETANGLE 10
+#[derive(Debug)]
 pub struct SvcSetAngle {
     pub pitch: i16,
     pub yaw: i16,
@@ -203,6 +218,7 @@ pub struct SvcServerInfo<'a> {
 }
 
 /// SVC_LIGHTSTYLE 12
+#[derive(Debug)]
 pub struct SvcLightStyle<'a> {
     pub index: u8,
     pub light_info: &'a [u8],
@@ -230,26 +246,29 @@ pub struct SvcDeltaDescription<'a> {
 #[derive(Debug)]
 pub struct SvcClientData {
     pub has_delta_update_mask: bool,
-    /// [bool; 8]
+    // [bool; 8]
     pub delta_update_mask: Option<BitType>,
     pub client_data: Delta,
     pub has_weapon_data: bool,
-    /// [bool; 6]
+    // [bool; 6]
     pub weapon_index: Option<BitType>,
     pub weapon_data: Option<Delta>,
 }
 
 /// SVC_STOPSOUND 16
+#[derive(Debug)]
 pub struct SvcStopSound {
     pub entity_index: i16,
 }
 
 /// SVC_PINGS 17
+#[derive(Debug)]
 pub struct SvcPings {
-    pub pings: Vec<Ping>,
+    pub pings: Vec<PingS>,
 }
 
-pub struct Ping {
+#[derive(Debug)]
+pub struct PingS {
     pub has_ping_data: bool,
     pub player_id: Option<u8>,
     pub ping: Option<u8>,
@@ -257,6 +276,7 @@ pub struct Ping {
 }
 
 /// SVC_PARTICLE 18
+#[derive(Debug)]
 pub struct SvcParticle {
     // Vec3
     pub origin: Vec<i16>,
@@ -269,6 +289,7 @@ pub struct SvcParticle {
 /// SVC_PARTICLE 19
 
 /// SVC_SPAWNSTATIC 20
+#[derive(Debug)]
 pub struct SvcSpawnStatic {
     pub model_index: i16,
     pub sequence: i8,
@@ -282,136 +303,220 @@ pub struct SvcSpawnStatic {
     pub origin_z: i16,
     pub rotation_z: i8,
     pub has_render_mode: i8,
-    pub render_color: Option<[u8; 3]>,
+    // [u8; 3]
+    pub render_color: Option<Vec<u8>>,
 }
 
 /// SVC_EVENTRELIABLE 21
+#[derive(Debug)]
 pub struct SvcEventReliable {
-    pub event_index: [bool; 10],
-    // TODO
-    pub rest: u8,
+    // [bool; 10]
+    pub event_index: BitType,
+    pub event_args: Delta,
+    pub has_fire_time: bool,
+    // [bool; 16]
+    pub fire_time: Option<BitType>,
 }
 
 /// SVC_SPAWNBASELINE 22
+#[derive(Debug)]
 pub struct SvcSpawnBaseline {
-    pub entities: Vec<Entity>,
+    pub entities: Vec<EntityS>,
 }
 
-pub struct Entity {
-    pub index: [bool; 110],
-    pub type_: [bool; 2],
-    // TODO
-    pub rest: u8,
+#[derive(Debug)]
+pub struct EntityS {
+    // [bool; 11]
+    pub index: BitType,
+    // [bool; 2]
+    pub type_: BitType,
+    // One delta for 3 types
+    pub delta: Delta,
+    // [bool; 5]
+    pub footer: BitType,
+    // [bool; 6]
+    pub total_extra_data: BitType,
+    pub extra_data: Vec<Delta>,
 }
 
 /// SVC_TEMPENTITY 23
+#[derive(Debug)]
 pub struct SvcTempEntity<'a> {
-    entity_type: u8,
-    entity: TempEntityEntity<'a>,
+    pub entity_type: u8,
+    pub entity: TempEntityEntity<'a>,
 }
 
 #[repr(u8)]
+#[derive(Debug)]
 pub enum TempEntityEntity<'a> {
-    TeBeamPoints([u8; 24]) = 0,
-    TeBeamEntPoint([u8; 20]) = 1,
-    TeGunshot([u8; 6]) = 2,
-    TeExplosion([u8; 6]) = 3,
-    TeTarExplosion([u8; 6]) = 4,
-    TeSmoke([u8; 10]) = 5,
-    TeTracer([u8; 12]) = 6,
-    TeLightning([u8; 17]) = 7,
-    TeBeamEnts([u8; 16]) = 8,
-    TeSparks([u8; 6]) = 9,
-    TeLavaSplash([u8; 6]) = 10,
-    TeTeleport([u8; 6]) = 11,
-    TeExplosion2([u8; 8]) = 12,
-    TeBspDecal(TeBspDecal) = 13,
-    TeImplosion([u8; 9]) = 14,
-    TeSpriteRail([u8; 19]) = 15,
-    TeSprite([u8; 10]) = 16,
-    TeBeamSprite([u8; 16]) = 18,
-    TeBeamTorus([u8; 24]) = 19,
-    TeBeamDisk([u8; 24]) = 20,
-    TeBeamCylinder([u8; 24]) = 21,
-    TeBeamFollow([u8; 10]) = 22,
-    TeGlowSprite([u8; 11]) = 23,
-    TeBeamRing([u8; 16]) = 24,
-    TeStreakSplash([u8; 19]) = 25,
-    TeDLight([u8; 12]) = 27,
-    TeELight([u8; 16]) = 28,
+    // [u8; 24]
+    TeBeamPoints(&'a [u8]) = 0,
+    // [u8; 20]
+    TeBeamEntPoint(&'a [u8]) = 1,
+    // [u8; 6]
+    TeGunshot(&'a [u8]) = 2,
+    // [u8; 6]
+    TeExplosion(&'a [u8]) = 3,
+    // [u8; 6]
+    TeTarExplosion(&'a [u8]) = 4,
+    // [u8; 10]
+    TeSmoke(&'a [u8]) = 5,
+    // [u8; 12]
+    TeTracer(&'a [u8]) = 6,
+    // [u8; 17]
+    TeLightning(&'a [u8]) = 7,
+    // [u8; 16]
+    TeBeamEnts(&'a [u8]) = 8,
+    // [u8; 6]
+    TeSparks(&'a [u8]) = 9,
+    // [u8; 6]
+    TeLavaSplash(&'a [u8]) = 10,
+    // [u8; 6]
+    TeTeleport(&'a [u8]) = 11,
+    // [u8; 8]
+    TeExplosion2(&'a [u8]) = 12,
+    TeBspDecal(TeBspDecal<'a>) = 13,
+    // [u8; 9]
+    TeImplosion(&'a [u8]) = 14,
+    // [u8; 19]
+    TeSpriteRail(&'a [u8]) = 15,
+    // [u8; 10]
+    TeSprite(&'a [u8]) = 16,
+    // [u8; 16]
+    TeBeamSprite(&'a [u8]) = 18,
+    // [u8; 24]
+    TeBeamTorus(&'a [u8]) = 19,
+    // [u8; 24]
+    TeBeamDisk(&'a [u8]) = 20,
+    // [u8; 24]
+    TeBeamCylinder(&'a [u8]) = 21,
+    // [u8; 10]
+    TeBeamFollow(&'a [u8]) = 22,
+    // [u8; 11]
+    TeGlowSprite(&'a [u8]) = 23,
+    // [u8; 16]
+    TeBeamRing(&'a [u8]) = 24,
+    // [u8; 19]
+    TeStreakSplash(&'a [u8]) = 25,
+    // [u8; 12]
+    TeDLight(&'a [u8]) = 27,
+    // [u8; 16]
+    TeELight(&'a [u8]) = 28,
     TeTextMessage(TeTextMessage<'a>) = 29,
-    TeLine([u8; 17]) = 30,
-    TeBox([u8; 17]) = 31,
-    TeKillBeam([u8; 2]) = 99,
-    TeLargeFunnel([u8; 10]) = 100,
-    TeBloodStream([u8; 14]) = 101,
-    TeShowLine([u8; 12]) = 102,
-    TeBlood([u8; 14]) = 103,
-    TeDecal([u8; 9]) = 104,
-    TeFizz([u8; 5]) = 105,
-    TeModel([u8; 17]) = 106,
-    TeExplodeModel([u8; 13]) = 107,
-    TeBreakModel([u8; 13]) = 108,
-    TeGunshotDecal([u8; 9]) = 109,
-    TeSpriteSpray([u8; 17]) = 110,
-    TeArmorRicochet([u8; 7]) = 111,
-    TePlayerDecal([u8; 10]) = 112,
-    TeBubbles([u8; 10]) = 113,
-    TeBubbleTrail([u8; 19]) = 114,
-    TeBloodSprite([u8; 12]) = 115,
-    TeWorldDecal([u8; 7]) = 116,
-    TeWorldDecalHigh([u8; 7]) = 117,
-    TeDecalHigh([u8; 9]) = 118,
-    TeProjectile([u8; 16]) = 119,
-    TeSpray([u8; 18]) = 120,
-    TePlayerSprites([u8; 5]) = 121,
-    TeParticleBurst([u8; 10]) = 122,
-    TeFireField([u8; 9]) = 123,
-    TePlayerAttachment([u8; 7]) = 124,
-    TeKillPlayerAttachment([u8; 1]) = 125,
-    TeMultigunShot([u8; 10]) = 126,
-    TeUserTracer([u8; 15]) = 127,
+    // [u8; 17]
+    TeLine(&'a [u8]) = 30,
+    // [u8; 17]
+    TeBox(&'a [u8]) = 31,
+    // [u8; 2]
+    TeKillBeam(&'a [u8]) = 99,
+    // [u8; 10]
+    TeLargeFunnel(&'a [u8]) = 100,
+    // [u8; 14]
+    TeBloodStream(&'a [u8]) = 101,
+    // [u8; 12]
+    TeShowLine(&'a [u8]) = 102,
+    // [u8; 14]
+    TeBlood(&'a [u8]) = 103,
+    // [u8; 9]
+    TeDecal(&'a [u8]) = 104,
+    // [u8; 5]
+    TeFizz(&'a [u8]) = 105,
+    // [u8; 17]
+    TeModel(&'a [u8]) = 106,
+    // [u8; 13]
+    TeExplodeModel(&'a [u8]) = 107,
+    // [u8; 13]
+    TeBreakModel(&'a [u8]) = 108,
+    // [u8; 9]
+    TeGunshotDecal(&'a [u8]) = 109,
+    // [u8; 17]
+    TeSpriteSpray(&'a [u8]) = 110,
+    // [u8; 7]
+    TeArmorRicochet(&'a [u8]) = 111,
+    // [u8; 10]
+    TePlayerDecal(&'a [u8]) = 112,
+    // [u8; 10]
+    TeBubbles(&'a [u8]) = 113,
+    // [u8; 19]
+    TeBubbleTrail(&'a [u8]) = 114,
+    // [u8; 12]
+    TeBloodSprite(&'a [u8]) = 115,
+    // [u8; 7]
+    TeWorldDecal(&'a [u8]) = 116,
+    // [u8; 7]
+    TeWorldDecalHigh(&'a [u8]) = 117,
+    // [u8; 9]
+    TeDecalHigh(&'a [u8]) = 118,
+    // [u8; 16]
+    TeProjectile(&'a [u8]) = 119,
+    // [u8; 18]
+    TeSpray(&'a [u8]) = 120,
+    // [u8; 5]
+    TePlayerSprites(&'a [u8]) = 121,
+    // [u8; 10]
+    TeParticleBurst(&'a [u8]) = 122,
+    // [u8; 9]
+    TeFireField(&'a [u8]) = 123,
+    // [u8; 7]
+    TePlayerAttachment(&'a [u8]) = 124,
+    // [u8; 1]
+    TeKillPlayerAttachment(&'a [u8]) = 125,
+    // [u8; 10]
+    TeMultigunShot(&'a [u8]) = 126,
+    // [u8; 15]
+    TeUserTracer(&'a [u8]) = 127,
 }
 
-pub struct TeBspDecal {
-    pub unknown1: [u8; 8],
+#[derive(Debug)]
+pub struct TeBspDecal<'a> {
+    // [u8; 8]
+    pub unknown1: &'a [u8],
     pub entity_index: i16,
-    pub unknown2: Option<[u8; 2]>,
+    // [u8; 2]
+    pub unknown2: Option<&'a [u8]>,
 }
 
+#[derive(Debug)]
 pub struct TeTextMessage<'a> {
     pub channel: i8,
     pub x: i16,
     pub y: i16,
     pub effect: i8,
-    pub text_color: [u8; 4],
+    // [u8; 4]
+    pub text_color: &'a [u8],
     pub fade_in_time: i16,
     pub fade_out_time: i16,
     pub hold_time: i16,
     pub effect_time: Option<i16>,
-    pub mesage: &'a [u8],
+    pub message: &'a [u8],
 }
 
 /// SVC_SETPAUSE 24
+#[derive(Debug)]
 pub struct SvcSetPause {
-    pub is_paused: u8,
+    pub is_paused: i8,
 }
 
 /// SVC_SIGNONNUM 25
-pub struct SvcSigonNum {
-    sign: u8,
+#[derive(Debug)]
+pub struct SvcSignOnNum {
+    pub sign: i8,
 }
 
 /// SVC_CENTERPRINT 26
+#[derive(Debug)]
 pub struct SvcCenterPrint<'a> {
-    message: &'a [u8],
+    pub message: &'a [u8],
 }
 
 /// SVC_KILLEDMONSTER 27
+// #[derive(Debug)]
 
 /// SVC_FOUNDSECRET 28
+// #[derive(Debug)]
 
 /// SVC_SPAWNSTATICSOUND 29
+#[derive(Debug)]
 pub struct SvcSpawnStaticSound {
     // Vec3
     pub origin: Vec<i16>,
@@ -424,8 +529,10 @@ pub struct SvcSpawnStaticSound {
 }
 
 /// SVC_INTERMISSION 30
+// #[derive(Debug)]
 
 /// SVC_FINALE 31
+#[derive(Debug)]
 pub struct SvcFinale<'a> {
     pub text: &'a [u8],
 }
@@ -438,6 +545,7 @@ pub struct SvcCdTrack {
 }
 
 /// SVC_RESTORE 33
+#[derive(Debug)]
 pub struct SvcRestore<'a> {
     pub save_name: &'a [u8],
     pub map_count: u8,
@@ -445,28 +553,33 @@ pub struct SvcRestore<'a> {
 }
 
 /// SVC_CUTSCENE 34
+#[derive(Debug)]
 pub struct SvcCutScene<'a> {
     pub text: &'a [u8],
 }
 
 /// SVC_WEAPONANIM 35
+#[derive(Debug)]
 pub struct SvcWeaponAnim {
     pub sequence_number: i8,
     pub weapon_model_body_group: i8,
 }
 
 /// SVC_DECALNAME 36
+#[derive(Debug)]
 pub struct SvcDecalname<'a> {
     pub position_index: u8,
     pub decal_name: &'a [u8],
 }
 
 /// SVC_ROOMTYPE 37
+#[derive(Debug)]
 pub struct SvcRoomType {
     pub room_type: u16,
 }
 
 /// SVC_ADDANGLE 38
+#[derive(Debug)]
 pub struct SvcAddAngle {
     pub angle_to_add: i16,
 }
@@ -481,11 +594,13 @@ pub struct SvcNewUserMsg<'a> {
 }
 
 /// SVC_PACKETENTITIES (40)
+#[derive(Debug)]
 struct SvcPacketEntities {
     pub entity_count: u16,
     pub entity_states: Vec<EntityState>,
 }
 
+#[derive(Debug)]
 pub struct EntityState {
     pub increment_entity_number: bool,
     pub is_absolute_entity_index: Option<bool>,
@@ -498,6 +613,7 @@ pub struct EntityState {
 }
 
 /// SVC_DELTAPACKETENTITIES 41
+#[derive(Debug)]
 pub struct SvcDeltaPacketEntities {
     pub entity_count: u16,
     pub delta_sequence: u8,
@@ -507,12 +623,14 @@ pub struct SvcDeltaPacketEntities {
 /// SVC_CHOKE 42
 
 /// SVC_RESOURCELIST 43
+#[derive(Debug)]
 pub struct SvcResourceList<'a> {
     pub resource_count: [bool; 12],
     pub resources: Vec<Resource<'a>>,
     pub consistencies: Vec<Consistency>,
 }
 
+#[derive(Debug)]
 pub struct Resource<'a> {
     pub type_: [bool; 4],
     pub name: &'a [u8],
@@ -524,6 +642,7 @@ pub struct Resource<'a> {
     pub extra_info: Option<[bool; 256]>,
 }
 
+#[derive(Debug)]
 pub struct Consistency {
     pub has_check_file_flag: bool,
     pub is_short_index: Option<bool>,
@@ -561,12 +680,14 @@ pub struct SvcNewMoveVars<'a> {
 }
 
 /// SVC_RESOURCEREQUEST 45
+#[derive(Debug)]
 pub struct SvcResourceRequest {
     pub spawn_count: i32,
     pub unknown: u32,
 }
 
 /// SVC_CUSTOMIZATION 46
+#[derive(Debug)]
 pub struct SvcCustomization<'a> {
     pub player_index: u8,
     pub type_: u8,
@@ -578,12 +699,14 @@ pub struct SvcCustomization<'a> {
 }
 
 /// SVC_CROSSHAIRANGLE 47
+#[derive(Debug)]
 pub struct SvcCrosshairAngle {
     pub pitch: i16,
     pub yaw: i16,
 }
 
 /// SVC_SOUNDFADE 48
+#[derive(Debug)]
 pub struct SvcSoundFade {
     pub initial_percent: u8,
     pub hold_time: u8,
@@ -592,16 +715,19 @@ pub struct SvcSoundFade {
 }
 
 /// SVC_FILETXFERFAILED 49
+#[derive(Debug)]
 pub struct SvcFileTxferFailed<'a> {
     pub file_name: &'a [u8],
 }
 
 /// SVC_HLTV 50
+#[derive(Debug)]
 pub struct SvcHltv {
     pub mode: u8,
 }
 
 /// SVC_DIRECTOR 51
+#[derive(Debug)]
 pub struct SvcDirector<'a> {
     pub length: u8,
     pub flag: u8,
@@ -609,12 +735,14 @@ pub struct SvcDirector<'a> {
 }
 
 /// SVC_VOINCEINIT 52
+#[derive(Debug)]
 pub struct SvcVoiceInit<'a> {
     pub codec_name: &'a [u8],
     pub quality: i8,
 }
 
 /// SVC_VOICEDATA 53
+#[derive(Debug)]
 pub struct SvcVoiceData<'a> {
     pub player_index: u8,
     pub size: u16,
@@ -629,21 +757,25 @@ pub struct SvcSendExtraInfo<'a> {
 }
 
 /// SVC_TIMESCALE 55
+#[derive(Debug)]
 pub struct SvcTimeScale {
     pub time_scale: f32,
 }
 
 /// SVC_RESOURCELOCATION 56
+#[derive(Debug)]
 pub struct SvcResourceLocation<'a> {
     pub download_url: &'a [u8],
 }
 
 /// SVC_SENDCVARVALUE 57
+#[derive(Debug)]
 pub struct SvcSendCvarValue<'a> {
     pub name: &'a [u8],
 }
 
 /// SVC_SENDCVARVALUE2 58
+#[derive(Debug)]
 pub struct SvcSendCvarValue2<'a> {
     pub request_id: u32,
     name: &'a [u8],
@@ -665,31 +797,31 @@ pub enum MessageType {
 pub enum EngineMessage<'a> {
     SvcBad = 0,
     SvcNop = 1,
-    SvcDisconnect = 2,
-    SvcEvent = 3,
-    SvcVersion = 4,
+    SvcDisconnect(SvcDisconnect<'a>) = 2,
+    SvcEvent(SvcEvent) = 3,
+    SvcVersion(SvcVersion) = 4,
     SvcSetView(SvcSetView) = 5,
-    SvcSound = 6,
+    SvcSound(SvcSound) = 6,
     SvcTime(SvcTime) = 7,
     SvcPrint(SvcPrint<'a>) = 8,
     SvcStuffText(SvcStuffText<'a>) = 9,
-    SvcSetAngle = 10,
+    SvcSetAngle(SvcSetAngle) = 10,
     SvcServerInfo(SvcServerInfo<'a>) = 11,
-    SvcLightStyle = 12,
+    SvcLightStyle(SvcLightStyle<'a>) = 12,
     SvcUpdateuserInfo(SvcUpdateUserInfo<'a>) = 13,
     SvcDeltaDescription(SvcDeltaDescription<'a>) = 14,
     SvcClientData(SvcClientData) = 15,
-    SvcStopsound = 16,
-    SvcPings = 17,
-    SvcParticle = 18,
+    SvcStopSound(SvcStopSound) = 16,
+    SvcPings(SvcPings) = 17,
+    SvcParticle(SvcParticle) = 18,
     SvcDamage = 19,
-    SvcSpawnStatic = 20,
-    SvcEvenReliable = 21,
-    SvcSpawnBaseline = 22,
-    SvcTempEntity = 23,
-    SvcSetPause = 24,
-    SvcSignonNum = 25,
-    SvcCenterPrint = 26,
+    SvcSpawnStatic(SvcSpawnStatic) = 20,
+    SvcEventReliable(SvcEventReliable) = 21,
+    SvcSpawnBaseline(SvcSpawnBaseline) = 22,
+    SvcTempEntity(SvcTempEntity<'a>) = 23,
+    SvcSetPause(SvcSetPause) = 24,
+    SvcSignOnNum(SvcSignOnNum) = 25,
+    SvcCenterPrint(SvcCenterPrint<'a>) = 26,
     SvcKilledMonster = 27,
     SvcFoundSecret = 28,
     SvcSpawnStaticSound = 29,
@@ -743,16 +875,16 @@ pub enum EngineMessageType {
     SvcUpdateUserInfo = 13,
     SvcDeltaDescription = 14,
     SvcClientData = 15,
-    SvcStopsound = 16,
+    SvcStopSound = 16,
     SvcPings = 17,
     SvcParticle = 18,
     SvcDamage = 19,
     SvcSpawnStatic = 20,
-    SvcEvenReliable = 21,
+    SvcEventReliable = 21,
     SvcSpawnBaseline = 22,
     SvcTempEntity = 23,
     SvcSetPause = 24,
-    SvcSignonNum = 25,
+    SvcSignOnNum = 25,
     SvcCenterPrint = 26,
     SvcKilledMonster = 27,
     SvcFoundSecret = 28,
@@ -807,16 +939,16 @@ impl From<u8> for MessageType {
             13 => MessageType::EngineMessageType(EngineMessageType::SvcUpdateUserInfo),
             14 => MessageType::EngineMessageType(EngineMessageType::SvcDeltaDescription),
             15 => MessageType::EngineMessageType(EngineMessageType::SvcClientData),
-            16 => MessageType::EngineMessageType(EngineMessageType::SvcStopsound),
+            16 => MessageType::EngineMessageType(EngineMessageType::SvcStopSound),
             17 => MessageType::EngineMessageType(EngineMessageType::SvcPings),
             18 => MessageType::EngineMessageType(EngineMessageType::SvcParticle),
             19 => MessageType::EngineMessageType(EngineMessageType::SvcDamage),
             20 => MessageType::EngineMessageType(EngineMessageType::SvcSpawnStatic),
-            21 => MessageType::EngineMessageType(EngineMessageType::SvcEvenReliable),
+            21 => MessageType::EngineMessageType(EngineMessageType::SvcEventReliable),
             22 => MessageType::EngineMessageType(EngineMessageType::SvcSpawnBaseline),
             23 => MessageType::EngineMessageType(EngineMessageType::SvcTempEntity),
             24 => MessageType::EngineMessageType(EngineMessageType::SvcSetPause),
-            25 => MessageType::EngineMessageType(EngineMessageType::SvcSignonNum),
+            25 => MessageType::EngineMessageType(EngineMessageType::SvcSignOnNum),
             26 => MessageType::EngineMessageType(EngineMessageType::SvcCenterPrint),
             27 => MessageType::EngineMessageType(EngineMessageType::SvcKilledMonster),
             28 => MessageType::EngineMessageType(EngineMessageType::SvcFoundSecret),

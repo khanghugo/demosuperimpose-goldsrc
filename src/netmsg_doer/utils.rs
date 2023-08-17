@@ -2,7 +2,6 @@ use std::str::from_utf8;
 
 use bitvec::prelude::*;
 use bitvec::vec::BitVec;
-use nom::Parser;
 
 use super::*;
 
@@ -128,7 +127,7 @@ impl BitReader {
         &self.bytes[start..self.offset]
     }
 
-    /// Peeks 8 bits and converts to utf-8.
+    /// Peeks 8 bits and converts to u8.
     fn peek_byte(&self) -> u8 {
         self.bytes[self.offset..self.offset + 8].to_u8()
     }
@@ -150,7 +149,16 @@ impl BitReader {
 
 // very big TODO: do whole thing with nom
 // chaining conditions right now with nom is a bit very difficult to work with
-// https://github.com/skyrim/hlviewer.js/blob/master/src/Replay/readDelta.ts
+/// https://github.com/skyrim/hlviewer.js/blob/master/src/Replay/readDelta.ts
+///
+/// To parse delta, we first have to construct the delta decoder table.
+///
+/// Info regarding delta decoder will arrive on the first frame of the first demo directory.
+///
+/// The netmessage heavily occupy that frame will be delta description.
+///
+/// After parsing the message, we will have our delta decoder for subsequent delta parsing.
+///
 pub fn parse_delta<'a>(dd: &DeltaDecoder, br: &'a mut BitReader) -> Delta {
     let mut res: Delta = Delta::new();
     let mask_byte_count = br.read_n_bit(3).to_u8() as usize;
@@ -288,7 +296,3 @@ pub fn get_initial_delta<'a>() -> DeltaDecoderTable<'a> {
 
     res
 }
-
-// fn parse_netmsg(i: &[u8]) -> Vec<Message> {
-//     let parser = take(1).flat_map(|type_| );
-// }
