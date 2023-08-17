@@ -65,8 +65,9 @@ pub fn example(demo: &mut Demo) {
         let mut delta_decoders = get_initial_delta();
 
         let (i, what) = parse_netmsg(data.msg, &mut delta_decoders).unwrap();
+        println!("{:?}", delta_decoders);
 
-        println!("{:?}", what);
+        // println!("{:?}", what);
 
         // println!("{}", data.msg[0]);
         // let (rest, print) = Print::parse(&data.msg[1..], &mut delta_decoders).unwrap();

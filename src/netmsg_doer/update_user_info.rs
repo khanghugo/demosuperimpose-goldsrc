@@ -29,7 +29,3 @@ impl<'a> NetMsgDoer<'a, SvcUpdateUserInfo<'a>> for UpdateUserInfo {
         writer.data
     }
 }
-
-pub fn user_info_to_string(i: &[u8]) -> &str {
-    from_utf8(i).unwrap()
-}

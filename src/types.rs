@@ -67,6 +67,7 @@ pub struct delta_stats_t {
 /// A simplified struct of delta_description_s
 ///
 /// Lots of info end up unused.
+#[derive(Clone)]
 pub struct DeltaDecoderS<'a> {
     pub name: &'a [u8],
     pub bits: u32,
@@ -786,12 +787,6 @@ pub enum EngineMessageType {
     SvcSendCvarValue = 57,
     SvcSendCvarValue2 = 58,
 }
-
-// impl From<u8> for EngineMessageType {
-//     fn from(self) -> EngineMessageType {
-//         todo!()
-//     }
-// }
 
 impl From<u8> for MessageType {
     fn from(value: u8) -> Self {

@@ -1,3 +1,5 @@
+use std::{str::from_utf8, collections::HashMap};
+
 use nom::{
     bits,
     bits::complete::take as take_bit,
@@ -71,7 +73,7 @@ macro_rules! wrap_parse {
     };
 }
 
-fn parse_single_netmsg<'a>(i: &'a [u8], delta_decoders: &mut DeltaDecoderTable) -> IResult<&'a [u8], Message<'a>> {
+fn parse_single_netmsg<'a>(i: &'a [u8], delta_decoders: &mut HashMap<String, DeltaDecoder<'a>>) -> IResult<&'a [u8], Message<'a>> {
     let (i, type_) = le_u8(i)?;
     Ok(match MessageType::from(type_) {
         // 8 => wrap_parse!(i, Print, SvcPrint, delta_decoders),
@@ -96,7 +98,14 @@ fn parse_single_netmsg<'a>(i: &'a [u8], delta_decoders: &mut DeltaDecoderTable) 
                 EngineMessageType::SvcServerInfo => wrap_parse!(i, ServerInfo, SvcServerInfo, delta_decoders),
                 // EngineMessageType::SvcLightStyle => wrap_parse!(i, LightStyle, SvcLightStyle, delta_decoders),
                 EngineMessageType::SvcUpdateUserInfo => wrap_parse!(i, UpdateUserInfo, SvcUpdateuserInfo, delta_decoders),
-                EngineMessageType::SvcDeltaDescription => wrap_parse!(i, DeltaDescription, SvcDeltaDescription, delta_decoders),
+                EngineMessageType::SvcDeltaDescription => {
+                    // Mutate delta_decoders here
+                    let res = wrap_parse!(i, DeltaDescription, SvcDeltaDescription, delta_decoders);
+                    if let Message::EngineMessage(EngineMessage::SvcDeltaDescription(SvcDeltaDescription { name, total_fields: _, fields })) = &res.1 {
+                        delta_decoders.insert(from_utf8(name).unwrap().to_owned(), fields.to_vec());
+                    };
+                    res
+                },
                 EngineMessageType::SvcClientData => wrap_parse!(i, ClientData, SvcClientData, delta_decoders),
                 // EngineMessageType::SvcStopsound => wrap_parse!(i, Stopsound, SvcStopsound, delta_decoders),
                 // EngineMessageType::SvcPings => wrap_parse!(i, Pings, SvcPings, delta_decoders),
@@ -147,7 +156,12 @@ fn parse_single_netmsg<'a>(i: &'a [u8], delta_decoders: &mut DeltaDecoderTable) 
     })
 }
 
-pub fn parse_netmsg<'a>(i: &'a [u8], delta_decoders: &mut DeltaDecoderTable) -> IResult<&'a [u8], Vec<Message<'a>>> {
+pub fn parse_netmsg<'a>(i: &'a [u8], delta_decoders: &mut HashMap<String, DeltaDecoder<'a>>) -> IResult<&'a [u8], Vec<Message<'a>>> {
     let parser = move |i| parse_single_netmsg(i, delta_decoders);
     all_consuming(many0(parser))(i)
 }
+
+// How 2 read these things
+// pub fn u8_slice_to_string(i: &[u8]) -> &str {
+//     from_utf8(i).unwrap()
+// }
