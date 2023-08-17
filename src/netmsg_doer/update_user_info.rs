@@ -1,3 +1,5 @@
+use std::str::from_utf8;
+
 use super::*;
 
 pub struct UpdateUserInfo {}
@@ -17,7 +19,7 @@ impl<'a> NetMsgDoer<'a, SvcUpdateUserInfo<'a>> for UpdateUserInfo {
     fn write(i: SvcUpdateUserInfo) -> Vec<u8> {
         let mut writer = ByteWriter::new();
 
-        writer.append_u8(EngineMessageType::SvcUpdateuserInfo as u8);
+        writer.append_u8(EngineMessageType::SvcUpdateUserInfo as u8);
 
         writer.append_u8(i.index);
         writer.append_u32(i.id);
@@ -26,4 +28,8 @@ impl<'a> NetMsgDoer<'a, SvcUpdateUserInfo<'a>> for UpdateUserInfo {
 
         writer.data
     }
+}
+
+pub fn user_info_to_string(i: &[u8]) -> &str {
+    from_utf8(i).unwrap()
 }

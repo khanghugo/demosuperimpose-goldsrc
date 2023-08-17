@@ -1,5 +1,5 @@
 use super::*;
-use std::{convert::TryInto, str::from_utf8};
+use std::convert::TryInto;
 
 pub struct DeltaDescription {}
 impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {

@@ -31,11 +31,6 @@ impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
             None
         };
 
-        // let current_bit = br.get_offset();
-        // let modulo = current_bit % 8;
-        // let remaining_bits = if modulo == 0 { 0 } else { 8 - modulo };
-        // let consumed_bytes = (current_bit + remaining_bits) / 8;
-
         let (i, _) = take(br.get_consumed_bytes())(i)?;
 
         Ok((

@@ -85,7 +85,8 @@ pub type BitType = BitVec<u8>;
 //     name:
 // }
 
-// UserMessage
+/// UserMessage
+#[derive(Debug)]
 pub struct NetMsgUserMessage<'a> {
     pub message: &'a [u8],
 }
@@ -125,6 +126,7 @@ pub struct SvcVersion {
 }
 
 /// SVC_SETVIEW 5
+#[derive(Debug)]
 pub struct SvcSetView {
     pub entity_index: i16,
 }
@@ -157,16 +159,19 @@ pub struct OriginCoord {
 }
 
 /// SVC_TIME 7
+#[derive(Debug)]
 pub struct SvcTime {
     pub time: f32,
 }
 
 /// SVC_PRINT 8
+#[derive(Debug)]
 pub struct SvcPrint<'a> {
     pub message: &'a [u8],
 }
 
 /// SVC_STUFFTEXT 9
+#[derive(Debug)]
 pub struct SvcStuffText<'a> {
     pub command: &'a [u8],
 }
@@ -203,6 +208,7 @@ pub struct SvcLightStyle<'a> {
 }
 
 /// SVC_UPDATEUSERINFO 13
+#[derive(Debug)]
 pub struct SvcUpdateUserInfo<'a> {
     pub index: u8,
     pub id: u32,
@@ -212,6 +218,7 @@ pub struct SvcUpdateUserInfo<'a> {
 }
 
 /// SVC_DELTADESCRIPTION 14
+#[derive(Debug)]
 pub struct SvcDeltaDescription<'a> {
     pub name: &'a [u8],
     pub total_fields: u16,
@@ -423,6 +430,7 @@ pub struct SvcFinale<'a> {
 }
 
 /// SVC_CDTRACK 32
+#[derive(Debug)]
 pub struct SvcCdTrack {
     pub track: i8,
     pub loop_track: i8,
@@ -463,6 +471,7 @@ pub struct SvcAddAngle {
 }
 
 /// SVC_NEWUSERMSG 39
+#[derive(Debug)]
 pub struct SvcNewUserMsg<'a> {
     pub index: u8,
     pub size: u8,
@@ -522,6 +531,7 @@ pub struct Consistency {
 }
 
 /// SVC_NEWMOVEVARS 44
+#[derive(Debug)]
 pub struct SvcNewMoveVars<'a> {
     pub gravity: f32,
     pub stop_speed: f32,
@@ -611,6 +621,7 @@ pub struct SvcVoiceData<'a> {
 }
 
 /// SVC_SENDEXTRAINFO 54
+#[derive(Debug)]
 pub struct SvcSendExtraInfo<'a> {
     pub fallback_dir: &'a [u8],
     pub can_cheat: u8,
@@ -637,8 +648,9 @@ pub struct SvcSendCvarValue2<'a> {
     name: &'a [u8],
 }
 
+#[derive(Debug)]
 pub enum Message<'a> {
-    UserMessage,
+    UserMessage(NetMsgUserMessage<'a>),
     EngineMessage(EngineMessage<'a>),
 }
 
@@ -648,15 +660,16 @@ pub enum MessageType {
 }
 
 #[repr(u8)]
+#[derive(Debug)]
 pub enum EngineMessage<'a> {
     SvcBad = 0,
     SvcNop = 1,
     SvcDisconnect = 2,
     SvcEvent = 3,
     SvcVersion = 4,
-    SvcSetview(SvcSetView) = 5,
+    SvcSetView(SvcSetView) = 5,
     SvcSound = 6,
-    SvcTime = 7,
+    SvcTime(SvcTime) = 7,
     SvcPrint(SvcPrint<'a>) = 8,
     SvcStuffText(SvcStuffText<'a>) = 9,
     SvcSetAngle = 10,
@@ -664,7 +677,7 @@ pub enum EngineMessage<'a> {
     SvcLightStyle = 12,
     SvcUpdateuserInfo(SvcUpdateUserInfo<'a>) = 13,
     SvcDeltaDescription(SvcDeltaDescription<'a>) = 14,
-    SvcClientData = 15,
+    SvcClientData(SvcClientData) = 15,
     SvcStopsound = 16,
     SvcPings = 17,
     SvcParticle = 18,
@@ -718,7 +731,7 @@ pub enum EngineMessageType {
     SvcDisconnect = 2,
     SvcEvent = 3,
     SvcVersion = 4,
-    SvcSetview = 5,
+    SvcSetView = 5,
     SvcSound = 6,
     SvcTime = 7,
     SvcPrint = 8,
@@ -726,7 +739,7 @@ pub enum EngineMessageType {
     SvcSetAngle = 10,
     SvcServerInfo = 11,
     SvcLightStyle = 12,
-    SvcUpdateuserInfo = 13,
+    SvcUpdateUserInfo = 13,
     SvcDeltaDescription = 14,
     SvcClientData = 15,
     SvcStopsound = 16,
@@ -788,7 +801,7 @@ impl From<u8> for MessageType {
             2 => MessageType::EngineMessageType(EngineMessageType::SvcDisconnect),
             3 => MessageType::EngineMessageType(EngineMessageType::SvcEvent),
             4 => MessageType::EngineMessageType(EngineMessageType::SvcVersion),
-            5 => MessageType::EngineMessageType(EngineMessageType::SvcSetview),
+            5 => MessageType::EngineMessageType(EngineMessageType::SvcSetView),
             6 => MessageType::EngineMessageType(EngineMessageType::SvcSound),
             7 => MessageType::EngineMessageType(EngineMessageType::SvcTime),
             8 => MessageType::EngineMessageType(EngineMessageType::SvcPrint),
@@ -796,7 +809,7 @@ impl From<u8> for MessageType {
             10 => MessageType::EngineMessageType(EngineMessageType::SvcSetAngle),
             11 => MessageType::EngineMessageType(EngineMessageType::SvcServerInfo),
             12 => MessageType::EngineMessageType(EngineMessageType::SvcLightStyle),
-            13 => MessageType::EngineMessageType(EngineMessageType::SvcUpdateuserInfo),
+            13 => MessageType::EngineMessageType(EngineMessageType::SvcUpdateUserInfo),
             14 => MessageType::EngineMessageType(EngineMessageType::SvcDeltaDescription),
             15 => MessageType::EngineMessageType(EngineMessageType::SvcClientData),
             16 => MessageType::EngineMessageType(EngineMessageType::SvcStopsound),

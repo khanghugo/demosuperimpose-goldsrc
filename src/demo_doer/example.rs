@@ -3,6 +3,7 @@ use std::str::from_utf8;
 use demosuperimpose_goldsrc::netmsg_doer::{
     client_data::ClientData,
     delta_description::DeltaDescription,
+    parse_netmsg,
     print::Print,
     send_extra_info::SendExtraInfo,
     server_info::{self, ServerInfo},
@@ -63,20 +64,24 @@ pub fn example(demo: &mut Demo) {
         // println!("{:?}", data.msg);
         let mut delta_decoders = get_initial_delta();
 
-        println!("{}", data.msg[0]);
-        let (rest, print) = Print::parse(&data.msg[1..], &mut delta_decoders).unwrap();
-        println!("{}", rest[0]);
-        let (rest, server_info) = ServerInfo::parse(&rest[1..], &mut delta_decoders).unwrap();
-        println!("{}", rest[0]);
-        let (rest, send_extra_info) =
-            SendExtraInfo::parse(&rest[1..], &mut delta_decoders).unwrap();
-        println!("{}", rest[0]);
-        let (rest, delta1) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
-        delta_decoders.insert(from_utf8(delta1.name).unwrap().to_string(), delta1.fields);
-        println!("{}", rest[0]);
-        let (rest, delta2) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
-        println!("{}", rest[0]);
-        let (rest, delta3) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
-        println!("{}", rest[0]);
+        let (i, what) = parse_netmsg(data.msg, &mut delta_decoders).unwrap();
+
+        println!("{:?}", what);
+
+        // println!("{}", data.msg[0]);
+        // let (rest, print) = Print::parse(&data.msg[1..], &mut delta_decoders).unwrap();
+        // println!("{}", rest[0]);
+        // let (rest, server_info) = ServerInfo::parse(&rest[1..], &mut delta_decoders).unwrap();
+        // println!("{}", rest[0]);
+        // let (rest, send_extra_info) =
+        //     SendExtraInfo::parse(&rest[1..], &mut delta_decoders).unwrap();
+        // println!("{}", rest[0]);
+        // let (rest, delta1) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
+        // delta_decoders.insert(from_utf8(delta1.name).unwrap().to_string(), delta1.fields);
+        // println!("{}", rest[0]);
+        // let (rest, delta2) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
+        // println!("{}", rest[0]);
+        // let (rest, delta3) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
+        // println!("{}", rest[0]);
     }
 }
