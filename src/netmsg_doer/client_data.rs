@@ -5,7 +5,10 @@ use super::{
 
 pub struct ClientData {}
 impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcClientData> {
+    fn parse(
+        i: &'a [u8],
+        delta_decoders: &mut DeltaDecoderTable,
+    ) -> IResult<&'a [u8], SvcClientData> {
         let mut br = BitReader::new(i);
 
         let has_delta_update_mask = br.read_1_bit();
@@ -14,22 +17,22 @@ impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
         } else {
             None
         };
-        let initial = get_initial_delta();
-        let client_data = parse_delta(initial.get("delta_description_t\0").unwrap(), &mut br);
-        let has_weapon_data = br.read_1_bit();
-        let weapon_index = if has_weapon_data {
-            Some(br.read_n_bit(6).to_owned())
-        } else {
-            None
-        };
-        let weapon_data = if has_weapon_data {
-            Some(parse_delta(
-                initial.get("delta_description_t\0").unwrap(),
-                &mut br,
-            ))
-        } else {
-            None
-        };
+
+        let client_data = parse_delta(delta_decoders.get("clientdata_t\0").unwrap(), &mut br);
+
+        // This is a vector unlike THE docs.
+        let mut weapon_data: Vec<ClientDataWeaponData> = vec![];
+        while br.read_1_bit() {
+            let weapon_index = br.read_n_bit(6).to_owned();
+            let delta = parse_delta(delta_decoders.get("weapon_data_t\0").unwrap(), &mut br);
+
+            weapon_data.push(ClientDataWeaponData {
+                weapon_index,
+                weapon_data: delta,
+            });
+        }
+
+        // Remember to write the last "false" bit.
 
         let (i, _) = take(br.get_consumed_bytes())(i)?;
 
@@ -39,9 +42,7 @@ impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
                 has_delta_update_mask,
                 delta_update_mask,
                 client_data,
-                has_weapon_data,
-                weapon_index,
-                weapon_data,
+                weapon_data: Some(weapon_data),
             },
         ))
     }

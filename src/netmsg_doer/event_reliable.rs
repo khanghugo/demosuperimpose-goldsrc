@@ -9,7 +9,7 @@ impl<'a> NetMsgDoer<'a, SvcEventReliable> for EventReliable {
         let mut br = BitReader::new(i);
 
         let event_index = br.read_n_bit(10).to_owned();
-        let event_args = parse_delta(delta_decoders.get("event_args_t\0").unwrap(), &mut br);
+        let event_args = parse_delta(delta_decoders.get("event_t\0").unwrap(), &mut br);
         let has_fire_time = br.read_1_bit();
         let fire_time = if has_fire_time {
             Some(br.read_n_bit(16).to_owned())

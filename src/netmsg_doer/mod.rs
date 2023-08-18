@@ -118,6 +118,18 @@ pub trait NetMsgDoer<'a, T> {
     fn write(i: T) -> Vec<u8>;
 }
 
+// Should have done one differently for normal netmessage and ones with delta as well....
+pub trait UserMessageDoer<'a, T> {
+    /// Does not parse the type byte but only the message after that.
+    fn parse(
+        i: &'a [u8],
+        id: u8,
+        custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
+    ) -> IResult<&'a [u8], T>;
+    /// Must also write message type.
+    fn write(i: T) -> Vec<u8>;
+}
+
 macro_rules! wrap_parse {
     ($input:ident, $parser:ident, $svc:ident, $dd:ident) => {{
         let ($input, res) = $parser::parse($input, $dd)?;
@@ -128,11 +140,12 @@ macro_rules! wrap_parse {
 fn parse_single_netmsg<'a>(
     i: &'a [u8],
     delta_decoders: &mut HashMap<String, DeltaDecoder>,
+    custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> IResult<&'a [u8], Message<'a>> {
     let (i, type_) = le_u8(i)?;
     let (i, res) = match MessageType::from(type_) {
         MessageType::UserMessage => {
-            let (i, res) = UserMessage::parse(i, delta_decoders)?;
+            let (i, res) = UserMessage::parse(i, type_, custom_messages)?;
             (i, Message::UserMessage(res))
         }
         MessageType::EngineMessageType(engine_message_type) => {
@@ -251,7 +264,15 @@ fn parse_single_netmsg<'a>(
                     wrap_parse!(i, AddAngle, SvcAddAngle, delta_decoders)
                 }
                 EngineMessageType::SvcNewUserMsg => {
-                    wrap_parse!(i, NewUserMsg, SvcNewUserMsg, delta_decoders)
+                    let res = wrap_parse!(i, NewUserMsg, SvcNewUserMsg, delta_decoders);
+
+                    if let Message::EngineMessage(EngineMessage::SvcNewUserMsg(ref msg)) = res.1 {
+                        custom_messages.insert(msg.index, msg.clone());
+                    }
+
+                    // println!("the fuck {:?}", custom_messages);
+
+                    res
                 }
                 EngineMessageType::SvcPacketEntities => {
                     wrap_parse!(i, PacketEntities, SvcPacketEntities, delta_decoders)
@@ -314,7 +335,8 @@ fn parse_single_netmsg<'a>(
         }
     };
 
-    // println!("{:?}", res);
+    println!("{:?}", i);
+    println!("{:?}", res);
 
     Ok((i, res))
 }
@@ -322,8 +344,9 @@ fn parse_single_netmsg<'a>(
 pub fn parse_netmsg<'a>(
     i: &'a [u8],
     delta_decoders: &mut HashMap<String, DeltaDecoder>,
+    custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> IResult<&'a [u8], Vec<Message<'a>>> {
-    let parser = move |i| parse_single_netmsg(i, delta_decoders);
+    let parser = move |i| parse_single_netmsg(i, delta_decoders, custom_messages);
     all_consuming(many0(parser))(i)
 }
 

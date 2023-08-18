@@ -1,4 +1,4 @@
-use std::str::from_utf8;
+use std::{collections::HashMap, str::from_utf8};
 
 use demosuperimpose_goldsrc::netmsg_doer::{
     client_data::ClientData,
@@ -86,23 +86,24 @@ pub fn example(demo: &mut Demo) {
     //     // println!("{}", rest[0]);
     // }
     let mut delta_decoders = get_initial_delta();
+    let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
 
-    // for (i, entry) in demo.directory.entries.iter().enumerate() {
-    //     for (j, frame) in entry.frames.iter().enumerate() {
-    //         if let FrameData::NetMsg((_, data)) = &frame.data {
-    //             println!("{} {}", i, j);
-    //             parse_netmsg(data.msg, &mut delta_decoders);
-    //         }
-    //     }
-    // }
+    for (i, entry) in demo.directory.entries.iter().enumerate() {
+        for (j, frame) in entry.frames.iter().enumerate() {
+            if let FrameData::NetMsg((_, data)) = &frame.data {
+                println!("{} {}", i, j);
+                parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages);
+            }
+        }
+    }
 
     // let mut delta_decoders = get_initial_delta();
 
     // c = lambda x: print(''.join(list(map(lambda y: chr(int(y.strip())), x.split(',')))))
 
-    let entry = &demo.directory.entries[1];
-    let data = &entry.frames[33].data;
-    if let FrameData::NetMsg((_, data)) = &data {
-        parse_netmsg(data.msg, &mut delta_decoders);
-    }
+    // let entry = &demo.directory.entries[1];
+    // let data = &entry.frames[33].data;
+    // if let FrameData::NetMsg((_, data)) = &data {
+    //     parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages);
+    // }
 }

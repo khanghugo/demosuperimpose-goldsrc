@@ -36,6 +36,8 @@ impl<'a> NetMsgDoer<'a, SvcSound> for Sound {
             BitVec::<u8, Lsb0>::from_element(1u8)
         };
 
+        let (i, _) = take(br.get_consumed_bytes())(i)?;
+
         Ok((
             i,
             SvcSound {

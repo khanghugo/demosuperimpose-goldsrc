@@ -89,7 +89,10 @@ pub type BitType = BitVec<u8>;
 /// UserMessage
 #[derive(Debug)]
 pub struct NetMsgUserMessage<'a> {
-    pub message: &'a [u8],
+    pub id: u8,
+    // [bool; 16]
+    pub name: &'a [u8],
+    pub data: &'a [u8],
 }
 
 /// SVC_BAD 0
@@ -249,10 +252,14 @@ pub struct SvcClientData {
     // [bool; 8]
     pub delta_update_mask: Option<BitType>,
     pub client_data: Delta,
-    pub has_weapon_data: bool,
+    pub weapon_data: Option<Vec<ClientDataWeaponData>>,
+}
+
+#[derive(Debug)]
+pub struct ClientDataWeaponData {
     // [bool; 6]
-    pub weapon_index: Option<BitType>,
-    pub weapon_data: Option<Delta>,
+    pub weapon_index: BitType,
+    pub weapon_data: Delta,
 }
 
 /// SVC_STOPSOUND 16
@@ -586,7 +593,7 @@ pub struct SvcAddAngle {
 }
 
 /// SVC_NEWUSERMSG 39
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SvcNewUserMsg<'a> {
     pub index: u8,
     pub size: u8,
@@ -1017,6 +1024,11 @@ impl From<u8> for MessageType {
             56 => MessageType::EngineMessageType(EngineMessageType::SvcResourceLocation),
             57 => MessageType::EngineMessageType(EngineMessageType::SvcSendCvarValue),
             58 => MessageType::EngineMessageType(EngineMessageType::SvcSendCvarValue2),
+            59 => MessageType::EngineMessageType(EngineMessageType::SvcBad),
+            60 => MessageType::EngineMessageType(EngineMessageType::SvcBad),
+            61 => MessageType::EngineMessageType(EngineMessageType::SvcBad),
+            62 => MessageType::EngineMessageType(EngineMessageType::SvcBad),
+            63 => MessageType::EngineMessageType(EngineMessageType::SvcBad),
             _ => MessageType::UserMessage,
         }
     }

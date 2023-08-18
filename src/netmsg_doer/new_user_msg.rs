@@ -3,6 +3,7 @@ use super::*;
 pub struct NewUserMsg {}
 impl<'a> NetMsgDoer<'a, SvcNewUserMsg<'a>> for NewUserMsg {
     fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcNewUserMsg<'a>> {
+        // We have to mutate things as well after this.
         map(
             tuple((le_u8, le_u8, take(16usize))),
             |(index, size, name)| SvcNewUserMsg { index, size, name },

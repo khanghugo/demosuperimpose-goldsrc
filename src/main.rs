@@ -22,7 +22,7 @@ fn print_u8_array(i: &[u8]) {
 
 fn main() {
     let mut bytes = Vec::new();
-    let mut f = File::open("./example/gold.dem").unwrap();
+    let mut f = File::open("./example/anubis.dem").unwrap();
     f.read_to_end(&mut bytes);
 
     let mut demo = hldemo::Demo::parse(&bytes).unwrap();
