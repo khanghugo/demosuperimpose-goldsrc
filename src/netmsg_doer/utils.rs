@@ -165,6 +165,7 @@ impl BitReader {
 ///
 pub fn parse_delta<'a>(dd: &DeltaDecoder, br: &'a mut BitReader) -> Delta {
     let mut res: Delta = Delta::new();
+
     let mask_byte_count = br.read_n_bit(3).to_u8() as usize;
     let mask_byte: Vec<u8> = (0..mask_byte_count)
         .map(|_| br.read_n_bit(8).to_u8())

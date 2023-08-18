@@ -1,5 +1,5 @@
 use super::{
-    utils::{get_initial_delta, parse_delta, BitReader},
+    utils::{parse_delta, BitReader},
     *,
 };
 
@@ -9,6 +9,7 @@ impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
         i: &'a [u8],
         delta_decoders: &mut DeltaDecoderTable,
     ) -> IResult<&'a [u8], SvcClientData> {
+        let clone = i;
         let mut br = BitReader::new(i);
 
         let has_delta_update_mask = br.read_1_bit();
@@ -34,7 +35,9 @@ impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
 
         // Remember to write the last "false" bit.
 
-        let (i, _) = take(br.get_consumed_bytes())(i)?;
+        let range = br.get_consumed_bytes();
+        let clone = clone[..range].to_owned();
+        let (i, _) = take(range)(i)?;
 
         Ok((
             i,
@@ -43,11 +46,19 @@ impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
                 delta_update_mask,
                 client_data,
                 weapon_data: Some(weapon_data),
+                clone,
             },
         ))
     }
 
     fn write(i: SvcClientData) -> Vec<u8> {
-        todo!()
+        // TODO
+        let mut writer = ByteWriter::new();
+
+        writer.append_u8(EngineMessageType::SvcClientData as u8);
+
+        writer.append_u8_slice(&i.clone);
+
+        writer.data
     }
 }

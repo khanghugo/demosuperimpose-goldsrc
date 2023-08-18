@@ -10,6 +10,8 @@ impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {
         let (i, name) = null_string(i)?;
         let (i, total_fields) = le_u16(i)?;
 
+        let clone = i;
+
         // Delta description is usually in LOADING section and first frame message.
         // It will detail the deltas being used and its index for correct decoding.
         // So this would be the only message that modifies the delta decode table.
@@ -42,7 +44,9 @@ impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {
             })
             .collect();
 
-        let (i, _) = take(br.get_consumed_bytes())(i)?;
+        let range = br.get_consumed_bytes();
+        let clone = clone[..range].to_owned();
+        let (i, _) = take(range)(i)?;
 
         // It really should mutate the delta decoder table here but we're respecting ownership.
 
@@ -52,11 +56,21 @@ impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {
                 name,
                 total_fields,
                 fields: decoder,
+                clone,
             },
         ))
     }
 
     fn write(i: SvcDeltaDescription<'a>) -> Vec<u8> {
-        todo!()
+        // TODO
+        let mut writer = ByteWriter::new();
+
+        writer.append_u8(EngineMessageType::SvcDeltaDescription as u8);
+
+        writer.append_u8_slice(i.name);
+        writer.append_u16(i.total_fields);
+        writer.append_u8_slice(&i.clone);
+
+        writer.data
     }
 }

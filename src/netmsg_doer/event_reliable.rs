@@ -6,6 +6,7 @@ impl<'a> NetMsgDoer<'a, SvcEventReliable> for EventReliable {
         i: &'a [u8],
         delta_decoders: &mut DeltaDecoderTable,
     ) -> IResult<&'a [u8], SvcEventReliable> {
+        let clone = i;
         let mut br = BitReader::new(i);
 
         let event_index = br.read_n_bit(10).to_owned();
@@ -17,6 +18,10 @@ impl<'a> NetMsgDoer<'a, SvcEventReliable> for EventReliable {
             None
         };
 
+        let range = br.get_consumed_bytes();
+        let clone = clone[..range].to_owned();
+        let (i, _) = take(range)(i)?;
+
         Ok((
             i,
             SvcEventReliable {
@@ -24,15 +29,18 @@ impl<'a> NetMsgDoer<'a, SvcEventReliable> for EventReliable {
                 event_args,
                 has_fire_time,
                 fire_time,
+                clone,
             },
         ))
     }
 
     fn write(i: SvcEventReliable) -> Vec<u8> {
-        todo!();
+        // TODO
         let mut writer = ByteWriter::new();
 
         writer.append_u8(EngineMessageType::SvcEventReliable as u8);
+
+        writer.append_u8_slice(&i.clone);
 
         writer.data
     }

@@ -15,21 +15,22 @@ use hldemo::{FrameData, NetMsgData};
 use types::EngineMessage;
 use writer::DemoWriter;
 
-fn print_u8_array(i: &[u8]) {
-    i.iter().for_each(|x| print!("{}", *x as char));
-    println!("");
+macro_rules! write_demo {
+    ($demo_name:literal, $demo:ident) => {{
+        let mut out = DemoWriter::new(String::from($demo_name));
+        out.write_file($demo);
+    }};
 }
 
 fn main() {
     let mut bytes = Vec::new();
-    let mut f = File::open("./example/anubis.dem").unwrap();
+    let mut f = File::open("./example/impo.dem").unwrap();
     f.read_to_end(&mut bytes);
 
     let mut demo = hldemo::Demo::parse(&bytes).unwrap();
     example::example(&mut demo);
 
-    // let mut what = DemoWriter::new(String::from("out_example.dem"));
-    // what.write_file(demo);
+    // write_demo!("test.dem", demo);
 
     // let mut what = BitWriter::new();
     // for _ in 0..63 {

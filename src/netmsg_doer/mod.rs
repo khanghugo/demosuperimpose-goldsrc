@@ -127,7 +127,7 @@ pub trait UserMessageDoer<'a, T> {
         custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
     ) -> IResult<&'a [u8], T>;
     /// Must also write message type.
-    fn write(i: T) -> Vec<u8>;
+    fn write(i: T, custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>) -> Vec<u8>;
 }
 
 macro_rules! wrap_parse {
@@ -188,6 +188,7 @@ fn parse_single_netmsg<'a>(
                             name,
                             total_fields: _,
                             fields,
+                            clone: _,
                         },
                     )) = &res.1
                     {
@@ -270,8 +271,6 @@ fn parse_single_netmsg<'a>(
                         custom_messages.insert(msg.index, msg.clone());
                     }
 
-                    // println!("the fuck {:?}", custom_messages);
-
                     res
                 }
                 EngineMessageType::SvcPacketEntities => {
@@ -335,8 +334,8 @@ fn parse_single_netmsg<'a>(
         }
     };
 
-    println!("{:?}", i);
-    println!("{:?}", res);
+    // println!("{:?}", i);
+    // println!("{:?}", res);
 
     Ok((i, res))
 }

@@ -6,6 +6,7 @@ impl<'a> NetMsgDoer<'a, SvcSpawnBaseline> for SpawnBaseline {
         i: &'a [u8],
         delta_decoders: &mut DeltaDecoderTable,
     ) -> IResult<&'a [u8], SvcSpawnBaseline> {
+        let clone = i;
         let mut br = BitReader::new(i);
         let mut entities: Vec<EntityS> = vec![];
 
@@ -52,7 +53,9 @@ impl<'a> NetMsgDoer<'a, SvcSpawnBaseline> for SpawnBaseline {
             .map(|_| parse_delta(delta_decoders.get("entity_state_t\0").unwrap(), &mut br))
             .collect();
 
-        let (i, _) = take(br.get_consumed_bytes())(i)?;
+        let range = br.get_consumed_bytes();
+        let clone = clone[..range].to_owned();
+        let (i, _) = take(range)(i)?;
 
         Ok((
             i,
@@ -61,15 +64,18 @@ impl<'a> NetMsgDoer<'a, SvcSpawnBaseline> for SpawnBaseline {
                 footer,
                 total_extra_data,
                 extra_data,
+                clone,
             },
         ))
     }
 
     fn write(i: SvcSpawnBaseline) -> Vec<u8> {
-        todo!();
+        // TODO
         let mut writer = ByteWriter::new();
 
         writer.append_u8(EngineMessageType::SvcSpawnBaseline as u8);
+
+        writer.append_u8_slice(&i.clone);
 
         writer.data
     }

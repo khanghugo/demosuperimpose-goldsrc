@@ -6,6 +6,7 @@ impl<'a> NetMsgDoer<'a, SvcPacketEntities> for PacketEntities {
         i: &'a [u8],
         delta_decoders: &mut DeltaDecoderTable,
     ) -> IResult<&'a [u8], SvcPacketEntities> {
+        let clone = i;
         let mut br = BitReader::new(i);
 
         let entity_count = br.read_n_bit(16).to_owned();
@@ -83,22 +84,27 @@ impl<'a> NetMsgDoer<'a, SvcPacketEntities> for PacketEntities {
             })
         }
 
-        let (i, _) = take(br.get_consumed_bytes())(i)?;
+        let range = br.get_consumed_bytes();
+        let clone = clone[..range].to_owned();
+        let (i, _) = take(range)(i)?;
 
         Ok((
             i,
             SvcPacketEntities {
                 entity_count,
                 entity_states,
+                clone,
             },
         ))
     }
 
     fn write(i: SvcPacketEntities) -> Vec<u8> {
-        todo!();
+        // TODO
         let mut writer = ByteWriter::new();
 
         writer.append_u8(EngineMessageType::SvcPacketEntities as u8);
+
+        writer.append_u8_slice(&i.clone);
 
         writer.data
     }
