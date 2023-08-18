@@ -22,7 +22,10 @@ impl<'a> NetMsgDoer<'a, SvcEvent> for Event {
                     None
                 };
                 let delta = if has_delta.is_some() {
-                    Some(parse_delta(delta_decoders.get("event_t").unwrap(), &mut br))
+                    Some(parse_delta(
+                        delta_decoders.get("event_t\0").unwrap(),
+                        &mut br,
+                    ))
                 } else {
                     None
                 };

@@ -549,12 +549,12 @@ pub struct SvcCdTrack {
 pub struct SvcRestore<'a> {
     pub save_name: &'a [u8],
     pub map_count: u8,
-    pub map_names: &'a [u8],
+    pub map_names: Vec<&'a [u8]>,
 }
 
 /// SVC_CUTSCENE 34
 #[derive(Debug)]
-pub struct SvcCutScene<'a> {
+pub struct SvcCutscene<'a> {
     pub text: &'a [u8],
 }
 
@@ -567,7 +567,7 @@ pub struct SvcWeaponAnim {
 
 /// SVC_DECALNAME 36
 #[derive(Debug)]
-pub struct SvcDecalname<'a> {
+pub struct SvcDecalName<'a> {
     pub position_index: u8,
     pub decal_name: &'a [u8],
 }
@@ -595,8 +595,9 @@ pub struct SvcNewUserMsg<'a> {
 
 /// SVC_PACKETENTITIES (40)
 #[derive(Debug)]
-struct SvcPacketEntities {
-    pub entity_count: u16,
+pub struct SvcPacketEntities {
+    // [bool; 16]
+    pub entity_count: BitType,
     pub entity_states: Vec<EntityState>,
 }
 
@@ -604,19 +605,24 @@ struct SvcPacketEntities {
 pub struct EntityState {
     pub increment_entity_number: bool,
     pub is_absolute_entity_index: Option<bool>,
-    pub absolute_entity_index: Option<[bool; 18]>,
-    pub entity_index_difference: Option<[bool; 6]>,
+    // [bool; 11]
+    pub absolute_entity_index: Option<BitType>,
+    // [bool; 6]
+    pub entity_index_difference: Option<BitType>,
     pub has_custom_delta: bool,
     pub has_baseline_index: bool,
-    // TODO
-    delta: u8,
+    // [bool; 6]
+    pub baseline_index: Option<BitType>,
+    pub delta: Delta,
 }
 
 /// SVC_DELTAPACKETENTITIES 41
 #[derive(Debug)]
 pub struct SvcDeltaPacketEntities {
-    pub entity_count: u16,
-    pub delta_sequence: u8,
+    // [bool; 16]
+    pub entity_count: BitType,
+    // [bool; 8]
+    pub delta_sequence: BitType,
     pub entity_states: Vec<EntityState>,
 }
 
@@ -624,30 +630,40 @@ pub struct SvcDeltaPacketEntities {
 
 /// SVC_RESOURCELIST 43
 #[derive(Debug)]
-pub struct SvcResourceList<'a> {
-    pub resource_count: [bool; 12],
-    pub resources: Vec<Resource<'a>>,
+pub struct SvcResourceList {
+    // [bool; 12]
+    pub resource_count: BitType,
+    pub resources: Vec<Resource>,
     pub consistencies: Vec<Consistency>,
 }
 
 #[derive(Debug)]
-pub struct Resource<'a> {
-    pub type_: [bool; 4],
-    pub name: &'a [u8],
-    pub index: [bool; 12],
-    pub size: [bool; 24],
-    pub flag: [bool; 3],
-    pub md5_hash: Option<[bool; 128]>,
+pub struct Resource {
+    // [bool; 4]
+    pub type_: BitType,
+    // &'[u8]
+    pub name: BitType,
+    // [bool; 12]
+    pub index: BitType,
+    // [bool; 24]
+    pub size: BitType,
+    // [bool; 3]
+    pub flags: BitType,
+    // [bool; 128]
+    pub md5_hash: Option<BitType>,
     pub has_extra_info: bool,
-    pub extra_info: Option<[bool; 256]>,
+    // [bool; 256]
+    pub extra_info: Option<BitType>,
 }
 
 #[derive(Debug)]
 pub struct Consistency {
     pub has_check_file_flag: bool,
     pub is_short_index: Option<bool>,
-    pub short_index: Option<[bool; 5]>,
-    pub long_index: Option<[bool; 10]>,
+    // [bool; 5]
+    pub short_index: Option<BitType>,
+    // [bool; 10]
+    pub long_index: Option<BitType>,
 }
 
 /// SVC_NEWMOVEVARS 44
@@ -683,7 +699,7 @@ pub struct SvcNewMoveVars<'a> {
 #[derive(Debug)]
 pub struct SvcResourceRequest {
     pub spawn_count: i32,
-    pub unknown: u32,
+    pub unknown: Vec<u8>,
 }
 
 /// SVC_CUSTOMIZATION 46
@@ -695,7 +711,8 @@ pub struct SvcCustomization<'a> {
     pub index: u16,
     pub download_size: u32,
     pub flags: u8,
-    pub md5_hash: Option<[u8; 16]>,
+    // [u8; 16]
+    pub md5_hash: Option<&'a [u8]>,
 }
 
 /// SVC_CROSSHAIRANGLE 47
@@ -778,7 +795,7 @@ pub struct SvcSendCvarValue<'a> {
 #[derive(Debug)]
 pub struct SvcSendCvarValue2<'a> {
     pub request_id: u32,
-    name: &'a [u8],
+    pub name: &'a [u8],
 }
 
 #[derive(Debug)]
@@ -824,36 +841,36 @@ pub enum EngineMessage<'a> {
     SvcCenterPrint(SvcCenterPrint<'a>) = 26,
     SvcKilledMonster = 27,
     SvcFoundSecret = 28,
-    SvcSpawnStaticSound = 29,
+    SvcSpawnStaticSound(SvcSpawnStaticSound) = 29,
     SvcIntermission = 30,
-    SvcFinale = 31,
+    SvcFinale(SvcFinale<'a>) = 31,
     SvcCdTrack(SvcCdTrack) = 32,
-    SvcRestore = 33,
-    SvcCutscene = 34,
-    SvcWeaponAnim = 35,
-    SvcDecalName = 36,
-    SvcRoomType = 37,
-    SvcAddAngle = 38,
+    SvcRestore(SvcRestore<'a>) = 33,
+    SvcCutscene(SvcCutscene<'a>) = 34,
+    SvcWeaponAnim(SvcWeaponAnim) = 35,
+    SvcDecalName(SvcDecalName<'a>) = 36,
+    SvcRoomType(SvcRoomType) = 37,
+    SvcAddAngle(SvcAddAngle) = 38,
     SvcNewUserMsg(SvcNewUserMsg<'a>) = 39,
-    SvcPacketEntities = 40,
-    SvcDeltaPacketEntities = 41,
+    SvcPacketEntities(SvcPacketEntities) = 40,
+    SvcDeltaPacketEntities(SvcDeltaPacketEntities) = 41,
     SvcChoke = 42,
-    SvcResourceList = 43,
+    SvcResourceList(SvcResourceList) = 43,
     SvcNewMoveVars(SvcNewMoveVars<'a>) = 44,
-    SvcResourceRequest = 45,
-    SvcCustomization = 46,
-    SvcCrosshairAngle = 47,
-    SvcSoundFade = 48,
-    SvcFileTxferFailed = 49,
-    SvcHltv = 50,
-    SvcDirector = 51,
-    SvcVoiceInit = 52,
-    SvcVoiceData = 53,
+    SvcResourceRequest(SvcResourceRequest) = 45,
+    SvcCustomization(SvcCustomization<'a>) = 46,
+    SvcCrosshairAngle(SvcCrosshairAngle) = 47,
+    SvcSoundFade(SvcSoundFade) = 48,
+    SvcFileTxferFailed(SvcFileTxferFailed<'a>) = 49,
+    SvcHltv(SvcHltv) = 50,
+    SvcDirector(SvcDirector<'a>) = 51,
+    SvcVoiceInit(SvcVoiceInit<'a>) = 52,
+    SvcVoiceData(SvcVoiceData<'a>) = 53,
     SvcSendExtraInfo(SvcSendExtraInfo<'a>) = 54,
-    SvcTimeScale = 55,
-    SvcResourceLocation = 56,
-    SvcSendCvarValue = 57,
-    SvcSendCvarValue2 = 58,
+    SvcTimeScale(SvcTimeScale) = 55,
+    SvcResourceLocation(SvcResourceLocation<'a>) = 56,
+    SvcSendCvarValue(SvcSendCvarValue<'a>) = 57,
+    SvcSendCvarValue2(SvcSendCvarValue2<'a>) = 58,
 }
 
 // Eh, yes.

@@ -57,32 +57,64 @@ pub fn example(demo: &mut Demo) {
     //     }
     // }
 
-    let entry = &demo.directory.entries[0];
+    // let entry = &demo.directory.entries[0];
     // println!("{}", );
+    // let data = &entry.frames[0].data;
+    // if let FrameData::NetMsg((_, data)) = &data {
+    //     // println!("{:?}", data.msg);
+    //     let mut delta_decoders = get_initial_delta();
+
+    //     let (i, what) = parse_netmsg(data.msg, &mut delta_decoders).unwrap();
+    //     // println!("{:?}", delta_decoders);
+
+    //     println!("{:?}", i);
+
+    //     // println!("{}", data.msg[0]);
+    //     // let (rest, print) = Print::parse(&data.msg[1..], &mut delta_decoders).unwrap();
+    //     // println!("{}", rest[0]);
+    //     // let (rest, server_info) = ServerInfo::parse(&rest[1..], &mut delta_decoders).unwrap();
+    //     // println!("{}", rest[0]);
+    //     // let (rest, send_extra_info) =
+    //     //     SendExtraInfo::parse(&rest[1..], &mut delta_decoders).unwrap();
+    //     // println!("{}", rest[0]);
+    //     // let (rest, delta1) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
+    //     // delta_decoders.insert(from_utf8(delta1.name).unwrap().to_string(), delta1.fields);
+    //     // println!("{}", rest[0]);
+    //     // let (rest, delta2) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
+    //     // println!("{}", rest[0]);
+    //     // let (rest, delta3) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
+    //     // println!("{}", rest[0]);
+    // }
+
+    // for (i, entry) in demo.directory.entries.iter().enumerate() {
+    //     let mut delta_decoders = get_initial_delta();
+    //     for (j, frame) in entry.frames.iter().enumerate() {
+    //         if let FrameData::NetMsg((_, data)) = &frame.data {
+    //             println!("{} {}", i, j);
+    //             parse_netmsg(data.msg, &mut delta_decoders);
+    //         }
+    //     }
+    // }
+
+    let mut delta_decoders = get_initial_delta();
+    let entry = &demo.directory.entries[0];
     let data = &entry.frames[0].data;
     if let FrameData::NetMsg((_, data)) = &data {
-        // println!("{:?}", data.msg);
-        let mut delta_decoders = get_initial_delta();
-
-        let (i, what) = parse_netmsg(data.msg, &mut delta_decoders).unwrap();
-        // println!("{:?}", delta_decoders);
-
-        println!("{:?}", what);
-
-        // println!("{}", data.msg[0]);
-        // let (rest, print) = Print::parse(&data.msg[1..], &mut delta_decoders).unwrap();
-        // println!("{}", rest[0]);
-        // let (rest, server_info) = ServerInfo::parse(&rest[1..], &mut delta_decoders).unwrap();
-        // println!("{}", rest[0]);
-        // let (rest, send_extra_info) =
-        //     SendExtraInfo::parse(&rest[1..], &mut delta_decoders).unwrap();
-        // println!("{}", rest[0]);
-        // let (rest, delta1) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
-        // delta_decoders.insert(from_utf8(delta1.name).unwrap().to_string(), delta1.fields);
-        // println!("{}", rest[0]);
-        // let (rest, delta2) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
-        // println!("{}", rest[0]);
-        // let (rest, delta3) = DeltaDescription::parse(&rest[1..], &mut delta_decoders).unwrap();
-        // println!("{}", rest[0]);
+        parse_netmsg(data.msg, &mut delta_decoders);
+    }
+    let entry = &demo.directory.entries[0];
+    let data = &entry.frames[1].data;
+    if let FrameData::NetMsg((_, data)) = &data {
+        parse_netmsg(data.msg, &mut delta_decoders);
+    }
+    let entry = &demo.directory.entries[0];
+    let data = &entry.frames[2].data;
+    if let FrameData::NetMsg((_, data)) = &data {
+        parse_netmsg(data.msg, &mut delta_decoders);
+    }
+    let entry = &demo.directory.entries[0];
+    let data = &entry.frames[3].data;
+    if let FrameData::NetMsg((_, data)) = &data {
+        parse_netmsg(data.msg, &mut delta_decoders);
     }
 }

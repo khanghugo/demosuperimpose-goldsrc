@@ -129,7 +129,11 @@ impl BitReader {
 
     /// Peeks 8 bits and converts to u8.
     fn peek_byte(&self) -> u8 {
-        self.bytes[self.offset..self.offset + 8].to_u8()
+        self.peek_n_bits(8).to_u8()
+    }
+
+    pub fn peek_n_bits(&self, n: usize) -> &BitSlice<u8> {
+        &self.bytes[self.offset..self.offset + n]
     }
 
     pub fn get_offset(&self) -> usize {
@@ -292,7 +296,7 @@ pub fn get_initial_delta<'a>() -> DeltaDecoderTable<'a> {
 
     let default_decoder = vec![e1, e2, e3, e4, e5, e6, e7];
 
-    res.insert("delta_description_t".to_string(), default_decoder);
+    res.insert("delta_description_t\0".to_string(), default_decoder);
 
     res
 }

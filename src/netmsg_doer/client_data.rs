@@ -15,7 +15,7 @@ impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
             None
         };
         let initial = get_initial_delta();
-        let client_data = parse_delta(initial.get("delta_description_t").unwrap(), &mut br);
+        let client_data = parse_delta(initial.get("delta_description_t\0").unwrap(), &mut br);
         let has_weapon_data = br.read_1_bit();
         let weapon_index = if has_weapon_data {
             Some(br.read_n_bit(6).to_owned())
@@ -24,7 +24,7 @@ impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
         };
         let weapon_data = if has_weapon_data {
             Some(parse_delta(
-                initial.get("delta_description_t").unwrap(),
+                initial.get("delta_description_t\0").unwrap(),
                 &mut br,
             ))
         } else {
