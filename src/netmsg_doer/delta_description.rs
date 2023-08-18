@@ -24,16 +24,11 @@ impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {
             })
             .collect();
 
-        // println!("{:#?}", data);
-
         let decoder: DeltaDecoder = data
             .iter()
             .map(|entry| {
-                // TODO make this not shit
-                let huh = entry.get("name").unwrap().to_owned().leak();
-
                 DeltaDecoderS {
-                    name: huh,
+                    name: entry.get("name").unwrap().to_owned(),
                     bits: u32::from_le_bytes(
                         entry.get("bits").unwrap().as_slice().try_into().unwrap(),
                     ), // heh

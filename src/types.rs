@@ -68,16 +68,16 @@ pub struct delta_stats_t {
 ///
 /// Lots of info end up unused.
 #[derive(Clone)]
-pub struct DeltaDecoderS<'a> {
-    pub name: &'a [u8],
+pub struct DeltaDecoderS {
+    pub name: Vec<u8>,
     pub bits: u32,
     pub divisor: f32,
     pub flags: u32,
 }
 
 pub type Delta = HashMap<String, Vec<u8>>;
-pub type DeltaDecoder<'a> = Vec<DeltaDecoderS<'a>>;
-pub type DeltaDecoderTable<'a> = HashMap<String, DeltaDecoder<'a>>;
+pub type DeltaDecoder = Vec<DeltaDecoderS>;
+pub type DeltaDecoderTable = HashMap<String, DeltaDecoder>;
 
 pub type BitType = BitVec<u8>;
 
@@ -239,7 +239,7 @@ pub struct SvcUpdateUserInfo<'a> {
 pub struct SvcDeltaDescription<'a> {
     pub name: &'a [u8],
     pub total_fields: u16,
-    pub fields: DeltaDecoder<'a>,
+    pub fields: DeltaDecoder,
 }
 
 /// SVC_CLIENTDATA 15
@@ -322,6 +322,12 @@ pub struct SvcEventReliable {
 #[derive(Debug)]
 pub struct SvcSpawnBaseline {
     pub entities: Vec<EntityS>,
+    // These members are not inside EntityS like cgdangelo/talent suggests.
+    // [bool; 5]
+    pub footer: BitType,
+    // [bool; 6]
+    pub total_extra_data: BitType,
+    pub extra_data: Vec<Delta>,
 }
 
 #[derive(Debug)]
@@ -332,11 +338,6 @@ pub struct EntityS {
     pub type_: BitType,
     // One delta for 3 types
     pub delta: Delta,
-    // [bool; 5]
-    pub footer: BitType,
-    // [bool; 6]
-    pub total_extra_data: BitType,
-    pub extra_data: Vec<Delta>,
 }
 
 /// SVC_TEMPENTITY 23
@@ -617,13 +618,30 @@ pub struct EntityState {
 }
 
 /// SVC_DELTAPACKETENTITIES 41
+// Delta doesn't give out to every entity, it must go for according entity index.
+pub type DeltaPacketEntitiesHashMap = HashMap<u32, EntityStateDelta>;
 #[derive(Debug)]
 pub struct SvcDeltaPacketEntities {
     // [bool; 16]
     pub entity_count: BitType,
     // [bool; 8]
     pub delta_sequence: BitType,
-    pub entity_states: Vec<EntityState>,
+    pub entity_states: DeltaPacketEntitiesHashMap,
+}
+
+/// These infos are not like THE docs mention.
+#[derive(Debug)]
+pub struct EntityStateDelta {
+    // [bool; 11] but do u16 because arithmetic.
+    pub entity_index: u16,
+    pub remove_entity: bool,
+    pub is_absolute_entity_index: bool,
+    // [bool; 11]
+    pub absolute_entity_index: Option<BitType>,
+    // [bool; 6]
+    pub entity_index_difference: Option<BitType>,
+    pub has_custom_delta: bool,
+    pub delta: Delta,
 }
 
 /// SVC_CHOKE 42

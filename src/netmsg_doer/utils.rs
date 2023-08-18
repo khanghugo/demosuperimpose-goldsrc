@@ -181,7 +181,7 @@ pub fn parse_delta<'a>(dd: &DeltaDecoder, br: &'a mut BitReader) -> Delta {
             if (mask_byte[i] & (1 << j)) != 0 {
                 let curr = &dd[index];
                 let lhs = curr.flags;
-                let key = from_utf8(curr.name).unwrap().to_owned();
+                let key = from_utf8(&curr.name).unwrap().to_owned();
 
                 if check_flag(lhs, DeltaType::Byte) {
                     if check_flag(lhs, DeltaType::Signed) {
@@ -248,47 +248,47 @@ pub fn parse_delta<'a>(dd: &DeltaDecoder, br: &'a mut BitReader) -> Delta {
     res
 }
 
-pub fn get_initial_delta<'a>() -> DeltaDecoderTable<'a> {
+pub fn get_initial_delta() -> DeltaDecoderTable {
     let mut res: DeltaDecoderTable = DeltaDecoderTable::new();
 
     let e1 = DeltaDecoderS {
-        name: b"flags",
+        name: "flags".into(),
         bits: 32,
         divisor: 1.,
         flags: DeltaType::Integer as u32,
     };
     let e2 = DeltaDecoderS {
-        name: b"name",
+        name: "name".into(),
         bits: 8,
         divisor: 1.,
         flags: DeltaType::String as u32,
     };
     let e3 = DeltaDecoderS {
-        name: b"offset",
+        name: "offset".into(),
         bits: 16,
         divisor: 1.,
         flags: DeltaType::Integer as u32,
     };
     let e4 = DeltaDecoderS {
-        name: b"size",
+        name: "size".into(),
         bits: 8,
         divisor: 1.,
         flags: DeltaType::Integer as u32,
     };
     let e5 = DeltaDecoderS {
-        name: b"bits",
+        name: "bits".into(),
         bits: 8,
         divisor: 1.,
         flags: DeltaType::Integer as u32,
     };
     let e6 = DeltaDecoderS {
-        name: b"divisor",
+        name: "divisor".into(),
         bits: 32,
         divisor: 4000.,
         flags: DeltaType::Float as u32,
     };
     let e7 = DeltaDecoderS {
-        name: b"preMultiplier",
+        name: "preMultiplier".into(),
         bits: 32,
         divisor: 4000.,
         flags: DeltaType::Float as u32,

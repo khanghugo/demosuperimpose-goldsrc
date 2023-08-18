@@ -10,8 +10,9 @@ impl<'a> NetMsgDoer<'a, SvcDeltaPacketEntities> for DeltaPacketEntities {
 
         let entity_count = br.read_n_bit(16).to_owned();
         let delta_sequence = br.read_n_bit(8).to_owned();
-        let mut entity_index = 0;
-        let mut entity_states: Vec<EntityState> = vec![];
+
+        let mut entity_index: u16 = 0;
+        let mut entity_states: DeltaPacketEntitiesHashMap = HashMap::new();
 
         loop {
             let footer = br.peek_n_bits(16).to_u16();
@@ -20,40 +21,24 @@ impl<'a> NetMsgDoer<'a, SvcDeltaPacketEntities> for DeltaPacketEntities {
                 break;
             }
 
-            let increment_entity_number = br.read_1_bit();
-            let is_absolute_entity_index = if increment_entity_number {
-                entity_index += 1;
-                None
+            let remove_entity = br.read_1_bit();
+            let is_absolute_entity_index = br.read_1_bit();
+
+            let (absolute_entity_index, entity_index_difference) = if is_absolute_entity_index {
+                let idx = br.read_n_bit(11).to_owned();
+                entity_index = idx.to_u16();
+                (Some(idx), None)
             } else {
-                Some(br.read_1_bit())
+                let diff = br.read_n_bit(6).to_owned();
+                entity_index += diff.to_u16();
+                (None, Some(diff))
             };
-            let absolute_entity_index = if is_absolute_entity_index.is_some()
-                && is_absolute_entity_index.unwrap()
-                && !increment_entity_number
-            {
-                let val = br.read_n_bit(11).to_owned();
-                entity_index = val.to_u16();
-                Some(val)
-            } else {
-                None
-            };
-            let entity_index_difference = if (is_absolute_entity_index.is_none()
-                || (is_absolute_entity_index.is_some() && !is_absolute_entity_index.unwrap()))
-                && !increment_entity_number
-            {
-                let val = br.read_n_bit(6).to_owned();
-                entity_index += val.to_u16();
-                Some(val)
-            } else {
-                None
-            };
+
+            if remove_entity {
+                continue;
+            }
+
             let has_custom_delta = br.read_1_bit();
-            let has_baseline_index = br.read_1_bit();
-            let baseline_index = if has_baseline_index {
-                Some(br.read_n_bit(6).to_owned())
-            } else {
-                None
-            };
             let between = entity_index > 0 && entity_index <= 32;
 
             let delta = if between {
@@ -72,16 +57,18 @@ impl<'a> NetMsgDoer<'a, SvcDeltaPacketEntities> for DeltaPacketEntities {
                 }
             };
 
-            entity_states.push(EntityState {
-                increment_entity_number,
-                is_absolute_entity_index,
-                absolute_entity_index,
-                entity_index_difference,
-                has_custom_delta,
-                has_baseline_index,
-                baseline_index,
-                delta,
-            })
+            entity_states.insert(
+                entity_index as u32,
+                EntityStateDelta {
+                    entity_index,
+                    remove_entity,
+                    is_absolute_entity_index,
+                    absolute_entity_index,
+                    entity_index_difference,
+                    has_custom_delta,
+                    delta,
+                },
+            );
         }
 
         let (i, _) = take(br.get_consumed_bytes())(i)?;

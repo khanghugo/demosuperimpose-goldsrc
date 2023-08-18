@@ -36,41 +36,33 @@ impl<'a> NetMsgDoer<'a, SvcSpawnBaseline> for SpawnBaseline {
                 )
             };
 
-            let footer = br.read_n_bit(5).to_owned();
-            let total_extra_data = br.read_n_bit(6).to_owned();
-
-            let extra_data: Vec<Delta> = (0..total_extra_data.to_u8())
-                .map(|_| parse_delta(delta_decoders.get("entity_state_t\0").unwrap(), &mut br))
-                .collect();
-
-            {
-                let index = index.to_u16();
-                let type_ = type_.to_u8();
-                let footer = footer.to_u8();
-                let total_extra_data = total_extra_data.to_u8();
-                println!(
-                    "{} {} {:?} {} {} {:?}",
-                    index, type_, delta, footer, total_extra_data, extra_data
-                );
-
-                // println!("{:#?}", delta_decoders);
-            }
-
             let res = EntityS {
                 index,
                 type_,
                 delta,
-                footer,
-                total_extra_data,
-                extra_data,
             };
 
             entities.push(res);
         }
 
+        let footer = br.read_n_bit(5).to_owned();
+        let total_extra_data = br.read_n_bit(6).to_owned();
+
+        let extra_data: Vec<Delta> = (0..total_extra_data.to_u8())
+            .map(|_| parse_delta(delta_decoders.get("entity_state_t\0").unwrap(), &mut br))
+            .collect();
+
         let (i, _) = take(br.get_consumed_bytes())(i)?;
 
-        Ok((i, SvcSpawnBaseline { entities }))
+        Ok((
+            i,
+            SvcSpawnBaseline {
+                entities,
+                footer,
+                total_extra_data,
+                extra_data,
+            },
+        ))
     }
 
     fn write(i: SvcSpawnBaseline) -> Vec<u8> {

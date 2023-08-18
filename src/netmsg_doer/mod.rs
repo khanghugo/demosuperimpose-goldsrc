@@ -127,10 +127,10 @@ macro_rules! wrap_parse {
 
 fn parse_single_netmsg<'a>(
     i: &'a [u8],
-    delta_decoders: &mut HashMap<String, DeltaDecoder<'a>>,
+    delta_decoders: &mut HashMap<String, DeltaDecoder>,
 ) -> IResult<&'a [u8], Message<'a>> {
     let (i, type_) = le_u8(i)?;
-    Ok(match MessageType::from(type_) {
+    let (i, res) = match MessageType::from(type_) {
         MessageType::UserMessage => {
             let (i, res) = UserMessage::parse(i, delta_decoders)?;
             (i, Message::UserMessage(res))
@@ -312,12 +312,16 @@ fn parse_single_netmsg<'a>(
                 _ => (i, Message::EngineMessage(EngineMessage::SvcNop)),
             }
         }
-    })
+    };
+
+    // println!("{:?}", res);
+
+    Ok((i, res))
 }
 
 pub fn parse_netmsg<'a>(
     i: &'a [u8],
-    delta_decoders: &mut HashMap<String, DeltaDecoder<'a>>,
+    delta_decoders: &mut HashMap<String, DeltaDecoder>,
 ) -> IResult<&'a [u8], Vec<Message<'a>>> {
     let parser = move |i| parse_single_netmsg(i, delta_decoders);
     all_consuming(many0(parser))(i)
