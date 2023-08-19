@@ -369,7 +369,8 @@ pub enum TempEntityEntity<'a> {
     TeBeamEntPoint(&'a [u8]) = 1,
     // [u8; 6]
     TeGunshot(&'a [u8]) = 2,
-    // [u8; 6]
+    // It is 11
+    // [u8; 11]
     TeExplosion(&'a [u8]) = 3,
     // [u8; 6]
     TeTarExplosion(&'a [u8]) = 4,
@@ -439,7 +440,8 @@ pub enum TempEntityEntity<'a> {
     TeModel(&'a [u8]) = 106,
     // [u8; 13]
     TeExplodeModel(&'a [u8]) = 107,
-    // [u8; 13]
+    // It is 24
+    // [u8; 24]
     TeBreakModel(&'a [u8]) = 108,
     // [u8; 9]
     TeGunshotDecal(&'a [u8]) = 109,
@@ -475,7 +477,8 @@ pub enum TempEntityEntity<'a> {
     TePlayerAttachment(&'a [u8]) = 124,
     // [u8; 1]
     TeKillPlayerAttachment(&'a [u8]) = 125,
-    // [u8; 10]
+    // It is 18.
+    // [u8; 18]
     TeMultigunShot(&'a [u8]) = 126,
     // [u8; 15]
     TeUserTracer(&'a [u8]) = 127,
@@ -604,7 +607,8 @@ pub struct SvcAddAngle {
 #[derive(Debug, Clone)]
 pub struct SvcNewUserMsg<'a> {
     pub index: u8,
-    pub size: u8,
+    // weird but it's for consistency
+    pub size: i8,
     // [u8; 16]
     pub name: &'a [u8],
 }

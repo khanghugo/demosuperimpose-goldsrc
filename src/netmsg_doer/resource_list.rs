@@ -41,33 +41,34 @@ impl<'a> NetMsgDoer<'a, SvcResourceList> for ResourceList {
 
         let mut consistencies: Vec<Consistency> = vec![];
 
-        loop {
-            let has_check_file_flag = br.read_1_bit();
+        if br.read_1_bit() {
+            loop {
+                let has_check_file_flag = br.read_1_bit();
 
-            if has_check_file_flag {
-                let is_short_index = br.read_1_bit();
+                if has_check_file_flag {
+                    let is_short_index = br.read_1_bit();
 
-                let (short_index, long_index) = if is_short_index {
-                    (Some(br.read_n_bit(5).to_owned()), None)
+                    let (short_index, long_index) = if is_short_index {
+                        (Some(br.read_n_bit(5).to_owned()), None)
+                    } else {
+                        (None, Some(br.read_n_bit(10).to_owned()))
+                    };
+
+                    consistencies.push(Consistency {
+                        has_check_file_flag,
+                        is_short_index: Some(is_short_index),
+                        short_index,
+                        long_index,
+                    });
                 } else {
-                    (None, Some(br.read_n_bit(10).to_owned()))
-                };
-
-                // (Some(is_short_index), short_index, long_index)
-                consistencies.push(Consistency {
-                    has_check_file_flag,
-                    is_short_index: Some(is_short_index),
-                    short_index,
-                    long_index,
-                });
-            } else {
-                consistencies.push(Consistency {
-                    has_check_file_flag: false,
-                    is_short_index: None,
-                    short_index: None,
-                    long_index: None,
-                });
-                break;
+                    consistencies.push(Consistency {
+                        has_check_file_flag: false,
+                        is_short_index: None,
+                        short_index: None,
+                        long_index: None,
+                    });
+                    break;
+                }
             }
         }
 

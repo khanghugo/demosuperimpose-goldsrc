@@ -9,7 +9,7 @@ impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
             0 => map(take(24usize), |res| TempEntityEntity::TeBeamPoints(res))(i)?,
             1 => map(take(20usize), |res| TempEntityEntity::TeBeamEntPoint(res))(i)?,
             2 => map(take(6usize), |res| TempEntityEntity::TeGunshot(res))(i)?,
-            3 => map(take(6usize), |res| TempEntityEntity::TeExplosion(res))(i)?,
+            3 => map(take(11usize), |res| TempEntityEntity::TeExplosion(res))(i)?,
             4 => map(take(6usize), |res| TempEntityEntity::TeTarExplosion(res))(i)?,
             5 => map(take(10usize), |res| TempEntityEntity::TeSmoke(res))(i)?,
             6 => map(take(12usize), |res| TempEntityEntity::TeTracer(res))(i)?,
@@ -112,7 +112,7 @@ impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
             105 => map(take(5usize), |res| TempEntityEntity::TeFizz(res))(i)?,
             106 => map(take(17usize), |res| TempEntityEntity::TeModel(res))(i)?,
             107 => map(take(13usize), |res| TempEntityEntity::TeExplodeModel(res))(i)?,
-            108 => map(take(13usize), |res| TempEntityEntity::TeBreakModel(res))(i)?,
+            108 => map(take(24usize), |res| TempEntityEntity::TeBreakModel(res))(i)?,
             109 => map(take(9usize), |res| TempEntityEntity::TeGunshotDecal(res))(i)?,
             110 => map(take(17usize), |res| TempEntityEntity::TeSpriteSpray(res))(i)?,
             111 => map(take(7usize), |res| TempEntityEntity::TeArmorRicochet(res))(i)?,
@@ -134,7 +134,7 @@ impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
             125 => map(take(1usize), |res| {
                 TempEntityEntity::TeKillPlayerAttachment(res)
             })(i)?,
-            126 => map(take(10usize), |res| TempEntityEntity::TeMultigunShot(res))(i)?,
+            126 => map(take(18usize), |res| TempEntityEntity::TeMultigunShot(res))(i)?,
             127 => map(take(15usize), |res| TempEntityEntity::TeUserTracer(res))(i)?,
             _ => panic!("Bad entity ({})", entity_type),
         };

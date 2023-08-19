@@ -10,17 +10,24 @@ impl<'a> UserMessageDoer<'a, NetMsgUserMessage<'a>> for UserMessage {
         let custom_message = custom_messages.get(&id);
 
         let is_set = custom_message.is_some();
-        let is_size = custom_message.is_some() && custom_message.unwrap().size < 255u8; // equivalent to -1
+        let is_size = custom_message.is_some() && custom_message.unwrap().size > -1; // equivalent to -1
 
-        let (i, data) = if is_set {
-            if is_size {
-                take(custom_message.unwrap().size as usize)(i)?
-            } else {
-                let (i, length) = le_u8(i)?;
-                take(length as usize)(i)?
-            }
+        // let (i, data) = if is_set {
+        //     if is_size {
+        //         take(custom_message.unwrap().size as usize)(i)?
+        //     } else {
+        //         let (i, length) = le_u8(i)?;
+        //         take(length as usize)(i)?
+        //     }
+        // } else {
+        //     take(1usize)(i)?
+        // };
+
+        let (i, data) = if is_size {
+            take(custom_message.unwrap().size as usize)(i)?
         } else {
-            take(1usize)(i)?
+            let (i, length) = le_u8(i)?;
+            take(length as usize)(i)?
         };
 
         Ok((
@@ -46,7 +53,7 @@ impl<'a> UserMessageDoer<'a, NetMsgUserMessage<'a>> for UserMessage {
         writer.append_u8(i.id);
 
         if let Some(message) = custom_messages.get(&i.id) {
-            if message.size == 255 {
+            if message.size == -1 {
                 writer.append_u8(i.data.len() as u8);
             }
         }

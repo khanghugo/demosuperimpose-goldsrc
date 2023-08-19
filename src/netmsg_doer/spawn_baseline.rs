@@ -47,6 +47,10 @@ impl<'a> NetMsgDoer<'a, SvcSpawnBaseline> for SpawnBaseline {
         }
 
         let footer = br.read_n_bit(5).to_owned();
+        if footer.to_u8() != (1 << 5) - 1 {
+            panic!("Bad spawn baseline");
+        }
+
         let total_extra_data = br.read_n_bit(6).to_owned();
 
         let extra_data: Vec<Delta> = (0..total_extra_data.to_u8())
