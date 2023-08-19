@@ -142,6 +142,8 @@ fn parse_single_netmsg<'a>(
     delta_decoders: &mut HashMap<String, DeltaDecoder>,
     custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> IResult<&'a [u8], Message<'a>> {
+    // println!("{:?}", i);
+
     let (i, type_) = le_u8(i)?;
     let (i, res) = match MessageType::from(type_) {
         MessageType::UserMessage => {
@@ -178,7 +180,7 @@ fn parse_single_netmsg<'a>(
                     wrap_parse!(i, LightStyle, SvcLightStyle, delta_decoders)
                 }
                 EngineMessageType::SvcUpdateUserInfo => {
-                    wrap_parse!(i, UpdateUserInfo, SvcUpdateuserInfo, delta_decoders)
+                    wrap_parse!(i, UpdateUserInfo, SvcUpdateUserInfo, delta_decoders)
                 }
                 EngineMessageType::SvcDeltaDescription => {
                     // Mutate delta_decoders here
@@ -287,7 +289,7 @@ fn parse_single_netmsg<'a>(
                     wrap_parse!(i, ResourceList, SvcResourceList, delta_decoders)
                 }
                 EngineMessageType::SvcNewMoveVars => {
-                    wrap_parse!(i, NewMovevars, SvcNewMoveVars, delta_decoders)
+                    wrap_parse!(i, NewMovevars, SvcNewMovevars, delta_decoders)
                 }
                 EngineMessageType::SvcResourceRequest => {
                     wrap_parse!(i, ResourceRequest, SvcResourceRequest, delta_decoders)
@@ -334,7 +336,6 @@ fn parse_single_netmsg<'a>(
         }
     };
 
-    // println!("{:?}", i);
     // println!("{:?}", res);
 
     Ok((i, res))
@@ -349,7 +350,89 @@ pub fn parse_netmsg<'a>(
     all_consuming(many0(parser))(i)
 }
 
-// How 2 read these things
-// pub fn u8_slice_to_string(i: &[u8]) -> &str {
-//     from_utf8(i).unwrap()
-// }
+pub fn write_single_netmsg<'a>(
+    i: Message<'a>,
+    delta_decoders: &mut HashMap<String, DeltaDecoder>,
+    custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
+) -> Vec<u8> {
+    match i {
+        Message::UserMessage(what) => UserMessage::write(what, custom_messages),
+        Message::EngineMessage(what) => match what {
+            EngineMessage::SvcBad => vec![EngineMessageType::SvcBad as u8],
+            EngineMessage::SvcNop => vec![EngineMessageType::SvcNop as u8],
+            EngineMessage::SvcDisconnect(i) => Disconnect::write(i),
+            EngineMessage::SvcEvent(i) => Event::write(i),
+            EngineMessage::SvcVersion(i) => Version::write(i),
+            EngineMessage::SvcSetView(i) => SetView::write(i),
+            EngineMessage::SvcSound(i) => Sound::write(i),
+            EngineMessage::SvcTime(i) => Time::write(i),
+            EngineMessage::SvcPrint(i) => Print::write(i),
+            EngineMessage::SvcStuffText(i) => StuffText::write(i),
+            EngineMessage::SvcSetAngle(i) => SetAngle::write(i),
+            EngineMessage::SvcServerInfo(i) => ServerInfo::write(i),
+            EngineMessage::SvcLightStyle(i) => LightStyle::write(i),
+            EngineMessage::SvcUpdateUserInfo(i) => UpdateUserInfo::write(i),
+            EngineMessage::SvcDeltaDescription(i) => DeltaDescription::write(i),
+            EngineMessage::SvcClientData(i) => ClientData::write(i),
+            EngineMessage::SvcStopSound(i) => StopSound::write(i),
+            EngineMessage::SvcPings(i) => Pings::write(i),
+            EngineMessage::SvcParticle(i) => Particle::write(i),
+            EngineMessage::SvcDamage => vec![EngineMessageType::SvcDamage as u8],
+            EngineMessage::SvcSpawnStatic(i) => SpawnStatic::write(i),
+            EngineMessage::SvcEventReliable(i) => EventReliable::write(i),
+            EngineMessage::SvcSpawnBaseline(i) => SpawnBaseline::write(i),
+            EngineMessage::SvcTempEntity(i) => TempEntity::write(i),
+            EngineMessage::SvcSetPause(i) => SetPause::write(i),
+            EngineMessage::SvcSignOnNum(i) => SignOnNum::write(i),
+            EngineMessage::SvcCenterPrint(i) => CenterPrint::write(i),
+            EngineMessage::SvcKilledMonster => vec![EngineMessageType::SvcKilledMonster as u8],
+            EngineMessage::SvcFoundSecret => vec![EngineMessageType::SvcFoundSecret as u8],
+            EngineMessage::SvcSpawnStaticSound(i) => SpawnStaticSound::write(i),
+            EngineMessage::SvcIntermission => vec![EngineMessageType::SvcIntermission as u8],
+            EngineMessage::SvcFinale(i) => Finale::write(i),
+            EngineMessage::SvcCdTrack(i) => CdTrack::write(i),
+            EngineMessage::SvcRestore(i) => Restore::write(i),
+            EngineMessage::SvcCutscene(i) => Cutscene::write(i),
+            EngineMessage::SvcWeaponAnim(i) => WeaponAnim::write(i),
+            EngineMessage::SvcDecalName(i) => DecalName::write(i),
+            EngineMessage::SvcRoomType(i) => RoomType::write(i),
+            EngineMessage::SvcAddAngle(i) => AddAngle::write(i),
+            EngineMessage::SvcNewUserMsg(i) => NewUserMsg::write(i),
+            EngineMessage::SvcPacketEntities(i) => PacketEntities::write(i),
+            EngineMessage::SvcDeltaPacketEntities(i) => DeltaPacketEntities::write(i),
+            EngineMessage::SvcChoke => vec![EngineMessageType::SvcChoke as u8],
+            EngineMessage::SvcResourceList(i) => ResourceList::write(i),
+            EngineMessage::SvcNewMovevars(i) => NewMovevars::write(i),
+            EngineMessage::SvcResourceRequest(i) => ResourceRequest::write(i),
+            EngineMessage::SvcCustomization(i) => Customization::write(i),
+            EngineMessage::SvcCrosshairAngle(i) => CrosshairAngle::write(i),
+            EngineMessage::SvcSoundFade(i) => SoundFade::write(i),
+            EngineMessage::SvcFileTxferFailed(i) => FileTxferFailed::write(i),
+            EngineMessage::SvcHltv(i) => Hltv::write(i),
+            EngineMessage::SvcDirector(i) => Director::write(i),
+            EngineMessage::SvcVoiceInit(i) => VoiceInit::write(i),
+            EngineMessage::SvcVoiceData(i) => VoiceData::write(i),
+            EngineMessage::SvcSendExtraInfo(i) => SendExtraInfo::write(i),
+            EngineMessage::SvcTimeScale(i) => TimeScale::write(i),
+            EngineMessage::SvcResourceLocation(i) => ResourceLocation::write(i),
+            EngineMessage::SvcSendCvarValue(i) => SendCvarValue::write(i),
+            EngineMessage::SvcSendCvarValue2(i) => SendCvarValue2::write(i),
+        },
+    }
+}
+
+pub fn write_netmsg<'a>(
+    i: Vec<Message<'a>>,
+    delta_decoders: &mut HashMap<String, DeltaDecoder>,
+    custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
+) -> Vec<u8> {
+    let mut res: Vec<u8> = vec![];
+    for message in i {
+        res.append(&mut write_single_netmsg(
+            message,
+            delta_decoders,
+            custom_messages,
+        ));
+    }
+    res
+}

@@ -158,12 +158,9 @@ pub struct SvcSound {
     pub has_x: bool,
     pub has_y: bool,
     pub has_z: bool,
-    // Very messed up.
-    pub origin_x: f32,
-    // Very messed up.
-    pub origin_y: f32,
-    // Very messed up.
-    pub origin_z: f32,
+    pub origin_x: Option<OriginCoord>,
+    pub origin_y: Option<OriginCoord>,
+    pub origin_z: Option<OriginCoord>,
     pub pitch: BitType,
 }
 
@@ -172,9 +169,13 @@ pub struct OriginCoord {
     pub int_flag: bool,
     pub fraction_flag: bool,
     pub is_negative: Option<bool>,
-    pub int_value: Option<[bool; 12]>,
-    pub fraction_value: Option<[bool; 3]>,
-    pub unknown: [bool; 2],
+    // [bool; 12]
+    pub int_value: Option<BitType>,
+    // [bool; 3]
+    pub fraction_value: Option<BitType>,
+    // There is no unknow, Xd
+    // [bool; 2]
+    // pub unknown: BitType,
 }
 
 /// SVC_TIME 7
@@ -857,7 +858,7 @@ pub enum EngineMessage<'a> {
     SvcSetAngle(SvcSetAngle) = 10,
     SvcServerInfo(SvcServerInfo<'a>) = 11,
     SvcLightStyle(SvcLightStyle<'a>) = 12,
-    SvcUpdateuserInfo(SvcUpdateUserInfo<'a>) = 13,
+    SvcUpdateUserInfo(SvcUpdateUserInfo<'a>) = 13,
     SvcDeltaDescription(SvcDeltaDescription<'a>) = 14,
     SvcClientData(SvcClientData) = 15,
     SvcStopSound(SvcStopSound) = 16,
@@ -888,7 +889,7 @@ pub enum EngineMessage<'a> {
     SvcDeltaPacketEntities(SvcDeltaPacketEntities) = 41,
     SvcChoke = 42,
     SvcResourceList(SvcResourceList) = 43,
-    SvcNewMoveVars(SvcNewMoveVars<'a>) = 44,
+    SvcNewMovevars(SvcNewMoveVars<'a>) = 44,
     SvcResourceRequest(SvcResourceRequest) = 45,
     SvcCustomization(SvcCustomization<'a>) = 46,
     SvcCrosshairAngle(SvcCrosshairAngle) = 47,
