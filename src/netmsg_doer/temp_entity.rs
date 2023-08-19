@@ -53,12 +53,23 @@ impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
             29 => {
                 let (
                     i,
-                    (channel, x, y, effect, text_color, fade_in_time, fade_out_time, hold_time),
+                    (
+                        channel,
+                        x,
+                        y,
+                        effect,
+                        text_color,
+                        effect_color,
+                        fade_in_time,
+                        fade_out_time,
+                        hold_time,
+                    ),
                 ) = tuple((
                     le_i8,
                     le_i16,
                     le_i16,
                     le_i8,
+                    take(4usize),
                     take(4usize),
                     le_i16,
                     le_i16,
@@ -81,6 +92,7 @@ impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
                         y,
                         effect,
                         text_color,
+                        effect_color,
                         fade_in_time,
                         fade_out_time,
                         hold_time,
@@ -183,6 +195,7 @@ impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
                 writer.append_i16(what.y);
                 writer.append_i8(what.effect);
                 writer.append_u8_slice(what.text_color);
+                writer.append_u8_slice(what.effect_color);
                 writer.append_i16(what.fade_in_time);
                 writer.append_i16(what.fade_out_time);
                 writer.append_i16(what.hold_time);

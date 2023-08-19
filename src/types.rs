@@ -498,6 +498,8 @@ pub struct TeTextMessage<'a> {
     pub effect: i8,
     // [u8; 4]
     pub text_color: &'a [u8],
+    // THE docs forgot to mention this
+    pub effect_color: &'a [u8],
     pub fade_in_time: i16,
     pub fade_out_time: i16,
     pub hold_time: i16,
