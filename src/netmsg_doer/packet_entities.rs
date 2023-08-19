@@ -73,6 +73,7 @@ impl<'a> NetMsgDoer<'a, SvcPacketEntities> for PacketEntities {
             };
 
             entity_states.push(EntityState {
+                entity_index,
                 increment_entity_number,
                 is_absolute_entity_index,
                 absolute_entity_index,

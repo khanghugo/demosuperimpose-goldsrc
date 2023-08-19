@@ -618,6 +618,7 @@ pub struct SvcPacketEntities {
 
 #[derive(Debug)]
 pub struct EntityState {
+    pub entity_index: u16,
     pub increment_entity_number: bool,
     pub is_absolute_entity_index: Option<bool>,
     // [bool; 11]
@@ -632,15 +633,13 @@ pub struct EntityState {
 }
 
 /// SVC_DELTAPACKETENTITIES 41
-// Delta doesn't give out to every entity, it must go for according entity index.
-pub type DeltaPacketEntitiesHashMap = HashMap<u32, EntityStateDelta>;
 #[derive(Debug)]
 pub struct SvcDeltaPacketEntities {
     // [bool; 16]
     pub entity_count: BitType,
     // [bool; 8]
     pub delta_sequence: BitType,
-    pub entity_states: DeltaPacketEntitiesHashMap,
+    pub entity_states: Vec<EntityStateDelta>,
     pub clone: Vec<u8>,
 }
 

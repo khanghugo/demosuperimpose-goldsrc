@@ -13,7 +13,7 @@ impl<'a> NetMsgDoer<'a, SvcDeltaPacketEntities> for DeltaPacketEntities {
         let delta_sequence = br.read_n_bit(8).to_owned();
 
         let mut entity_index: u16 = 0;
-        let mut entity_states: DeltaPacketEntitiesHashMap = HashMap::new();
+        let mut entity_states: Vec<EntityStateDelta> = vec![];
 
         loop {
             let footer = br.peek_n_bits(16).to_u16();
@@ -58,18 +58,15 @@ impl<'a> NetMsgDoer<'a, SvcDeltaPacketEntities> for DeltaPacketEntities {
                 }
             };
 
-            entity_states.insert(
-                entity_index as u32,
-                EntityStateDelta {
-                    entity_index,
-                    remove_entity,
-                    is_absolute_entity_index,
-                    absolute_entity_index,
-                    entity_index_difference,
-                    has_custom_delta,
-                    delta,
-                },
-            );
+            entity_states.push(EntityStateDelta {
+                entity_index,
+                remove_entity,
+                is_absolute_entity_index,
+                absolute_entity_index,
+                entity_index_difference,
+                has_custom_delta,
+                delta,
+            });
         }
 
         let range = br.get_consumed_bytes();
