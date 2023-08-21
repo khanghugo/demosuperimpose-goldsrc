@@ -44,6 +44,12 @@ impl<'a> NetMsgDoer<'a, SvcSpawnBaseline> for SpawnBaseline {
             };
 
             entities.push(res);
+
+            // let index = br.peek_n_bits(11);
+            // if index.to_u16() == ((1 << 11) - 1) {
+            //     br.read_n_bit(11);
+            //     break;
+            // }
         }
 
         let footer = br.read_n_bit(5).to_owned();

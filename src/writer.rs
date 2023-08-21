@@ -110,7 +110,14 @@ impl BitWriter {
         self.append_slice(i.as_bitslice())
     }
 
-    pub fn append_f32(&mut self, i: f32) {
+    pub fn append_u8(&mut self, i: u8) {
+        let bits: BitVec<u8> = BitVec::<u8, Lsb0>::from_element(i);
+        self.append_vec(bits);
+    }
+
+    /// Append selected bits from a u32.
+    /// end = 31 means excluding the sign bit due to LE.
+    pub fn append_u32_range(&mut self, i: u32, end: u32) {
         let bits: BitVec<u8> = i
             .to_le_bytes()
             .iter()
@@ -118,14 +125,8 @@ impl BitWriter {
             .flatten()
             .collect();
 
-        self.append_vec(bits);
+        self.append_slice(&bits[..end as usize]);
     }
-
-    pub fn append_u8(&mut self, i: u8) {
-        let bits: BitVec<u8> = BitVec::<u8, Lsb0>::from_element(i);
-        self.append_vec(bits);
-    }
-
     pub fn get_u8_vec(&mut self) -> Vec<u8> {
         // https://github.com/ferrilab/bitvec/issues/27
         let mut what = self.data.to_owned();

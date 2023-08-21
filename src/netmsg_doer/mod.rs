@@ -270,6 +270,7 @@ fn parse_single_netmsg<'a>(
                     let res = wrap_parse!(i, NewUserMsg, SvcNewUserMsg, delta_decoders);
 
                     if let Message::EngineMessage(EngineMessage::SvcNewUserMsg(ref msg)) = res.1 {
+                        custom_messages.remove(&msg.index);
                         custom_messages.insert(msg.index, msg.clone());
                     }
 
@@ -352,7 +353,7 @@ pub fn parse_netmsg<'a>(
 
 pub fn write_single_netmsg<'a>(
     i: Message<'a>,
-    delta_decoders: &mut HashMap<String, DeltaDecoder>,
+    _: &mut HashMap<String, DeltaDecoder>,
     custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> Vec<u8> {
     match i {
