@@ -63,7 +63,6 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcClientData> for ClientData {
 
         writer.append_u8(EngineMessageType::SvcClientData as u8);
 
-
         let should_write_delta_mask_update = i.has_delta_update_mask;
 
         bw.append_bit(i.has_delta_update_mask);
@@ -73,7 +72,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcClientData> for ClientData {
         }
 
         write_delta(
-            i.client_data,
+            &i.client_data,
             delta_decoders.get("clientdata_t\0").unwrap(),
             &mut bw,
         );
@@ -83,7 +82,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcClientData> for ClientData {
                 bw.append_bit(true);
                 bw.append_vec(data.weapon_index);
                 write_delta(
-                    data.weapon_data,
+                    &data.weapon_data,
                     delta_decoders.get("weapon_data_t\0").unwrap(),
                     &mut bw,
                 );

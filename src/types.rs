@@ -1,21 +1,6 @@
-// pub struct NetMsgMessageBlock<'a> {
-//     pub type_: NetMsgMessageData,
-//     pub data: NetMsgMessageData,
-// }
+use std::collections::HashMap;
 
-use std::{collections::HashMap, ops::BitAnd};
-
-use bitvec::{slice::BitSlice, vec::BitVec};
-
-pub struct DeltaFieldDecoder<'a> {
-    pub bits: u32,
-    pub divisor: f32,
-    pub flags: DeltaType,
-    pub name: &'a [u8],
-    pub offset: i32,
-    pub pre_multiplier: i32,
-    pub size: u32,
-}
+use bitvec::vec::BitVec;
 
 #[repr(u32)]
 #[derive(Clone, Copy)]
@@ -31,43 +16,27 @@ pub enum DeltaType {
     Signed = 1 << 31,
 }
 
-// impl BitAnd for DeltaType {
-//     type Output = u32;
-
-//     fn bitand(self, rhs: Self) -> Self::Output {
-//         self & rhs
-//     }
+// pub struct delta_description_s {
+//     pub field_type: i32,
+//     pub field_name: [u8; 32],
+//     pub field_offset: i32,
+//     pub field_size: i16,
+//     pub significant_bits: i32,
+//     pub premultiply: f32,
+//     pub postmultiply: f32,
+//     pub flags: i16,
+//     pub stats: delta_stats_t,
 // }
 
-struct delta_s {
-    dynamic: i32,
-    field_count: i32,
-    conditional_encode_name: [u8; 32],
-    // TODO
-}
+// pub struct delta_stats_t {
+//     pub send_count: i32,
+//     pub received_count: i32,
+// }
 
-pub struct delta_description_s {
-    pub field_type: i32,
-    pub field_name: [u8; 32],
-    pub field_offset: i32,
-    pub field_size: i16,
-    pub significant_bits: i32,
-    pub premultiply: f32,
-    pub postmultiply: f32,
-    pub flags: i16,
-    pub stats: delta_stats_t,
-}
-
-pub struct delta_stats_t {
-    pub send_count: i32,
-    pub received_count: i32,
-}
-
-#[derive(Debug)]
 /// A simplified struct of delta_description_s
 ///
 /// Lots of info end up unused.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DeltaDecoderS {
     pub name: Vec<u8>,
     pub bits: u32,
@@ -90,7 +59,7 @@ pub type BitType = BitVec<u8>;
 // }
 
 /// UserMessage
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct NetMsgUserMessage<'a> {
     pub id: u8,
     // [bool; 16]
@@ -99,19 +68,19 @@ pub struct NetMsgUserMessage<'a> {
 }
 
 /// SVC_BAD 0
-// #[derive(Debug)]
+// #[derive(Clone, Debug)]
 
 /// SVC_NOP 1
-// #[derive(Debug)]
+// #[derive(Clone, Debug)]
 
 /// SVC_DISCONNECT 2
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcDisconnect<'a> {
     pub reason: &'a [u8],
 }
 
 /// SVC_EVENT 3
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcEvent {
     // [bool; 5]
     pub event_count: BitType,
@@ -119,7 +88,7 @@ pub struct SvcEvent {
     pub clone: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct EventS {
     // [bool; 10]
     pub event_index: BitType,
@@ -134,19 +103,19 @@ pub struct EventS {
 }
 
 /// SVC_VERSION 4
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcVersion {
     pub protocol_version: u32,
 }
 
 /// SVC_SETVIEW 5
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSetView {
     pub entity_index: i16,
 }
 
 /// SVC_SOUND 6
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSound {
     // [bool; 9]
     pub flags: BitType,
@@ -167,7 +136,7 @@ pub struct SvcSound {
     pub pitch: BitType,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct OriginCoord {
     pub int_flag: bool,
     pub fraction_flag: bool,
@@ -182,25 +151,25 @@ pub struct OriginCoord {
 }
 
 /// SVC_TIME 7
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcTime {
     pub time: f32,
 }
 
 /// SVC_PRINT 8
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcPrint<'a> {
     pub message: &'a [u8],
 }
 
 /// SVC_STUFFTEXT 9
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcStuffText<'a> {
     pub command: &'a [u8],
 }
 
 /// SVC_SETANGLE 10
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSetAngle {
     pub pitch: i16,
     pub yaw: i16,
@@ -208,7 +177,7 @@ pub struct SvcSetAngle {
 }
 
 /// SVC_SERVERINFO 11
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcServerInfo<'a> {
     pub protocol: i32,
     pub spawn_count: i32,
@@ -226,14 +195,14 @@ pub struct SvcServerInfo<'a> {
 }
 
 /// SVC_LIGHTSTYLE 12
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcLightStyle<'a> {
     pub index: u8,
     pub light_info: &'a [u8],
 }
 
 /// SVC_UPDATEUSERINFO 13
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcUpdateUserInfo<'a> {
     pub index: u8,
     pub id: u32,
@@ -243,7 +212,7 @@ pub struct SvcUpdateUserInfo<'a> {
 }
 
 /// SVC_DELTADESCRIPTION 14
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcDeltaDescription<'a> {
     pub name: &'a [u8],
     pub total_fields: u16,
@@ -252,7 +221,7 @@ pub struct SvcDeltaDescription<'a> {
 }
 
 /// SVC_CLIENTDATA 15
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcClientData {
     pub has_delta_update_mask: bool,
     // [bool; 8]
@@ -262,7 +231,7 @@ pub struct SvcClientData {
     pub clone: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ClientDataWeaponData {
     // [bool; 6]
     pub weapon_index: BitType,
@@ -270,18 +239,18 @@ pub struct ClientDataWeaponData {
 }
 
 /// SVC_STOPSOUND 16
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcStopSound {
     pub entity_index: i16,
 }
 
 /// SVC_PINGS 17
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcPings {
     pub pings: Vec<PingS>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct PingS {
     pub has_ping_data: bool,
     pub player_id: Option<u8>,
@@ -290,7 +259,7 @@ pub struct PingS {
 }
 
 /// SVC_PARTICLE 18
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcParticle {
     // Vec3
     pub origin: Vec<i16>,
@@ -303,7 +272,7 @@ pub struct SvcParticle {
 /// SVC_PARTICLE 19
 
 /// SVC_SPAWNSTATIC 20
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSpawnStatic {
     pub model_index: i16,
     pub sequence: i8,
@@ -322,7 +291,7 @@ pub struct SvcSpawnStatic {
 }
 
 /// SVC_EVENTRELIABLE 21
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcEventReliable {
     // [bool; 10]
     pub event_index: BitType,
@@ -334,7 +303,7 @@ pub struct SvcEventReliable {
 }
 
 /// SVC_SPAWNBASELINE 22
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSpawnBaseline {
     pub entities: Vec<EntityS>,
     // These members are not inside EntityS like cgdangelo/talent suggests.
@@ -346,7 +315,7 @@ pub struct SvcSpawnBaseline {
     pub clone: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct EntityS {
     // [bool; 11]
     pub index: BitType,
@@ -357,14 +326,14 @@ pub struct EntityS {
 }
 
 /// SVC_TEMPENTITY 23
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcTempEntity<'a> {
     pub entity_type: u8,
     pub entity: TempEntityEntity<'a>,
 }
 
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum TempEntityEntity<'a> {
     // [u8; 24]
     TeBeamPoints(&'a [u8]) = 0,
@@ -487,7 +456,7 @@ pub enum TempEntityEntity<'a> {
     TeUserTracer(&'a [u8]) = 127,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TeBspDecal<'a> {
     // [u8; 8]
     pub unknown1: &'a [u8],
@@ -496,7 +465,7 @@ pub struct TeBspDecal<'a> {
     pub unknown2: Option<&'a [u8]>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct TeTextMessage<'a> {
     pub channel: i8,
     pub x: i16,
@@ -514,31 +483,31 @@ pub struct TeTextMessage<'a> {
 }
 
 /// SVC_SETPAUSE 24
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSetPause {
     pub is_paused: i8,
 }
 
 /// SVC_SIGNONNUM 25
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSignOnNum {
     pub sign: i8,
 }
 
 /// SVC_CENTERPRINT 26
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcCenterPrint<'a> {
     pub message: &'a [u8],
 }
 
 /// SVC_KILLEDMONSTER 27
-// #[derive(Debug)]
+// #[derive(Clone, Debug)]
 
 /// SVC_FOUNDSECRET 28
-// #[derive(Debug)]
+// #[derive(Clone, Debug)]
 
 /// SVC_SPAWNSTATICSOUND 29
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSpawnStaticSound {
     // Vec3
     pub origin: Vec<i16>,
@@ -551,23 +520,23 @@ pub struct SvcSpawnStaticSound {
 }
 
 /// SVC_INTERMISSION 30
-// #[derive(Debug)]
+// #[derive(Clone, Debug)]
 
 /// SVC_FINALE 31
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcFinale<'a> {
     pub text: &'a [u8],
 }
 
 /// SVC_CDTRACK 32
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcCdTrack {
     pub track: i8,
     pub loop_track: i8,
 }
 
 /// SVC_RESTORE 33
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcRestore<'a> {
     pub save_name: &'a [u8],
     pub map_count: u8,
@@ -575,33 +544,33 @@ pub struct SvcRestore<'a> {
 }
 
 /// SVC_CUTSCENE 34
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcCutscene<'a> {
     pub text: &'a [u8],
 }
 
 /// SVC_WEAPONANIM 35
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcWeaponAnim {
     pub sequence_number: i8,
     pub weapon_model_body_group: i8,
 }
 
 /// SVC_DECALNAME 36
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcDecalName<'a> {
     pub position_index: u8,
     pub decal_name: &'a [u8],
 }
 
 /// SVC_ROOMTYPE 37
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcRoomType {
     pub room_type: u16,
 }
 
 /// SVC_ADDANGLE 38
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcAddAngle {
     pub angle_to_add: i16,
 }
@@ -617,7 +586,7 @@ pub struct SvcNewUserMsg<'a> {
 }
 
 /// SVC_PACKETENTITIES (40)
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcPacketEntities {
     // [bool; 16]
     pub entity_count: BitType,
@@ -625,7 +594,7 @@ pub struct SvcPacketEntities {
     pub clone: Vec<u8>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct EntityState {
     pub entity_index: u16,
     pub increment_entity_number: bool,
@@ -642,7 +611,7 @@ pub struct EntityState {
 }
 
 /// SVC_DELTAPACKETENTITIES 41
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcDeltaPacketEntities {
     // [bool; 16]
     pub entity_count: BitType,
@@ -653,7 +622,7 @@ pub struct SvcDeltaPacketEntities {
 }
 
 /// These infos are not like THE docs mention.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct EntityStateDelta {
     // [bool; 11] but do u16 because arithmetic.
     pub entity_index: u16,
@@ -663,14 +632,15 @@ pub struct EntityStateDelta {
     pub absolute_entity_index: Option<BitType>,
     // [bool; 6]
     pub entity_index_difference: Option<BitType>,
-    pub has_custom_delta: bool,
-    pub delta: Delta,
+    // Need to be optional because if remove is true then it won't have delta.
+    pub has_custom_delta: Option<bool>,
+    pub delta: Option<Delta>,
 }
 
 /// SVC_CHOKE 42
 
 /// SVC_RESOURCELIST 43
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcResourceList {
     // [bool; 12]
     pub resource_count: BitType,
@@ -678,7 +648,7 @@ pub struct SvcResourceList {
     pub consistencies: Vec<Consistency>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Resource {
     // [bool; 4]
     pub type_: BitType,
@@ -697,7 +667,7 @@ pub struct Resource {
     pub extra_info: Option<BitType>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Consistency {
     pub has_check_file_flag: bool,
     pub is_short_index: Option<bool>,
@@ -708,7 +678,7 @@ pub struct Consistency {
 }
 
 /// SVC_NEWMOVEVARS 44
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcNewMoveVars<'a> {
     pub gravity: f32,
     pub stop_speed: f32,
@@ -737,14 +707,14 @@ pub struct SvcNewMoveVars<'a> {
 }
 
 /// SVC_RESOURCEREQUEST 45
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcResourceRequest {
     pub spawn_count: i32,
     pub unknown: Vec<u8>,
 }
 
 /// SVC_CUSTOMIZATION 46
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcCustomization<'a> {
     pub player_index: u8,
     pub type_: u8,
@@ -757,14 +727,14 @@ pub struct SvcCustomization<'a> {
 }
 
 /// SVC_CROSSHAIRANGLE 47
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcCrosshairAngle {
     pub pitch: i16,
     pub yaw: i16,
 }
 
 /// SVC_SOUNDFADE 48
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSoundFade {
     pub initial_percent: u8,
     pub hold_time: u8,
@@ -773,19 +743,19 @@ pub struct SvcSoundFade {
 }
 
 /// SVC_FILETXFERFAILED 49
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcFileTxferFailed<'a> {
     pub file_name: &'a [u8],
 }
 
 /// SVC_HLTV 50
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcHltv {
     pub mode: u8,
 }
 
 /// SVC_DIRECTOR 51
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcDirector<'a> {
     pub length: u8,
     pub flag: u8,
@@ -793,14 +763,14 @@ pub struct SvcDirector<'a> {
 }
 
 /// SVC_VOINCEINIT 52
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcVoiceInit<'a> {
     pub codec_name: &'a [u8],
     pub quality: i8,
 }
 
 /// SVC_VOICEDATA 53
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcVoiceData<'a> {
     pub player_index: u8,
     pub size: u16,
@@ -808,38 +778,38 @@ pub struct SvcVoiceData<'a> {
 }
 
 /// SVC_SENDEXTRAINFO 54
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSendExtraInfo<'a> {
     pub fallback_dir: &'a [u8],
     pub can_cheat: u8,
 }
 
 /// SVC_TIMESCALE 55
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcTimeScale {
     pub time_scale: f32,
 }
 
 /// SVC_RESOURCELOCATION 56
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcResourceLocation<'a> {
     pub download_url: &'a [u8],
 }
 
 /// SVC_SENDCVARVALUE 57
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSendCvarValue<'a> {
     pub name: &'a [u8],
 }
 
 /// SVC_SENDCVARVALUE2 58
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SvcSendCvarValue2<'a> {
     pub request_id: u32,
     pub name: &'a [u8],
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Message<'a> {
     UserMessage(NetMsgUserMessage<'a>),
     EngineMessage(EngineMessage<'a>),
@@ -851,7 +821,7 @@ pub enum MessageType {
 }
 
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EngineMessage<'a> {
     SvcBad = 0,
     SvcNop = 1,

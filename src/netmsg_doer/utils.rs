@@ -255,103 +255,7 @@ fn parse_delta_field(description: &DeltaDecoderS, res: &mut Delta, br: &mut BitR
     }
 }
 
-pub fn get_initial_delta() -> DeltaDecoderTable {
-    let mut res: DeltaDecoderTable = DeltaDecoderTable::new();
-
-    let e1 = DeltaDecoderS {
-        name: "flags".into(),
-        bits: 32,
-        divisor: 1.,
-        flags: DeltaType::Integer as u32,
-        should_write: false,
-    };
-    let e2 = DeltaDecoderS {
-        name: "name".into(),
-        bits: 8,
-        divisor: 1.,
-        flags: DeltaType::String as u32,
-        should_write: false,
-    };
-    let e3 = DeltaDecoderS {
-        name: "offset".into(),
-        bits: 16,
-        divisor: 1.,
-        flags: DeltaType::Integer as u32,
-        should_write: false,
-    };
-    let e4 = DeltaDecoderS {
-        name: "size".into(),
-        bits: 8,
-        divisor: 1.,
-        flags: DeltaType::Integer as u32,
-        should_write: false,
-    };
-    let e5 = DeltaDecoderS {
-        name: "bits".into(),
-        bits: 8,
-        divisor: 1.,
-        flags: DeltaType::Integer as u32,
-        should_write: false,
-    };
-    let e6 = DeltaDecoderS {
-        name: "divisor".into(),
-        bits: 32,
-        divisor: 4000.,
-        flags: DeltaType::Float as u32,
-        should_write: false,
-    };
-    let e7 = DeltaDecoderS {
-        name: "preMultiplier".into(),
-        bits: 32,
-        divisor: 4000.,
-        flags: DeltaType::Float as u32,
-        should_write: false,
-    };
-
-    let default_decoder = vec![e1, e2, e3, e4, e5, e6, e7];
-
-    res.insert("delta_description_t\0".to_string(), default_decoder);
-
-    res
-}
-
-fn write_delta_bit_mask(delta: &Delta, delta_decoder: &DeltaDecoder, bw: &mut BitWriter) {
-    let mut start = (delta_decoder.len() - 1) as i32;
-    let mut start_alt = -1;
-    let mut data = 0u32;
-    let mut bits = vec![0i32; 2];
-
-    if start < 0 {
-        data = 0;
-    } else {
-        while start != -1 {
-            if should_encode_current_delta(delta, &delta_decoder[start as usize]) {
-                if start_alt == -1 {
-                    start_alt = start;
-                }
-                let selected_byte = if start > 0x1f { 1usize } else { 0 };
-                bits[selected_byte] = bits[selected_byte] | (1 << (start & 0x1f));
-            }
-
-            start -= 1;
-        }
-
-        data = ((start_alt >> 3) + 1) as u32;
-    }
-
-    let data_bit = BitVec::<u8, Lsb0>::from_element(data as u8);
-    bw.append_slice(&data_bit[..3]);
-
-    let bits: Vec<u8> = bits.iter().map(|num| num.to_le_bytes()).flatten().collect();
-
-    if data > 0 {
-        for i in 0..data {
-            bw.append_u8(bits[i as usize]);
-        }
-    }
-}
-
-fn write_delta_wip(delta: &Delta, delta_decoder: &DeltaDecoder, bw: &mut BitWriter) {
+pub fn write_delta(delta: &Delta, delta_decoder: &DeltaDecoder, bw: &mut BitWriter) {
     // Consider this like a modulo.
     // Delta with description of index 13 is byte_mask[13 / 8] at 13 % 8.
     // Byte mask count adds accordingly if we have entry with biggest index number.
@@ -376,7 +280,7 @@ fn write_delta_wip(delta: &Delta, delta_decoder: &DeltaDecoder, bw: &mut BitWrit
 
     // Because we start counting at 0, we need to offset this by 1 for correct length.
     if yes_data {
-       byte_mask_count += 1; 
+        byte_mask_count += 1;
     }
 
     bw.append_u32_range(byte_mask_count as u32, 3);
@@ -393,17 +297,6 @@ fn write_delta_wip(delta: &Delta, delta_decoder: &DeltaDecoder, bw: &mut BitWrit
                 bw,
             );
         }
-    }
-}
-
-fn wip(delta: &Delta, delta_decoder: &DeltaDecoder, bw: &mut BitWriter) {
-    if delta.is_empty() {
-        bw.append_vec(bitvec![u8, Lsb0; 0; 3]);
-        return;
-    }
-
-    for (key, value) in delta {
-        let (decoder, index) = find_decoder(key.as_bytes(), delta_decoder).unwrap();
     }
 }
 
@@ -510,11 +403,12 @@ fn write_delta_field(description: &DeltaDecoderS, value: &[u8], bw: &mut BitWrit
             bw.append_u32_range(value as u32, description.bits);
         }
     } else if is_angle {
+        // Quick hack. Angle is i16 so here it is.
         let bytes: [u8; 4] = value[..4].try_into().unwrap();
         let res_value = f32::from_le_bytes(bytes);
         let multiplier = 360f32 / (1 << description.bits) as f32;
-        let value = res_value / multiplier;
-        bw.append_u32_range(value as u32, description.bits);
+        let value = (res_value / multiplier) as i16;
+        bw.append_i32_range(value as i32, description.bits);
     } else if is_string {
         for c in value {
             bw.append_u8(*c);
@@ -556,35 +450,62 @@ fn find_delta_value<'a>(name: &[u8], delta: &'a Delta) -> &'a [u8] {
     delta.get(from_utf8(name).unwrap()).unwrap()
 }
 
-/// From current description, look up if its name is in delta.
-/// This could be optimized if we run this once and change flags in place
-/// rather than looking up every time.
-fn should_encode_current_delta(delta: &Delta, description: &DeltaDecoderS) -> bool {
-    delta.contains_key(from_utf8(&description.name).unwrap())
-}
+pub fn get_initial_delta() -> DeltaDecoderTable {
+    let mut res: DeltaDecoderTable = DeltaDecoderTable::new();
 
-pub fn write_delta(delta: Delta, delta_decoder: &DeltaDecoder, bw: &mut BitWriter) {
-    // write_delta_bit_mask(&delta, &delta_decoder, bw);
-    // // wip(&delta, &delta_decoder, bw);
+    let e1 = DeltaDecoderS {
+        name: "flags".into(),
+        bits: 32,
+        divisor: 1.,
+        flags: DeltaType::Integer as u32,
+        should_write: false,
+    };
+    let e2 = DeltaDecoderS {
+        name: "name".into(),
+        bits: 8,
+        divisor: 1.,
+        flags: DeltaType::String as u32,
+        should_write: false,
+    };
+    let e3 = DeltaDecoderS {
+        name: "offset".into(),
+        bits: 16,
+        divisor: 1.,
+        flags: DeltaType::Integer as u32,
+        should_write: false,
+    };
+    let e4 = DeltaDecoderS {
+        name: "size".into(),
+        bits: 8,
+        divisor: 1.,
+        flags: DeltaType::Integer as u32,
+        should_write: false,
+    };
+    let e5 = DeltaDecoderS {
+        name: "bits".into(),
+        bits: 8,
+        divisor: 1.,
+        flags: DeltaType::Integer as u32,
+        should_write: false,
+    };
+    let e6 = DeltaDecoderS {
+        name: "divisor".into(),
+        bits: 32,
+        divisor: 4000.,
+        flags: DeltaType::Float as u32,
+        should_write: false,
+    };
+    let e7 = DeltaDecoderS {
+        name: "preMultiplier".into(),
+        bits: 32,
+        divisor: 4000.,
+        flags: DeltaType::Float as u32,
+        should_write: false,
+    };
 
-    // // for (key, value) in delta {
-    // //     // println!("{}", key);
-    // //     let description = find_decoder(key.as_bytes(), &delta_decoder).unwrap();
-    // //     write_delta_field(description, &value, bw);
-    // // }
+    let default_decoder = vec![e1, e2, e3, e4, e5, e6, e7];
 
-    // if delta.is_empty() {
-    //     return;
-    // }
+    res.insert("delta_description_t\0".to_string(), default_decoder);
 
-    // // let mut start = delta_decoder.len() - 1;
-    // for i in (0..delta_decoder.len()).rev() {
-    //     let description = &delta_decoder[i];
-
-    //     if should_encode_current_delta(&delta, description) {
-    //         write_delta_field(description, delta.get(from_utf8(&description.name).unwrap()).unwrap(), bw);
-    //     }
-    // }
-
-    write_delta_wip(&delta, delta_decoder, bw);
+    res
 }

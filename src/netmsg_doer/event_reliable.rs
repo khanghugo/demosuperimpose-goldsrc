@@ -1,4 +1,4 @@
-use super::*;
+use super::{utils::write_delta, *};
 
 pub struct EventReliable {}
 impl<'a> NetMsgDoerWithDelta<'a, SvcEventReliable> for EventReliable {
@@ -35,12 +35,26 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEventReliable> for EventReliable {
     }
 
     fn write(i: SvcEventReliable, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
-        // TODO
         let mut writer = ByteWriter::new();
+        let mut bw = BitWriter::new();
 
         writer.append_u8(EngineMessageType::SvcEventReliable as u8);
 
-        writer.append_u8_slice(&i.clone);
+        bw.append_vec(i.event_index);
+        write_delta(
+            &i.event_args,
+            delta_decoders.get("event_t\0").unwrap(),
+            &mut bw,
+        );
+
+        bw.append_bit(i.has_fire_time);
+        if i.has_fire_time {
+            bw.append_vec(i.fire_time.unwrap());
+        }
+
+        writer.append_u8_slice(&bw.get_u8_vec());
+
+        // writer.append_u8_slice(&i.clone);
 
         writer.data
     }

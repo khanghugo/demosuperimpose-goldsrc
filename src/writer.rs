@@ -124,7 +124,16 @@ impl BitWriter {
             .map(|byte| BitVec::<u8, Lsb0>::from_element(*byte))
             .flatten()
             .collect();
+        self.append_slice(&bits[..end as usize]);
+    }
 
+    pub fn append_i32_range(&mut self, i: i32, end: u32) {
+        let bits: BitVec<u8> = i
+            .to_le_bytes()
+            .iter()
+            .map(|byte| BitVec::<u8, Lsb0>::from_element(*byte))
+            .flatten()
+            .collect();
         self.append_slice(&bits[..end as usize]);
     }
 

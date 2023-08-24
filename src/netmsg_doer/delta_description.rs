@@ -61,14 +61,16 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaDescription<'a>> for DeltaDescription {
         ))
     }
 
-    fn write(i: SvcDeltaDescription<'a>, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
-        // TODO
+    fn write(i: SvcDeltaDescription<'a>, _: &DeltaDecoderTable) -> Vec<u8> {
         let mut writer = ByteWriter::new();
 
         writer.append_u8(EngineMessageType::SvcDeltaDescription as u8);
 
         writer.append_u8_slice(i.name);
         writer.append_u16(i.total_fields);
+
+        // This is intentionally done like this because I don't think anyone
+        // would try to modify delta description.
         writer.append_u8_slice(&i.clone);
 
         writer.data

@@ -1,4 +1,7 @@
-use super::{utils::BitSliceCast, *};
+use super::{
+    utils::{write_delta, BitSliceCast},
+    *,
+};
 
 pub struct DeltaPacketEntities {}
 impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaPacketEntities> for DeltaPacketEntities {
@@ -36,6 +39,15 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaPacketEntities> for DeltaPacketEntities
             };
 
             if remove_entity {
+                entity_states.push(EntityStateDelta {
+                    entity_index,
+                    remove_entity,
+                    is_absolute_entity_index,
+                    absolute_entity_index,
+                    entity_index_difference,
+                    has_custom_delta: None,
+                    delta: None,
+                });
                 continue;
             }
 
@@ -64,8 +76,8 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaPacketEntities> for DeltaPacketEntities
                 is_absolute_entity_index,
                 absolute_entity_index,
                 entity_index_difference,
-                has_custom_delta,
-                delta,
+                has_custom_delta: Some(has_custom_delta),
+                delta: Some(delta),
             });
         }
 
@@ -85,12 +97,60 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaPacketEntities> for DeltaPacketEntities
     }
 
     fn write(i: SvcDeltaPacketEntities, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
-        // TODO
         let mut writer = ByteWriter::new();
+        let mut bw = BitWriter::new();
 
         writer.append_u8(EngineMessageType::SvcDeltaPacketEntities as u8);
 
-        writer.append_u8_slice(&i.clone);
+        bw.append_vec(i.entity_count);
+        bw.append_vec(i.delta_sequence);
+
+        for entity in i.entity_states {
+            bw.append_bit(entity.remove_entity);
+            bw.append_bit(entity.is_absolute_entity_index);
+
+            if entity.is_absolute_entity_index {
+                bw.append_vec(entity.absolute_entity_index.unwrap());
+            } else {
+                bw.append_vec(entity.entity_index_difference.unwrap());
+            }
+
+            if entity.remove_entity {
+                continue;
+            }
+
+            bw.append_bit(entity.has_custom_delta.unwrap());
+
+            let between = entity.entity_index > 0 && entity.entity_index <= 32;
+            if between {
+                write_delta(
+                    &entity.delta.unwrap(),
+                    delta_decoders.get("entity_state_player_t\0").unwrap(),
+                    &mut bw,
+                )
+            } else {
+                if entity.has_custom_delta.unwrap() {
+                    write_delta(
+                        &entity.delta.unwrap(),
+                        delta_decoders.get("custom_entity_state_t\0").unwrap(),
+                        &mut bw,
+                    )
+                } else {
+                    write_delta(
+                        &entity.delta.unwrap(),
+                        delta_decoders.get("entity_state_t\0").unwrap(),
+                        &mut bw,
+                    )
+                }
+            }
+        }
+
+        // Remember to append 16 bits of 0
+        bw.append_vec(bitvec![u8, Lsb0; 0; 16]);
+
+        writer.append_u8_slice(&bw.get_u8_vec());
+
+        // writer.append_u8_slice(&i.clone);
 
         writer.data
     }

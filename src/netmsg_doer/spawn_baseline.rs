@@ -13,7 +13,11 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcSpawnBaseline> for SpawnBaseline {
         let mut br = BitReader::new(i);
         let mut entities: Vec<EntityS> = vec![];
 
+        // There are some uses to this but I am not sure how it goes now.
+        let mut entity_map = HashMap::<u16, EntityS>::new();
+
         loop {
+            // TODO: investigate why it reads different from talent parser.
             let index = br.read_n_bit(11).to_owned();
 
             if index.to_u16() == ((1 << 11) - 1) {
@@ -41,12 +45,14 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcSpawnBaseline> for SpawnBaseline {
             };
 
             let res = EntityS {
-                index,
+                index: index.clone(),
                 type_,
                 delta,
             };
 
-            entities.push(res);
+            entity_map.insert(index.to_u16(), res);
+
+            // entities.push(res);
 
             // let index = br.peek_n_bits(11);
             // if index.to_u16() == ((1 << 11) - 1) {
@@ -54,6 +60,18 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcSpawnBaseline> for SpawnBaseline {
             //     break;
             // }
         }
+
+        // for (_, value) in entity_map {
+        //     entities.push(value);
+        // }
+
+        for i in 0..((1 << 11) - 1) {
+            if let Some(entity) = entity_map.get_mut(&i) {
+                entities.push(entity.clone());
+            }
+        }
+
+        // entities.sort_by(|a, b| a.index.to_u16().cmp(&b.index.to_u16()));
 
         let footer = br.read_n_bit(5).to_owned();
         if footer.to_u8() != (1 << 5) - 1 {
@@ -84,58 +102,54 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcSpawnBaseline> for SpawnBaseline {
     }
 
     fn write(i: SvcSpawnBaseline, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
-        // TODO
         let mut writer = ByteWriter::new();
 
         writer.append_u8(EngineMessageType::SvcSpawnBaseline as u8);
-        // {
-        //     let mut bw = BitWriter::new();
+        let mut bw = BitWriter::new();
 
-        //     for entity in i.entities {
-        //         let between = entity.index.to_u16() > 0 && entity.index.to_u16() <= 32;
+        for entity in i.entities {
+            let between = entity.index.to_u16() > 0 && entity.index.to_u16() <= 32;
 
-        //         bw.append_vec(entity.index);
-        //         bw.append_slice(&entity.type_); // heh
+            bw.append_vec(entity.index);
+            bw.append_slice(&entity.type_); // heh
 
-        //         if entity.type_.to_u8() & 1 != 0 {
-        //             if between {
-        //                 write_delta(
-        //                     entity.delta,
-        //                     delta_decoders.get("entity_state_player_t\0").unwrap(),
-        //                     &mut bw,
-        //                 )
-        //             } else {
-        //                 write_delta(
-        //                     entity.delta,
-        //                     delta_decoders.get("entity_state_t\0").unwrap(),
-        //                     &mut bw,
-        //                 )
-        //             }
-        //         } else {
-        //             write_delta(
-        //                 entity.delta,
-        //                 delta_decoders.get("custom_entity_state_t\0").unwrap(),
-        //                 &mut bw,
-        //             )
-        //         }
-        //     }
+            if entity.type_.to_u8() & 1 != 0 {
+                if between {
+                    write_delta(
+                        &entity.delta,
+                        delta_decoders.get("entity_state_player_t\0").unwrap(),
+                        &mut bw,
+                    )
+                } else {
+                    write_delta(
+                        &entity.delta,
+                        delta_decoders.get("entity_state_t\0").unwrap(),
+                        &mut bw,
+                    )
+                }
+            } else {
+                write_delta(
+                    &entity.delta,
+                    delta_decoders.get("custom_entity_state_t\0").unwrap(),
+                    &mut bw,
+                )
+            }
+        }
 
-        //     // (1 << 11) - 1 is the last element.
-        //     bw.append_vec(bitvec![u8, Lsb0; 1; 11]);
+        // (1 << 11) - 1 is the last element.
+        bw.append_vec(bitvec![u8, Lsb0; 1; 11]);
 
-        //     bw.append_vec(i.footer);
-        //     bw.append_vec(i.total_extra_data);
+        bw.append_vec(i.footer);
+        bw.append_vec(i.total_extra_data);
 
-        //     let extra_data_description = delta_decoders.get("entity_state_t\0").unwrap();
-        //     for data in i.extra_data {
-        //         write_delta(data, extra_data_description, &mut bw)
-        //     }
+        let extra_data_description = delta_decoders.get("entity_state_t\0").unwrap();
+        for data in i.extra_data {
+            write_delta(&data, extra_data_description, &mut bw)
+        }
 
-        //     writer.append_u8_slice(&bw.get_u8_vec());
-        //     // println!("clone {:?}", i.clone);
-        //     // println!("whata {:?}", writer.data);
-        // }
-        writer.append_u8_slice(&i.clone);
+        writer.append_u8_slice(&bw.get_u8_vec());
+
+        // writer.append_u8_slice(&i.clone);
 
         writer.data
     }

@@ -1,14 +1,24 @@
-use std::{collections::HashMap, str::from_utf8};
+use std::collections::HashMap;
 
-use bincode::de;
-use demosuperimpose_goldsrc::netmsg_doer::{
-    parse_netmsg,
-    utils::{get_initial_delta, BitReader},
-    write_netmsg, NetMsgDoer,
-};
-use hldemo::{parse::frame, Demo, FrameData};
+use demosuperimpose_goldsrc::netmsg_doer::{parse_netmsg, utils::get_initial_delta, write_netmsg};
+use hldemo::{Demo, FrameData};
 
 use super::*;
+
+/// Simply parses netmsg.
+pub fn netmsg_parse(demo: &mut Demo) {
+    let mut delta_decoders = get_initial_delta();
+    let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
+
+    for entry in &mut demo.directory.entries {
+        for frame in &mut entry.frames {
+            if let FrameData::NetMsg((_, data)) = &mut frame.data {
+                let (_, netmsg) =
+                    parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
+            }
+        }
+    }
+}
 
 /// Simply prints netmsg.
 pub fn print_netmsg(demo: &mut Demo) {
@@ -47,9 +57,6 @@ pub fn netmsg_parse_write(demo: &mut Demo) {
 
                 let write = write_netmsg(messages, &delta_decoders, &custom_messages);
 
-                // println!("parsed {:?}", data.msg);
-                // println!("writed {:?}", write);
-
                 data.msg = write.leak();
                 // data.msg = &[]; // sanity check
             }
@@ -68,20 +75,11 @@ pub fn netmsg_parse_write_parse(demo: &mut Demo) {
     for entry in &mut demo.directory.entries {
         for frame in &mut entry.frames {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
-                println!("");
-                println!("New frame");
-                println!("");
-                println!("");
-                println!("");
-                println!("");
                 let (_, messages) =
                     parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
 
-                println!("");
-                println!("Write part");
-                println!("");
-
                 let write = write_netmsg(messages, &delta_decoders, &custom_messages);
+
                 let (_, parse_write) = parse_netmsg(
                     write.leak(),
                     &mut pw_delta_decoders,

@@ -151,7 +151,7 @@ macro_rules! wrap_parse {
 
 fn parse_single_netmsg<'a>(
     i: &'a [u8],
-    delta_decoders: &mut HashMap<String, DeltaDecoder>,
+    delta_decoders: &mut DeltaDecoderTable,
     custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> IResult<&'a [u8], Message<'a>> {
     // println!("{:?}", i);
@@ -356,7 +356,7 @@ fn parse_single_netmsg<'a>(
 
 pub fn parse_netmsg<'a>(
     i: &'a [u8],
-    delta_decoders: &mut HashMap<String, DeltaDecoder>,
+    delta_decoders: &mut DeltaDecoderTable,
     custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> IResult<&'a [u8], Vec<Message<'a>>> {
     let parser = move |i| parse_single_netmsg(i, delta_decoders, custom_messages);
@@ -365,7 +365,7 @@ pub fn parse_netmsg<'a>(
 
 pub fn write_single_netmsg<'a>(
     i: Message<'a>,
-    delta_decoders: &HashMap<String, DeltaDecoder>,
+    delta_decoders: &DeltaDecoderTable,
     custom_messages: &HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> Vec<u8> {
     match i {
@@ -438,7 +438,7 @@ pub fn write_single_netmsg<'a>(
 
 pub fn write_netmsg<'a>(
     i: Vec<Message<'a>>,
-    delta_decoders: &HashMap<String, DeltaDecoder>,
+    delta_decoders: &DeltaDecoderTable,
     custom_messages: &HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> Vec<u8> {
     let mut res: Vec<u8> = vec![];

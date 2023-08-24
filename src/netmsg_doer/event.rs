@@ -1,4 +1,7 @@
-use super::{utils::BitSliceCast, *};
+use super::{
+    utils::{write_delta, BitSliceCast},
+    *,
+};
 
 pub struct Event {}
 impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
@@ -64,12 +67,38 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
     }
 
     fn write(i: SvcEvent, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
-        // TODO
         let mut writer = ByteWriter::new();
+        let mut bw = BitWriter::new();
 
         writer.append_u8(EngineMessageType::SvcEvent as u8);
 
-        writer.append_u8_slice(&i.clone);
+        bw.append_vec(i.event_count);
+        for event in i.events {
+            bw.append_vec(event.event_index);
+            bw.append_bit(event.has_packet_index);
+
+            if event.has_packet_index {
+                bw.append_vec(event.packet_index.unwrap());
+                bw.append_bit(event.has_delta.unwrap());
+
+                if event.has_delta.unwrap() {
+                    write_delta(
+                        &event.delta.unwrap(),
+                        delta_decoders.get("event_t\0").unwrap(),
+                        &mut bw,
+                    );
+                }
+            }
+
+            bw.append_bit(event.has_fire_time);
+            if event.has_fire_time {
+                bw.append_vec(event.fire_time.unwrap());
+            }
+        }
+
+        writer.append_u8_slice(&bw.get_u8_vec());
+
+        // writer.append_u8_slice(&i.clone);
 
         writer.data
     }

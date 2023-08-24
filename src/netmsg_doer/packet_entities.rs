@@ -1,4 +1,7 @@
-use super::{utils::BitSliceCast, *};
+use super::{
+    utils::{write_delta, BitSliceCast},
+    *,
+};
 
 pub struct PacketEntities {}
 impl<'a> NetMsgDoerWithDelta<'a, SvcPacketEntities> for PacketEntities {
@@ -100,12 +103,62 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcPacketEntities> for PacketEntities {
     }
 
     fn write(i: SvcPacketEntities, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
-        // TODO
         let mut writer = ByteWriter::new();
+        let mut bw = BitWriter::new();
 
         writer.append_u8(EngineMessageType::SvcPacketEntities as u8);
 
-        writer.append_u8_slice(&i.clone);
+        bw.append_vec(i.entity_count);
+
+        for entity in i.entity_states {
+            bw.append_bit(entity.increment_entity_number);
+
+            if !entity.increment_entity_number {
+                bw.append_bit(entity.is_absolute_entity_index.unwrap());
+
+                if entity.is_absolute_entity_index.unwrap() {
+                    bw.append_vec(entity.absolute_entity_index.unwrap());
+                } else {
+                    bw.append_vec(entity.entity_index_difference.unwrap());
+                }
+            }
+
+            bw.append_bit(entity.has_custom_delta);
+            bw.append_bit(entity.has_baseline_index);
+
+            if entity.has_baseline_index {
+                bw.append_vec(entity.baseline_index.unwrap());
+            }
+
+            let between = entity.entity_index > 0 && entity.entity_index <= 32;
+            if between {
+                write_delta(
+                    &entity.delta,
+                    delta_decoders.get("entity_state_player_t\0").unwrap(),
+                    &mut bw,
+                )
+            } else {
+                if entity.has_custom_delta {
+                    write_delta(
+                        &entity.delta,
+                        delta_decoders.get("custom_entity_state_t\0").unwrap(),
+                        &mut bw,
+                    )
+                } else {
+                    write_delta(
+                        &entity.delta,
+                        delta_decoders.get("entity_state_t\0").unwrap(),
+                        &mut bw,
+                    )
+                }
+            }
+        }
+
+        bw.append_vec(bitvec![u8, Lsb0; 0; 16]);
+
+        writer.append_u8_slice(&bw.get_u8_vec());
+
+        // writer.append_u8_slice(&i.clone);
 
         writer.data
     }
