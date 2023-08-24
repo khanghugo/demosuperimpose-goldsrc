@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Finale {}
 impl<'a> NetMsgDoer<'a, SvcFinale<'a>> for Finale {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcFinale<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcFinale<'a>> {
         map(null_string, |text| SvcFinale { text })(i)
     }
 

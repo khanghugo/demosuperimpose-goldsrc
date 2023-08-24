@@ -2,7 +2,7 @@ use super::*;
 
 pub struct SignOnNum {}
 impl<'a> NetMsgDoer<'a, SvcSignOnNum> for SignOnNum {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcSignOnNum> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcSignOnNum> {
         map(le_i8, |sign| SvcSignOnNum { sign })(i)
     }
 

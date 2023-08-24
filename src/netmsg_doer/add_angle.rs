@@ -2,7 +2,7 @@ use super::*;
 
 pub struct AddAngle {}
 impl<'a> NetMsgDoer<'a, SvcAddAngle> for AddAngle {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcAddAngle> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcAddAngle> {
         map(le_i16, |angle_to_add| SvcAddAngle { angle_to_add })(i)
     }
 

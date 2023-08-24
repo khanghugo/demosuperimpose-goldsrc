@@ -2,7 +2,7 @@ use super::*;
 
 pub struct CdTrack {}
 impl<'a> NetMsgDoer<'a, SvcCdTrack> for CdTrack {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcCdTrack> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcCdTrack> {
         map(tuple((le_i8, le_i8)), |(track, loop_track)| SvcCdTrack {
             track,
             loop_track,

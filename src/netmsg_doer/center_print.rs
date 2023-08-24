@@ -2,7 +2,7 @@ use super::*;
 
 pub struct CenterPrint {}
 impl<'a> NetMsgDoer<'a, SvcCenterPrint<'a>> for CenterPrint {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcCenterPrint<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcCenterPrint<'a>> {
         map(null_string, |message| SvcCenterPrint { message })(i)
     }
 

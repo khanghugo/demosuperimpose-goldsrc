@@ -1,10 +1,10 @@
 use super::{
-    utils::{parse_delta, BitReader},
+    utils::{parse_delta, write_delta, BitReader},
     *,
 };
 
 pub struct ClientData {}
-impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
+impl<'a> NetMsgDoerWithDelta<'a, SvcClientData> for ClientData {
     fn parse(
         i: &'a [u8],
         delta_decoders: &mut DeltaDecoderTable,
@@ -33,11 +33,22 @@ impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
             });
         }
 
+        let weapon_data = if weapon_data.is_empty() {
+            None
+        } else {
+            Some(weapon_data)
+        };
+
         // Remember to write the last "false" bit.
 
         let range = br.get_consumed_bytes();
         let clone = clone[..range].to_owned();
         let (i, _) = take(range)(i)?;
+
+        // println!("--");
+        // println!("client data {:?}", client_data);
+        // println!("weapon data {:?}", weapon_data);
+        // println!("--");
 
         Ok((
             i,
@@ -45,19 +56,58 @@ impl<'a> NetMsgDoer<'a, SvcClientData> for ClientData {
                 has_delta_update_mask,
                 delta_update_mask,
                 client_data,
-                weapon_data: Some(weapon_data),
+                weapon_data,
                 clone,
             },
         ))
     }
 
-    fn write(i: SvcClientData) -> Vec<u8> {
-        // TODO
+    fn write(i: SvcClientData, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
         let mut writer = ByteWriter::new();
+        let mut bw = BitWriter::new();
 
         writer.append_u8(EngineMessageType::SvcClientData as u8);
 
-        writer.append_u8_slice(&i.clone);
+        println!("client data {:?}", i.client_data);
+        println!("weapon data {:?}", i.weapon_data);
+
+        let should_write_delta_mask_update = i.has_delta_update_mask;
+
+        bw.append_bit(i.has_delta_update_mask);
+
+        if should_write_delta_mask_update {
+            bw.append_vec(i.delta_update_mask.unwrap());
+        }
+
+        write_delta(
+            i.client_data,
+            delta_decoders.get("clientdata_t\0").unwrap(),
+            &mut bw,
+        );
+
+        if let Some(weapon_data) = i.weapon_data {
+            for data in weapon_data {
+                bw.append_bit(true);
+                bw.append_vec(data.weapon_index);
+                write_delta(
+                    data.weapon_data,
+                    delta_decoders.get("weapon_data_t\0").unwrap(),
+                    &mut bw,
+                );
+            }
+        }
+
+        // false bit for weapon data
+        bw.append_bit(false);
+
+        writer.append_u8_slice(&bw.get_u8_vec());
+
+        // writer.append_u8_slice(&i.clone);
+        let huh = BitReader::new(&i.clone);
+        println!("old {:?}", huh.bytes);
+        println!("new {:?}", bw.data);
+
+        println!("{:?}", delta_decoders.get("clientdata_t\0").unwrap());
 
         writer.data
     }

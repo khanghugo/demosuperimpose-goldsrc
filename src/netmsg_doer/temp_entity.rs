@@ -2,7 +2,7 @@ use super::*;
 
 pub struct TempEntity {}
 impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcTempEntity<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcTempEntity<'a>> {
         let (i, entity_type) = le_u8(i)?;
 
         let (i, entity) = match entity_type {

@@ -1,7 +1,7 @@
 use super::{utils::BitSliceCast, *};
 
 pub struct DeltaPacketEntities {}
-impl<'a> NetMsgDoer<'a, SvcDeltaPacketEntities> for DeltaPacketEntities {
+impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaPacketEntities> for DeltaPacketEntities {
     fn parse(
         i: &'a [u8],
         delta_decoders: &mut DeltaDecoderTable,
@@ -84,7 +84,7 @@ impl<'a> NetMsgDoer<'a, SvcDeltaPacketEntities> for DeltaPacketEntities {
         ))
     }
 
-    fn write(i: SvcDeltaPacketEntities) -> Vec<u8> {
+    fn write(i: SvcDeltaPacketEntities, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
         // TODO
         let mut writer = ByteWriter::new();
 

@@ -2,7 +2,7 @@ use super::{utils::BitSliceCast, *};
 
 pub struct Pings {}
 impl<'a> NetMsgDoer<'a, SvcPings> for Pings {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcPings> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcPings> {
         let mut br = BitReader::new(i);
         let mut pings: Vec<PingS> = vec![];
 

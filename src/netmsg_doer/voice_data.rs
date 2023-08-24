@@ -2,7 +2,7 @@ use super::*;
 
 pub struct VoiceData {}
 impl<'a> NetMsgDoer<'a, SvcVoiceData<'a>> for VoiceData {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcVoiceData<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcVoiceData<'a>> {
         let (i, (player_index, size)) = tuple((le_u8, le_u16))(i)?;
         let (i, data) = take(player_index)(i)?;
 

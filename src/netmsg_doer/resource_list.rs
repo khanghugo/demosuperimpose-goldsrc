@@ -2,7 +2,7 @@ use super::{utils::BitSliceCast, *};
 
 pub struct ResourceList {}
 impl<'a> NetMsgDoer<'a, SvcResourceList> for ResourceList {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcResourceList> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcResourceList> {
         let mut br = BitReader::new(i);
 
         let resource_count = br.read_n_bit(12).to_owned();

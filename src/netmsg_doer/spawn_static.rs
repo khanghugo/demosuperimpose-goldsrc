@@ -2,7 +2,7 @@ use super::*;
 
 pub struct SpawnStatic {}
 impl<'a> NetMsgDoer<'a, SvcSpawnStatic> for SpawnStatic {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcSpawnStatic> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcSpawnStatic> {
         let (
             i,
             (

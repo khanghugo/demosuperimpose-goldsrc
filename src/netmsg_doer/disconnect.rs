@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Disconnect {}
 impl<'a> NetMsgDoer<'a, SvcDisconnect<'a>> for Disconnect {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcDisconnect<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcDisconnect<'a>> {
         map(null_string, |reason| SvcDisconnect { reason })(i)
     }
 

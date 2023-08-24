@@ -15,6 +15,8 @@ use hldemo::{FrameData, NetMsgData};
 use types::EngineMessage;
 use writer::DemoWriter;
 
+use crate::demo_doer::netmsg_rewrite_test;
+
 macro_rules! write_demo {
     ($demo_name:literal, $demo:ident) => {{
         let mut out = DemoWriter::new(String::from($demo_name));
@@ -24,76 +26,27 @@ macro_rules! write_demo {
 
 fn main() {
     let mut bytes = Vec::new();
-    let mut f = File::open("./example/gold.dem").unwrap();
+    let mut f = File::open("./example/hl.dem").unwrap();
     f.read_to_end(&mut bytes);
 
     let mut demo = hldemo::Demo::parse(&bytes).unwrap();
-    example::example(&mut demo);
+    // example::example(&mut demo);
+    // netmsg_rewrite_test::netmsg_rewrite_test(&mut demo);
+    example::netmsg_parse_write_parse(&mut demo);
 
-    // write_demo!("test.dem", demo);
+    // write_demo!("test.dem", demo);    
 
-    // let mut what = BitWriter::new();
-    // for _ in 0..63 {
-    //     what.append_bit(true);
-    // }
-    // what.append_slice(&[true, true]);
-    // // let huh = what.get_u8_slice();
-    // println!("{:?}", what.get_u8_vec());
 
-    // let immut = bits![u8, Lsb0; 0, 1, 0, 0, 1, 0, 0, 1];
-    // println!("{}", immut);
 
-    // println!("{:?}", demo.directory.entries[1].frame_count);
-    // println!("{:?}", demo.directory.entries[1].frames.len());
-    // for i in 0..demo.directory.entries[1].frames.len() as usize {
-    //     // println!("{}", demo.directory.entries[1].frames[i].frame.i)
-    //     if let FrameData::NetMsg(data) = &demo.directory.entries[1].frames[i].data {
-    //         // println!("{:?}", data.info.ref_params.cl_viewangles);
-    //         match data.msg[0] {
-    //             5 => {
-    //                 // SVC_SETVIEW
-    //                 println!("SVC_SETVIEW")
-    //             }
-    //             11 => {
-    //                 // SVC_SERVERINFO
-    //                 // println!("this runs");
 
-    //                 match parse_server_info(&data.msg[1..]) {
-    //                     Ok((_, msg)) => {
-    //                         print_u8_array(msg.map_cycle);
-    //                     }
-    //                     _ => (),
-    //                 }
-    //             }
-    //             22 => {
-    //                 // SVC_SPAWNBASELINE
-    //                 println!("SVC_SPAWNBASELINE");
-    //             }
-    //             40 => {
-    //                 // SVC_PACKETENTITIES
-    //                 println!("SVC_PACKETENTITIES");
-    //             }
-    //             _ => (),
-    //         }
-    //         // let (_, data2) = parse_server_info(data.msg);
+    // let mut bytes = Vec::new();
+    // let mut f = File::open("./test.dem").unwrap();
+    // f.read_to_end(&mut bytes);
 
-    //         // println!("{:?}", data.msg);
-    //         // match parse_server_info(&data.msg[1..]) {
-    //         //     Ok((_, msg)) => {
-    //         //         print_u8_array(msg.map_cycle);
-    //         //     },
-    //         //     _ => (),
-    //         // }
-    //     }
-    // }
+    // let mut demo = hldemo::Demo::parse(&bytes).unwrap();
+    // // example::example(&mut demo);
+    // // netmsg_rewrite_test::netmsg_rewrite_test(&mut demo);
+    // example::print_netmsg(&mut demo);
 
-    // demo.header.map_name.iter().for_each(|x| print!("{}", *x as char));
-
-    // println!("what");
-    // for i in demo.header.map_name {
-    //     print!("{}", *i as char);
-    // }
-    // println!("fuck");
-
-    // println!("{:?}", demo.header.map_name);
+    // // write_demo!("test.dem", demo);  
 }

@@ -2,7 +2,7 @@ use super::*;
 
 pub struct UpdateUserInfo {}
 impl<'a> NetMsgDoer<'a, SvcUpdateUserInfo<'a>> for UpdateUserInfo {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcUpdateUserInfo<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcUpdateUserInfo<'a>> {
         map(
             tuple((le_u8, le_u32, null_string, take(16usize))),
             |(index, id, user_info, cd_key_hash)| SvcUpdateUserInfo {

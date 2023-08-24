@@ -2,7 +2,7 @@ use super::*;
 
 pub struct ResourceLocation {}
 impl<'a> NetMsgDoer<'a, SvcResourceLocation<'a>> for ResourceLocation {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcResourceLocation<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcResourceLocation<'a>> {
         map(null_string, |download_url| SvcResourceLocation {
             download_url,
         })(i)

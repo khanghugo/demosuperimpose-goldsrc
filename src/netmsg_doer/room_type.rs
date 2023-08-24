@@ -2,7 +2,7 @@ use super::*;
 
 pub struct RoomType {}
 impl<'a> NetMsgDoer<'a, SvcRoomType> for RoomType {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcRoomType> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcRoomType> {
         map(le_u16, |room_type| SvcRoomType { room_type })(i)
     }
 

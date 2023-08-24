@@ -2,7 +2,7 @@ use super::*;
 
 pub struct VoiceInit {}
 impl<'a> NetMsgDoer<'a, SvcVoiceInit<'a>> for VoiceInit {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcVoiceInit<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcVoiceInit<'a>> {
         map(tuple((null_string, le_i8)), |(codec_name, quality)| {
             SvcVoiceInit {
                 codec_name,

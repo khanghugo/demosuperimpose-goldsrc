@@ -2,7 +2,7 @@ use super::*;
 
 pub struct SetPause {}
 impl<'a> NetMsgDoer<'a, SvcSetPause> for SetPause {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcSetPause> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcSetPause> {
         map(le_i8, |is_paused| SvcSetPause { is_paused })(i)
     }
 

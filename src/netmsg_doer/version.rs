@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Version {}
 impl<'a> NetMsgDoer<'a, SvcVersion> for Version {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcVersion> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcVersion> {
         map(le_u32, |protocol_version| SvcVersion { protocol_version })(i)
     }
 

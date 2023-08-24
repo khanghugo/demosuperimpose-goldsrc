@@ -2,7 +2,7 @@ use super::*;
 
 pub struct SetAngle {}
 impl<'a> NetMsgDoer<'a, SvcSetAngle> for SetAngle {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcSetAngle> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcSetAngle> {
         map(tuple((le_i16, le_i16, le_i16)), |(pitch, yaw, roll)| {
             SvcSetAngle { pitch, yaw, roll }
         })(i)

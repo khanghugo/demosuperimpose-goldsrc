@@ -2,7 +2,7 @@ use super::*;
 
 pub struct FileTxferFailed {}
 impl<'a> NetMsgDoer<'a, SvcFileTxferFailed<'a>> for FileTxferFailed {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcFileTxferFailed<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcFileTxferFailed<'a>> {
         map(null_string, |file_name| SvcFileTxferFailed { file_name })(i)
     }
 

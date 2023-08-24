@@ -2,7 +2,7 @@ use super::*;
 
 pub struct StopSound {}
 impl<'a> NetMsgDoer<'a, SvcStopSound> for StopSound {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcStopSound> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcStopSound> {
         map(le_i16, |entity_index| SvcStopSound { entity_index })(i)
     }
 

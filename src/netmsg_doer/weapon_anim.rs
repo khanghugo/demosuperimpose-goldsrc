@@ -2,7 +2,7 @@ use super::*;
 
 pub struct WeaponAnim {}
 impl<'a> NetMsgDoer<'a, SvcWeaponAnim> for WeaponAnim {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcWeaponAnim> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcWeaponAnim> {
         map(
             tuple((le_i8, le_i8)),
             |(sequence_number, weapon_model_body_group)| SvcWeaponAnim {

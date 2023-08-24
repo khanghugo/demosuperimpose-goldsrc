@@ -13,6 +13,9 @@ use nom::{
     AsChar, IResult, Parser,
 };
 
+use bitvec::bitvec;
+use bitvec::prelude::*;
+
 use crate::types::*;
 use crate::writer::*;
 
@@ -98,7 +101,7 @@ use super::*;
 
 pub struct What {}
 impl<'a> NetMsgDoer<'a, Svc> for What {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], Svc> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], Svc> {
         todo!()
     }
 
@@ -113,9 +116,14 @@ impl<'a> NetMsgDoer<'a, Svc> for What {
 */
 pub trait NetMsgDoer<'a, T> {
     /// Does not parse the type byte but only the message after that.
-    fn parse(i: &'a [u8], delta_decoders: &mut DeltaDecoderTable) -> IResult<&'a [u8], T>;
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], T>;
     /// Must also write message type.
     fn write(i: T) -> Vec<u8>;
+}
+
+pub trait NetMsgDoerWithDelta<'a, T> {
+    fn parse(i: &'a [u8], delta_decoders: &mut DeltaDecoderTable) -> IResult<&'a [u8], T>;
+    fn write(i: T, delta_decoders: &DeltaDecoderTable) -> Vec<u8>;
 }
 
 // Should have done one differently for normal netmessage and ones with delta as well....
@@ -127,10 +135,14 @@ pub trait UserMessageDoer<'a, T> {
         custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
     ) -> IResult<&'a [u8], T>;
     /// Must also write message type.
-    fn write(i: T, custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>) -> Vec<u8>;
+    fn write(i: T, custom_messages: &HashMap<u8, SvcNewUserMsg<'a>>) -> Vec<u8>;
 }
 
 macro_rules! wrap_parse {
+    ($input:ident, $parser:ident, $svc:ident) => {{
+        let ($input, res) = $parser::parse($input)?;
+        ($input, Message::EngineMessage(EngineMessage::$svc(res)))
+    }};
     ($input:ident, $parser:ident, $svc:ident, $dd:ident) => {{
         let ($input, res) = $parser::parse($input, $dd)?;
         ($input, Message::EngineMessage(EngineMessage::$svc(res)))
@@ -155,32 +167,32 @@ fn parse_single_netmsg<'a>(
                 EngineMessageType::SvcBad => (i, Message::EngineMessage(EngineMessage::SvcBad)),
                 EngineMessageType::SvcNop => (i, Message::EngineMessage(EngineMessage::SvcNop)),
                 EngineMessageType::SvcDisconnect => {
-                    wrap_parse!(i, Disconnect, SvcDisconnect, delta_decoders)
+                    wrap_parse!(i, Disconnect, SvcDisconnect)
                 }
                 EngineMessageType::SvcEvent => wrap_parse!(i, Event, SvcEvent, delta_decoders),
                 EngineMessageType::SvcVersion => {
-                    wrap_parse!(i, Version, SvcVersion, delta_decoders)
+                    wrap_parse!(i, Version, SvcVersion)
                 }
                 EngineMessageType::SvcSetView => {
-                    wrap_parse!(i, SetView, SvcSetView, delta_decoders)
+                    wrap_parse!(i, SetView, SvcSetView)
                 }
-                EngineMessageType::SvcSound => wrap_parse!(i, Sound, SvcSound, delta_decoders),
-                EngineMessageType::SvcTime => wrap_parse!(i, Time, SvcTime, delta_decoders),
-                EngineMessageType::SvcPrint => wrap_parse!(i, Print, SvcPrint, delta_decoders),
+                EngineMessageType::SvcSound => wrap_parse!(i, Sound, SvcSound),
+                EngineMessageType::SvcTime => wrap_parse!(i, Time, SvcTime),
+                EngineMessageType::SvcPrint => wrap_parse!(i, Print, SvcPrint),
                 EngineMessageType::SvcStuffText => {
-                    wrap_parse!(i, StuffText, SvcStuffText, delta_decoders)
+                    wrap_parse!(i, StuffText, SvcStuffText)
                 }
                 EngineMessageType::SvcSetAngle => {
-                    wrap_parse!(i, SetAngle, SvcSetAngle, delta_decoders)
+                    wrap_parse!(i, SetAngle, SvcSetAngle)
                 }
                 EngineMessageType::SvcServerInfo => {
-                    wrap_parse!(i, ServerInfo, SvcServerInfo, delta_decoders)
+                    wrap_parse!(i, ServerInfo, SvcServerInfo)
                 }
                 EngineMessageType::SvcLightStyle => {
-                    wrap_parse!(i, LightStyle, SvcLightStyle, delta_decoders)
+                    wrap_parse!(i, LightStyle, SvcLightStyle)
                 }
                 EngineMessageType::SvcUpdateUserInfo => {
-                    wrap_parse!(i, UpdateUserInfo, SvcUpdateUserInfo, delta_decoders)
+                    wrap_parse!(i, UpdateUserInfo, SvcUpdateUserInfo)
                 }
                 EngineMessageType::SvcDeltaDescription => {
                     // Mutate delta_decoders here
@@ -202,17 +214,17 @@ fn parse_single_netmsg<'a>(
                     wrap_parse!(i, ClientData, SvcClientData, delta_decoders)
                 }
                 EngineMessageType::SvcStopSound => {
-                    wrap_parse!(i, StopSound, SvcStopSound, delta_decoders)
+                    wrap_parse!(i, StopSound, SvcStopSound)
                 }
-                EngineMessageType::SvcPings => wrap_parse!(i, Pings, SvcPings, delta_decoders),
+                EngineMessageType::SvcPings => wrap_parse!(i, Pings, SvcPings),
                 EngineMessageType::SvcParticle => {
-                    wrap_parse!(i, Particle, SvcParticle, delta_decoders)
+                    wrap_parse!(i, Particle, SvcParticle)
                 }
                 EngineMessageType::SvcDamage => {
                     (i, Message::EngineMessage(EngineMessage::SvcDamage))
                 }
                 EngineMessageType::SvcSpawnStatic => {
-                    wrap_parse!(i, SpawnStatic, SvcSpawnStatic, delta_decoders)
+                    wrap_parse!(i, SpawnStatic, SvcSpawnStatic)
                 }
                 EngineMessageType::SvcEventReliable => {
                     wrap_parse!(i, EventReliable, SvcEventReliable, delta_decoders)
@@ -221,16 +233,16 @@ fn parse_single_netmsg<'a>(
                     wrap_parse!(i, SpawnBaseline, SvcSpawnBaseline, delta_decoders)
                 }
                 EngineMessageType::SvcTempEntity => {
-                    wrap_parse!(i, TempEntity, SvcTempEntity, delta_decoders)
+                    wrap_parse!(i, TempEntity, SvcTempEntity)
                 }
                 EngineMessageType::SvcSetPause => {
-                    wrap_parse!(i, SetPause, SvcSetPause, delta_decoders)
+                    wrap_parse!(i, SetPause, SvcSetPause)
                 }
                 EngineMessageType::SvcSignOnNum => {
-                    wrap_parse!(i, SignOnNum, SvcSignOnNum, delta_decoders)
+                    wrap_parse!(i, SignOnNum, SvcSignOnNum)
                 }
                 EngineMessageType::SvcCenterPrint => {
-                    wrap_parse!(i, CenterPrint, SvcCenterPrint, delta_decoders)
+                    wrap_parse!(i, CenterPrint, SvcCenterPrint)
                 }
                 EngineMessageType::SvcKilledMonster => {
                     (i, Message::EngineMessage(EngineMessage::SvcKilledMonster))
@@ -239,35 +251,35 @@ fn parse_single_netmsg<'a>(
                     (i, Message::EngineMessage(EngineMessage::SvcFoundSecret))
                 }
                 EngineMessageType::SvcSpawnStaticSound => {
-                    wrap_parse!(i, SpawnStaticSound, SvcSpawnStaticSound, delta_decoders)
+                    wrap_parse!(i, SpawnStaticSound, SvcSpawnStaticSound)
                 }
                 EngineMessageType::SvcIntermission => {
                     (i, Message::EngineMessage(EngineMessage::SvcIntermission))
                 }
-                EngineMessageType::SvcFinale => wrap_parse!(i, Finale, SvcFinale, delta_decoders),
+                EngineMessageType::SvcFinale => wrap_parse!(i, Finale, SvcFinale),
                 EngineMessageType::SvcCdTrack => {
-                    wrap_parse!(i, CdTrack, SvcCdTrack, delta_decoders)
+                    wrap_parse!(i, CdTrack, SvcCdTrack)
                 }
                 EngineMessageType::SvcRestore => {
-                    wrap_parse!(i, Restore, SvcRestore, delta_decoders)
+                    wrap_parse!(i, Restore, SvcRestore)
                 }
                 EngineMessageType::SvcCutscene => {
-                    wrap_parse!(i, Cutscene, SvcCutscene, delta_decoders)
+                    wrap_parse!(i, Cutscene, SvcCutscene)
                 }
                 EngineMessageType::SvcWeaponAnim => {
-                    wrap_parse!(i, WeaponAnim, SvcWeaponAnim, delta_decoders)
+                    wrap_parse!(i, WeaponAnim, SvcWeaponAnim)
                 }
                 EngineMessageType::SvcDecalName => {
-                    wrap_parse!(i, DecalName, SvcDecalName, delta_decoders)
+                    wrap_parse!(i, DecalName, SvcDecalName)
                 }
                 EngineMessageType::SvcRoomType => {
-                    wrap_parse!(i, RoomType, SvcRoomType, delta_decoders)
+                    wrap_parse!(i, RoomType, SvcRoomType)
                 }
                 EngineMessageType::SvcAddAngle => {
-                    wrap_parse!(i, AddAngle, SvcAddAngle, delta_decoders)
+                    wrap_parse!(i, AddAngle, SvcAddAngle)
                 }
                 EngineMessageType::SvcNewUserMsg => {
-                    let res = wrap_parse!(i, NewUserMsg, SvcNewUserMsg, delta_decoders);
+                    let res = wrap_parse!(i, NewUserMsg, SvcNewUserMsg);
 
                     if let Message::EngineMessage(EngineMessage::SvcNewUserMsg(ref msg)) = res.1 {
                         custom_messages.remove(&msg.index);
@@ -287,50 +299,50 @@ fn parse_single_netmsg<'a>(
                 ),
                 EngineMessageType::SvcChoke => (i, Message::EngineMessage(EngineMessage::SvcChoke)),
                 EngineMessageType::SvcResourceList => {
-                    wrap_parse!(i, ResourceList, SvcResourceList, delta_decoders)
+                    wrap_parse!(i, ResourceList, SvcResourceList)
                 }
                 EngineMessageType::SvcNewMoveVars => {
-                    wrap_parse!(i, NewMovevars, SvcNewMovevars, delta_decoders)
+                    wrap_parse!(i, NewMovevars, SvcNewMovevars)
                 }
                 EngineMessageType::SvcResourceRequest => {
-                    wrap_parse!(i, ResourceRequest, SvcResourceRequest, delta_decoders)
+                    wrap_parse!(i, ResourceRequest, SvcResourceRequest)
                 }
                 EngineMessageType::SvcCustomization => {
-                    wrap_parse!(i, Customization, SvcCustomization, delta_decoders)
+                    wrap_parse!(i, Customization, SvcCustomization)
                 }
                 EngineMessageType::SvcCrosshairAngle => {
-                    wrap_parse!(i, CrosshairAngle, SvcCrosshairAngle, delta_decoders)
+                    wrap_parse!(i, CrosshairAngle, SvcCrosshairAngle)
                 }
                 EngineMessageType::SvcSoundFade => {
-                    wrap_parse!(i, SoundFade, SvcSoundFade, delta_decoders)
+                    wrap_parse!(i, SoundFade, SvcSoundFade)
                 }
                 EngineMessageType::SvcFileTxferFailed => {
-                    wrap_parse!(i, FileTxferFailed, SvcFileTxferFailed, delta_decoders)
+                    wrap_parse!(i, FileTxferFailed, SvcFileTxferFailed)
                 }
-                EngineMessageType::SvcHltv => wrap_parse!(i, Hltv, SvcHltv, delta_decoders),
+                EngineMessageType::SvcHltv => wrap_parse!(i, Hltv, SvcHltv),
                 EngineMessageType::SvcDirector => {
-                    wrap_parse!(i, Director, SvcDirector, delta_decoders)
+                    wrap_parse!(i, Director, SvcDirector)
                 }
                 EngineMessageType::SvcVoiceInit => {
-                    wrap_parse!(i, VoiceInit, SvcVoiceInit, delta_decoders)
+                    wrap_parse!(i, VoiceInit, SvcVoiceInit)
                 }
                 EngineMessageType::SvcVoiceData => {
-                    wrap_parse!(i, VoiceData, SvcVoiceData, delta_decoders)
+                    wrap_parse!(i, VoiceData, SvcVoiceData)
                 }
                 EngineMessageType::SvcSendExtraInfo => {
-                    wrap_parse!(i, SendExtraInfo, SvcSendExtraInfo, delta_decoders)
+                    wrap_parse!(i, SendExtraInfo, SvcSendExtraInfo)
                 }
                 EngineMessageType::SvcTimeScale => {
-                    wrap_parse!(i, TimeScale, SvcTimeScale, delta_decoders)
+                    wrap_parse!(i, TimeScale, SvcTimeScale)
                 }
                 EngineMessageType::SvcResourceLocation => {
-                    wrap_parse!(i, ResourceLocation, SvcResourceLocation, delta_decoders)
+                    wrap_parse!(i, ResourceLocation, SvcResourceLocation)
                 }
                 EngineMessageType::SvcSendCvarValue => {
-                    wrap_parse!(i, SendCvarValue, SvcSendCvarValue, delta_decoders)
+                    wrap_parse!(i, SendCvarValue, SvcSendCvarValue)
                 }
                 EngineMessageType::SvcSendCvarValue2 => {
-                    wrap_parse!(i, SendCvarValue2, SvcSendCvarValue2, delta_decoders)
+                    wrap_parse!(i, SendCvarValue2, SvcSendCvarValue2)
                 }
                 _ => (i, Message::EngineMessage(EngineMessage::SvcNop)),
             }
@@ -353,8 +365,8 @@ pub fn parse_netmsg<'a>(
 
 pub fn write_single_netmsg<'a>(
     i: Message<'a>,
-    _: &mut HashMap<String, DeltaDecoder>,
-    custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
+    delta_decoders: &HashMap<String, DeltaDecoder>,
+    custom_messages: &HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> Vec<u8> {
     match i {
         Message::UserMessage(what) => UserMessage::write(what, custom_messages),
@@ -362,7 +374,7 @@ pub fn write_single_netmsg<'a>(
             EngineMessage::SvcBad => vec![EngineMessageType::SvcBad as u8],
             EngineMessage::SvcNop => vec![EngineMessageType::SvcNop as u8],
             EngineMessage::SvcDisconnect(i) => Disconnect::write(i),
-            EngineMessage::SvcEvent(i) => Event::write(i),
+            EngineMessage::SvcEvent(i) => Event::write(i, delta_decoders),
             EngineMessage::SvcVersion(i) => Version::write(i),
             EngineMessage::SvcSetView(i) => SetView::write(i),
             EngineMessage::SvcSound(i) => Sound::write(i),
@@ -373,15 +385,15 @@ pub fn write_single_netmsg<'a>(
             EngineMessage::SvcServerInfo(i) => ServerInfo::write(i),
             EngineMessage::SvcLightStyle(i) => LightStyle::write(i),
             EngineMessage::SvcUpdateUserInfo(i) => UpdateUserInfo::write(i),
-            EngineMessage::SvcDeltaDescription(i) => DeltaDescription::write(i),
-            EngineMessage::SvcClientData(i) => ClientData::write(i),
+            EngineMessage::SvcDeltaDescription(i) => DeltaDescription::write(i, delta_decoders),
+            EngineMessage::SvcClientData(i) => ClientData::write(i, delta_decoders),
             EngineMessage::SvcStopSound(i) => StopSound::write(i),
             EngineMessage::SvcPings(i) => Pings::write(i),
             EngineMessage::SvcParticle(i) => Particle::write(i),
             EngineMessage::SvcDamage => vec![EngineMessageType::SvcDamage as u8],
             EngineMessage::SvcSpawnStatic(i) => SpawnStatic::write(i),
-            EngineMessage::SvcEventReliable(i) => EventReliable::write(i),
-            EngineMessage::SvcSpawnBaseline(i) => SpawnBaseline::write(i),
+            EngineMessage::SvcEventReliable(i) => EventReliable::write(i, delta_decoders),
+            EngineMessage::SvcSpawnBaseline(i) => SpawnBaseline::write(i, delta_decoders),
             EngineMessage::SvcTempEntity(i) => TempEntity::write(i),
             EngineMessage::SvcSetPause(i) => SetPause::write(i),
             EngineMessage::SvcSignOnNum(i) => SignOnNum::write(i),
@@ -399,8 +411,10 @@ pub fn write_single_netmsg<'a>(
             EngineMessage::SvcRoomType(i) => RoomType::write(i),
             EngineMessage::SvcAddAngle(i) => AddAngle::write(i),
             EngineMessage::SvcNewUserMsg(i) => NewUserMsg::write(i),
-            EngineMessage::SvcPacketEntities(i) => PacketEntities::write(i),
-            EngineMessage::SvcDeltaPacketEntities(i) => DeltaPacketEntities::write(i),
+            EngineMessage::SvcPacketEntities(i) => PacketEntities::write(i, delta_decoders),
+            EngineMessage::SvcDeltaPacketEntities(i) => {
+                DeltaPacketEntities::write(i, delta_decoders)
+            }
             EngineMessage::SvcChoke => vec![EngineMessageType::SvcChoke as u8],
             EngineMessage::SvcResourceList(i) => ResourceList::write(i),
             EngineMessage::SvcNewMovevars(i) => NewMovevars::write(i),
@@ -424,8 +438,8 @@ pub fn write_single_netmsg<'a>(
 
 pub fn write_netmsg<'a>(
     i: Vec<Message<'a>>,
-    delta_decoders: &mut HashMap<String, DeltaDecoder>,
-    custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
+    delta_decoders: &HashMap<String, DeltaDecoder>,
+    custom_messages: &HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> Vec<u8> {
     let mut res: Vec<u8> = vec![];
     for message in i {

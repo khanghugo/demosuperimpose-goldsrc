@@ -127,11 +127,47 @@ impl BitWriter {
 
         self.append_slice(&bits[..end as usize]);
     }
+
+    pub fn insert_bit(&mut self, i: bool, pos: usize) {
+        self.data.insert(pos, i);
+        self.offset(1);
+    }
+
+    pub fn insert_slice(&mut self, i: &BitSlice<u8>, pos: usize) {
+        for (offset, what) in i.iter().enumerate() {
+            self.insert_bit(*what, pos + offset);
+        }
+    }
+
+    pub fn insert_vec(&mut self, i: BitVec<u8>, pos: usize) {
+        self.insert_slice(i.as_bitslice(), pos);
+    }
+
+    pub fn insert_u8(&mut self, i: u8, pos: usize) {
+        let bits: BitVec<u8> = BitVec::<u8, Lsb0>::from_element(i);
+        self.insert_slice(&bits, pos);
+    }
+
+    pub fn insert_u32_range(&mut self, i: u32, end: u32, pos: usize) {
+        let bits: BitVec<u8> = i
+            .to_le_bytes()
+            .iter()
+            .map(|byte| BitVec::<u8, Lsb0>::from_element(*byte))
+            .flatten()
+            .collect();
+
+        self.insert_slice(&bits[..end as usize], pos);
+    }
+
     pub fn get_u8_vec(&mut self) -> Vec<u8> {
         // https://github.com/ferrilab/bitvec/issues/27
         let mut what = self.data.to_owned();
         what.force_align();
         what.into_vec()
+    }
+
+    pub fn get_offset(&self) -> usize {
+        self.offset
     }
 }
 

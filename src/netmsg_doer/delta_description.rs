@@ -2,7 +2,7 @@ use super::*;
 use std::convert::TryInto;
 
 pub struct DeltaDescription {}
-impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {
+impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaDescription<'a>> for DeltaDescription {
     fn parse(
         i: &'a [u8],
         delta_decoders: &mut DeltaDecoderTable,
@@ -49,7 +49,6 @@ impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {
         let (i, _) = take(range)(i)?;
 
         // It really should mutate the delta decoder table here but we're respecting ownership.
-
         Ok((
             i,
             SvcDeltaDescription {
@@ -61,7 +60,7 @@ impl<'a> NetMsgDoer<'a, SvcDeltaDescription<'a>> for DeltaDescription {
         ))
     }
 
-    fn write(i: SvcDeltaDescription<'a>) -> Vec<u8> {
+    fn write(i: SvcDeltaDescription<'a>, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
         // TODO
         let mut writer = ByteWriter::new();
 

@@ -2,7 +2,7 @@ use super::*;
 
 pub struct SetView {}
 impl<'a> NetMsgDoer<'a, SvcSetView> for SetView {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcSetView> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcSetView> {
         map(le_i16, |entity_index| SvcSetView { entity_index })(i)
     }
 

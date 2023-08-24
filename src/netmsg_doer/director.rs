@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Director {}
 impl<'a> NetMsgDoer<'a, SvcDirector<'a>> for Director {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcDirector<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcDirector<'a>> {
         map(
             tuple((le_u8, le_u8, null_string)),
             |(length, flag, message)| SvcDirector {

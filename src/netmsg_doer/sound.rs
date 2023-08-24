@@ -5,7 +5,7 @@ use bitvec::prelude::Lsb0;
 
 pub struct Sound {}
 impl<'a> NetMsgDoer<'a, SvcSound> for Sound {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcSound> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcSound> {
         let mut br = BitReader::new(i);
 
         let flags = br.read_n_bit(9).to_owned();

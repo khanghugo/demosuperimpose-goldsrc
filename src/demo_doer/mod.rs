@@ -3,4 +3,5 @@ use demosuperimpose_goldsrc::utils::*;
 use demosuperimpose_goldsrc::writer::ByteWriter;
 
 pub mod example;
+pub mod netmsg_rewrite_test;
 pub mod superimpose;

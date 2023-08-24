@@ -2,7 +2,7 @@ use super::*;
 
 pub struct SendExtraInfo {}
 impl<'a> NetMsgDoer<'a, SvcSendExtraInfo<'a>> for SendExtraInfo {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcSendExtraInfo<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcSendExtraInfo<'a>> {
         map(tuple((null_string, le_u8)), |(fallback_dir, can_cheat)| {
             SvcSendExtraInfo {
                 fallback_dir,

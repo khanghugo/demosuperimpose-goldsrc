@@ -2,7 +2,7 @@ use super::*;
 
 pub struct SpawnStaticSound {}
 impl<'a> NetMsgDoer<'a, SvcSpawnStaticSound> for SpawnStaticSound {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcSpawnStaticSound> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcSpawnStaticSound> {
         map(
             tuple((count(le_i16, 3), le_u16, le_u8, le_u8, le_u16, le_u8, le_u8)),
             |(origin, sound_index, volume, attenuation, entity_index, pitch, flags)| {

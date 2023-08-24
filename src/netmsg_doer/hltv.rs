@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Hltv {}
 impl<'a> NetMsgDoer<'a, SvcHltv> for Hltv {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcHltv> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcHltv> {
         map(le_u8, |mode| SvcHltv { mode })(i)
     }
 

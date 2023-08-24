@@ -1,7 +1,7 @@
 use super::{utils::BitSliceCast, *};
 
 pub struct Event {}
-impl<'a> NetMsgDoer<'a, SvcEvent> for Event {
+impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
     fn parse(i: &'a [u8], delta_decoders: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcEvent> {
         let clone = i;
         let mut br = BitReader::new(i);
@@ -63,7 +63,7 @@ impl<'a> NetMsgDoer<'a, SvcEvent> for Event {
         ))
     }
 
-    fn write(i: SvcEvent) -> Vec<u8> {
+    fn write(i: SvcEvent, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
         // TODO
         let mut writer = ByteWriter::new();
 

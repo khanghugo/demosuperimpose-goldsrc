@@ -1,7 +1,7 @@
 use super::*;
 
 pub struct EventReliable {}
-impl<'a> NetMsgDoer<'a, SvcEventReliable> for EventReliable {
+impl<'a> NetMsgDoerWithDelta<'a, SvcEventReliable> for EventReliable {
     fn parse(
         i: &'a [u8],
         delta_decoders: &mut DeltaDecoderTable,
@@ -34,7 +34,7 @@ impl<'a> NetMsgDoer<'a, SvcEventReliable> for EventReliable {
         ))
     }
 
-    fn write(i: SvcEventReliable) -> Vec<u8> {
+    fn write(i: SvcEventReliable, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
         // TODO
         let mut writer = ByteWriter::new();
 

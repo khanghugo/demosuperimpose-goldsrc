@@ -2,7 +2,7 @@ use super::*;
 
 pub struct LightStyle {}
 impl<'a> NetMsgDoer<'a, SvcLightStyle<'a>> for LightStyle {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcLightStyle<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcLightStyle<'a>> {
         map(tuple((le_u8, null_string)), |(index, light_info)| {
             SvcLightStyle { index, light_info }
         })(i)

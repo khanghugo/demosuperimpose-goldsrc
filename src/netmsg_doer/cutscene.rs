@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Cutscene {}
 impl<'a> NetMsgDoer<'a, SvcCutscene<'a>> for Cutscene {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcCutscene<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcCutscene<'a>> {
         map(null_string, |text| SvcCutscene { text })(i)
     }
 

@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Restore {}
 impl<'a> NetMsgDoer<'a, SvcRestore<'a>> for Restore {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcRestore<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcRestore<'a>> {
         let (i, (save_name, map_count)) = tuple((null_string, le_u8))(i)?;
         let (i, map_names) = count(null_string, map_count as usize)(i)?;
 

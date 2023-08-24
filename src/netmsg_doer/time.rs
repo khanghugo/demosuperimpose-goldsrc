@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Time {}
 impl<'a> NetMsgDoer<'a, SvcTime> for Time {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcTime> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcTime> {
         map(le_f32, |time| SvcTime { time })(i)
     }
 

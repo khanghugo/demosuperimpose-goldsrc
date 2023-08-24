@@ -2,7 +2,7 @@ use super::*;
 
 pub struct Particle {}
 impl<'a> NetMsgDoer<'a, SvcParticle> for Particle {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcParticle> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcParticle> {
         map(
             tuple((count(le_i16, 3), count(le_i8, 3), le_u8, le_u8)),
             |(origin, direction, count, color)| SvcParticle {

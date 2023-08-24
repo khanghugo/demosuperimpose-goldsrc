@@ -2,7 +2,7 @@ use super::*;
 
 pub struct DecalName {}
 impl<'a> NetMsgDoer<'a, SvcDecalName<'a>> for DecalName {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcDecalName<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcDecalName<'a>> {
         map(
             tuple((le_u8, null_string)),
             |(position_index, decal_name)| SvcDecalName {

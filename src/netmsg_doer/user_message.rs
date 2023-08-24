@@ -44,10 +44,7 @@ impl<'a> UserMessageDoer<'a, NetMsgUserMessage<'a>> for UserMessage {
         ))
     }
 
-    fn write(
-        i: NetMsgUserMessage,
-        custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
-    ) -> Vec<u8> {
+    fn write(i: NetMsgUserMessage, custom_messages: &HashMap<u8, SvcNewUserMsg<'a>>) -> Vec<u8> {
         let mut writer = ByteWriter::new();
 
         writer.append_u8(i.id);

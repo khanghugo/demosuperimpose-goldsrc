@@ -2,7 +2,7 @@ use super::*;
 
 pub struct NewMovevars {}
 impl<'a> NetMsgDoer<'a, SvcNewMoveVars<'a>> for NewMovevars {
-    fn parse(i: &'a [u8], _: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcNewMoveVars<'a>> {
+    fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcNewMoveVars<'a>> {
         // https://github.com/rust-bakery/nom/issues/1144
         map(
             tuple((
