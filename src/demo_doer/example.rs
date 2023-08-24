@@ -6,7 +6,7 @@ use demosuperimpose_goldsrc::netmsg_doer::{
     utils::{get_initial_delta, BitReader},
     write_netmsg, NetMsgDoer,
 };
-use hldemo::{Demo, FrameData, parse::frame};
+use hldemo::{parse::frame, Demo, FrameData};
 
 use super::*;
 
@@ -21,7 +21,7 @@ pub fn print_netmsg(demo: &mut Demo) {
         for frame in &mut entry.frames {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
                 let (_, netmsg) =
-                parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
+                    parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
 
                 println!("{} {} {:?}", i, j, netmsg);
             }
@@ -51,6 +51,7 @@ pub fn netmsg_parse_write(demo: &mut Demo) {
                 // println!("writed {:?}", write);
 
                 data.msg = write.leak();
+                // data.msg = &[]; // sanity check
             }
         }
     }
@@ -67,7 +68,6 @@ pub fn netmsg_parse_write_parse(demo: &mut Demo) {
     for entry in &mut demo.directory.entries {
         for frame in &mut entry.frames {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
-
                 println!("");
                 println!("New frame");
                 println!("");
@@ -82,7 +82,12 @@ pub fn netmsg_parse_write_parse(demo: &mut Demo) {
                 println!("");
 
                 let write = write_netmsg(messages, &delta_decoders, &custom_messages);
-                let (_, parse_write) = parse_netmsg(write.leak(), &mut pw_delta_decoders, &mut pw_custom_messages).unwrap();
+                let (_, parse_write) = parse_netmsg(
+                    write.leak(),
+                    &mut pw_delta_decoders,
+                    &mut pw_custom_messages,
+                )
+                .unwrap();
             }
         }
     }

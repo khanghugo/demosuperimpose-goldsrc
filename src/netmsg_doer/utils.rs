@@ -263,42 +263,49 @@ pub fn get_initial_delta() -> DeltaDecoderTable {
         bits: 32,
         divisor: 1.,
         flags: DeltaType::Integer as u32,
+        should_write: false,
     };
     let e2 = DeltaDecoderS {
         name: "name".into(),
         bits: 8,
         divisor: 1.,
         flags: DeltaType::String as u32,
+        should_write: false,
     };
     let e3 = DeltaDecoderS {
         name: "offset".into(),
         bits: 16,
         divisor: 1.,
         flags: DeltaType::Integer as u32,
+        should_write: false,
     };
     let e4 = DeltaDecoderS {
         name: "size".into(),
         bits: 8,
         divisor: 1.,
         flags: DeltaType::Integer as u32,
+        should_write: false,
     };
     let e5 = DeltaDecoderS {
         name: "bits".into(),
         bits: 8,
         divisor: 1.,
         flags: DeltaType::Integer as u32,
+        should_write: false,
     };
     let e6 = DeltaDecoderS {
         name: "divisor".into(),
         bits: 32,
         divisor: 4000.,
         flags: DeltaType::Float as u32,
+        should_write: false,
     };
     let e7 = DeltaDecoderS {
         name: "preMultiplier".into(),
         bits: 32,
         divisor: 4000.,
         flags: DeltaType::Float as u32,
+        should_write: false,
     };
 
     let default_decoder = vec![e1, e2, e3, e4, e5, e6, e7];
@@ -344,40 +351,48 @@ fn write_delta_bit_mask(delta: &Delta, delta_decoder: &DeltaDecoder, bw: &mut Bi
     }
 }
 
-
 fn write_delta_wip(delta: &Delta, delta_decoder: &DeltaDecoder, bw: &mut BitWriter) {
-    // Consider this like a modulo. 
+    // Consider this like a modulo.
     // Delta with description of index 13 is byte_mask[13 / 8] at 13 % 8.
     // Byte mask count adds accordingly if we have entry with biggest index number.
     let mut byte_mask = [0u8; 8];
     let mut byte_mask_count = 0u8;
 
-    // println!("start offset {} real offset {}", bw.get_offset(), bw.data.len());
-    let start_offset = bw.get_offset();
+    // TODO: optimization, we can use mutable reference of delta_decoder, change in place, then restore.
+    let mut delta_decoder = delta_decoder.clone();
+    let mut yes_data = false;
 
-    for (key, value) in delta {
-        let (index, description) = find_decoder(key.as_bytes(), delta_decoder).unwrap();
+    // This step marks which delta field will be encoded.
+    for (key, _) in delta {
+        let (index, _) = find_decoder(key.as_bytes(), &delta_decoder).unwrap();
         let quotient = index / 8;
         let remainder = index % 8;
 
-        // println!("key {} quotient {} remainder {}", key, quotient, remainder);
-
-        // Write delta field right away
-        write_delta_field(description, value, bw);
-
         byte_mask[quotient] |= 1 << remainder;
         byte_mask_count = byte_mask_count.max(quotient as u8);
+        delta_decoder[index].should_write = true;
+        yes_data = true;
     }
 
-    // bw.append_u32_range(byte_mask_count as u32, 3);
-    // for i in 0..byte_mask_count {
-    //     bw.append_u8(byte_mask[i as usize]);
-    // }
-    // println!("count {} byte mask {:?}", byte_mask_count, byte_mask);
-    // Write byte mask later on with the offset we got before to avoid extra work.
-    bw.insert_u32_range(byte_mask_count as u32, 3, start_offset);
+    // Because we start counting at 0, we need to offset this by 1 for correct length.
+    if yes_data {
+       byte_mask_count += 1; 
+    }
+
+    bw.append_u32_range(byte_mask_count as u32, 3);
     for i in 0..byte_mask_count {
-        bw.insert_u8(byte_mask[i as usize], start_offset + 3 + (i as usize * 8));
+        bw.append_u8(byte_mask[i as usize]);
+    }
+
+    // We have to write delta by the described order.
+    for description in delta_decoder {
+        if description.should_write {
+            write_delta_field(
+                &description,
+                &find_delta_value(&description.name, delta),
+                bw,
+            );
+        }
     }
 }
 
@@ -511,7 +526,10 @@ fn write_delta_field(description: &DeltaDecoderS, value: &[u8], bw: &mut BitWrit
 
 /// There's no need to add null terminator because string from the table
 /// already includes it.
-fn find_decoder<'a>(key: &'a [u8], delta_decoder: &'a DeltaDecoder) -> Option<(usize, &'a DeltaDecoderS)> {
+fn find_decoder<'a>(
+    key: &'a [u8],
+    delta_decoder: &'a DeltaDecoder,
+) -> Option<(usize, &'a DeltaDecoderS)> {
     for (index, description) in delta_decoder.iter().enumerate() {
         if key.len() != description.name.len() {
             continue;
@@ -531,6 +549,11 @@ fn find_decoder<'a>(key: &'a [u8], delta_decoder: &'a DeltaDecoder) -> Option<(u
     }
 
     None
+}
+
+/// Find delta from description name.
+fn find_delta_value<'a>(name: &[u8], delta: &'a Delta) -> &'a [u8] {
+    delta.get(from_utf8(name).unwrap()).unwrap()
 }
 
 /// From current description, look up if its name is in delta.

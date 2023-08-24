@@ -45,11 +45,6 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcClientData> for ClientData {
         let clone = clone[..range].to_owned();
         let (i, _) = take(range)(i)?;
 
-        // println!("--");
-        // println!("client data {:?}", client_data);
-        // println!("weapon data {:?}", weapon_data);
-        // println!("--");
-
         Ok((
             i,
             SvcClientData {
@@ -68,8 +63,6 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcClientData> for ClientData {
 
         writer.append_u8(EngineMessageType::SvcClientData as u8);
 
-        println!("client data {:?}", i.client_data);
-        println!("weapon data {:?}", i.weapon_data);
 
         let should_write_delta_mask_update = i.has_delta_update_mask;
 
@@ -103,11 +96,6 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcClientData> for ClientData {
         writer.append_u8_slice(&bw.get_u8_vec());
 
         // writer.append_u8_slice(&i.clone);
-        let huh = BitReader::new(&i.clone);
-        println!("old {:?}", huh.bytes);
-        println!("new {:?}", bw.data);
-
-        println!("{:?}", delta_decoders.get("clientdata_t\0").unwrap());
 
         writer.data
     }

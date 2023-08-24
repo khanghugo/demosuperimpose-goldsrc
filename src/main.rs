@@ -32,12 +32,9 @@ fn main() {
     let mut demo = hldemo::Demo::parse(&bytes).unwrap();
     // example::example(&mut demo);
     // netmsg_rewrite_test::netmsg_rewrite_test(&mut demo);
-    example::netmsg_parse_write_parse(&mut demo);
-
-    // write_demo!("test.dem", demo);    
-
-
-
+    // example::netmsg_parse_write_parse(&mut demo);
+    example::netmsg_parse_write(&mut demo);
+    write_demo!("test.dem", demo);
 
     // let mut bytes = Vec::new();
     // let mut f = File::open("./test.dem").unwrap();
@@ -48,5 +45,5 @@ fn main() {
     // // netmsg_rewrite_test::netmsg_rewrite_test(&mut demo);
     // example::print_netmsg(&mut demo);
 
-    // // write_demo!("test.dem", demo);  
+    // // write_demo!("test.dem", demo);
 }

@@ -73,6 +73,9 @@ pub struct DeltaDecoderS {
     pub bits: u32,
     pub divisor: f32,
     pub flags: u32,
+    // Quick and dirty way to do delta write.
+    // Engine does this I think but with flags member.
+    pub should_write: bool,
 }
 
 pub type Delta = HashMap<String, Vec<u8>>;
