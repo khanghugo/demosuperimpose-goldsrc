@@ -25,7 +25,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
                 } else {
                     None
                 };
-                let delta = if has_delta.is_some() {
+                let delta = if has_delta.is_some() && has_delta.unwrap() {
                     Some(parse_delta(
                         delta_decoders.get("event_t\0").unwrap(),
                         &mut br,
@@ -73,6 +73,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
         writer.append_u8(EngineMessageType::SvcEvent as u8);
 
         bw.append_vec(i.event_count);
+
         for event in i.events {
             bw.append_vec(event.event_index);
             bw.append_bit(event.has_packet_index);
