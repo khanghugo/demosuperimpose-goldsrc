@@ -307,8 +307,6 @@ pub struct SvcEventReliable {
 pub struct SvcSpawnBaseline {
     pub entities: Vec<EntityS>,
     // These members are not inside EntityS like cgdangelo/talent suggests.
-    // [bool; 5]
-    pub footer: BitType,
     // [bool; 6]
     pub total_extra_data: BitType,
     pub extra_data: Vec<Delta>,

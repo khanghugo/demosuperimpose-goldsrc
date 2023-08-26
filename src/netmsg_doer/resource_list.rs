@@ -61,12 +61,6 @@ impl<'a> NetMsgDoer<'a, SvcResourceList> for ResourceList {
                         long_index,
                     });
                 } else {
-                    consistencies.push(Consistency {
-                        has_check_file_flag: false,
-                        is_short_index: None,
-                        short_index: None,
-                        long_index: None,
-                    });
                     break;
                 }
             }
@@ -113,6 +107,13 @@ impl<'a> NetMsgDoer<'a, SvcResourceList> for ResourceList {
             }
         }
 
+        // First read bit.
+        if i.consistencies.len() != 0 {
+            bw.append_bit(true);
+        } else {
+            bw.append_bit(false);
+        }
+
         for consistency in i.consistencies {
             bw.append_bit(consistency.has_check_file_flag);
 
@@ -125,6 +126,9 @@ impl<'a> NetMsgDoer<'a, SvcResourceList> for ResourceList {
                 }
             }
         }
+
+        // Last bit for consistency.
+        bw.append_bit(false);
 
         writer.append_u8_slice(&bw.get_u8_vec());
 

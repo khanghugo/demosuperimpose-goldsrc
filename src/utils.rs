@@ -1,68 +1,7 @@
-use crate::types::*;
-
-pub fn what_what() {}
-
-// pub fn parse_netmsg_message_type(msg: u8) -> NetMsgMessageData {
-//     match msg {
-//         0 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcBad),
-//         1 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcNop),
-//         2 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcDisconnect),
-//         3 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcEvent),
-//         4 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcVersion),
-//         5 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSetview),
-//         6 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSound),
-//         7 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcTime),
-//         8 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcPrint),
-//         9 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcStuffText),
-//         10 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSetAngle),
-//         11 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcServerInfo),
-//         12 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcLightStyle),
-//         13 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcUpdateuserInfo),
-//         14 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcDeltaDescription),
-//         15 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcClientData),
-//         16 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcStopsound),
-//         17 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcPings),
-//         18 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcParticle),
-//         19 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcDamage),
-//         20 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSpawnStatic),
-//         21 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcEvenReliable),
-//         22 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSpawnBaseline),
-//         23 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcTempEntity),
-//         24 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSetPause),
-//         25 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSignonNum),
-//         26 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcCenterPrint),
-//         27 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcKilledMonster),
-//         28 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcFoundSecret),
-//         29 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSpawnStaticSound),
-//         30 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcIntermission),
-//         31 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcFinale),
-//         32 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcCdTrack),
-//         33 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcRestore),
-//         34 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcCutscene),
-//         35 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcWeaponAnim),
-//         36 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcDecalName),
-//         37 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcRoomType),
-//         38 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcAddAngle),
-//         39 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcNewUserMsg),
-//         40 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcPacketEntities),
-//         41 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcDeltaPacketEntities),
-//         42 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcChoke),
-//         43 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcResourceList),
-//         44 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcNewMoveVars),
-//         45 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcResourceRequest),
-//         46 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcCustomization),
-//         47 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcCrosshairAngle),
-//         48 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSoundFade),
-//         49 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcFileTxferFailed),
-//         50 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcHltv),
-//         51 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcDirector),
-//         52 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcVoiceInit),
-//         53 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcVoiceData),
-//         54 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSendExtraInfo),
-//         55 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcTimeScale),
-//         56 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcResourceAllocation),
-//         57 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSendCvarValue),
-//         58 => NetMsgMessageData::EngineMessage(EngineMessageType::SvcSendCvarValue2),
-//         _ => NetMsgMessageData::UserMessage,
-//     }
-// }
+#[macro_export]
+macro_rules! write_demo {
+    ($demo_name:literal, $demo:ident) => {{
+        let mut out = writer::DemoWriter::new(String::from($demo_name));
+        out.write_file($demo);
+    }};
+}

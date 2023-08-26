@@ -126,6 +126,16 @@ pub trait NetMsgDoerWithDelta<'a, T> {
     fn write(i: T, delta_decoders: &DeltaDecoderTable) -> Vec<u8>;
 }
 
+// Edge case.
+pub trait NetMsgDoerSpawnBaseline<'a, T> {
+    fn parse(
+        i: &'a [u8],
+        delta_decoders: &mut DeltaDecoderTable,
+        max_client: u8,
+    ) -> IResult<&'a [u8], T>;
+    fn write(i: T, delta_decoders: &DeltaDecoderTable, max_client: u8) -> Vec<u8>;
+}
+
 // Should have done one differently for normal netmessage and ones with delta as well....
 pub trait UserMessageDoer<'a, T> {
     /// Does not parse the type byte but only the message after that.
@@ -139,15 +149,27 @@ pub trait UserMessageDoer<'a, T> {
 }
 
 macro_rules! wrap_parse {
+    // Normal netmsg
     ($input:ident, $parser:ident, $svc:ident) => {{
         let ($input, res) = $parser::parse($input)?;
         ($input, Message::EngineMessage(EngineMessage::$svc(res)))
     }};
+
+    // Netmsg with delta
     ($input:ident, $parser:ident, $svc:ident, $dd:ident) => {{
         let ($input, res) = $parser::parse($input, $dd)?;
         ($input, Message::EngineMessage(EngineMessage::$svc(res)))
     }};
+
+    // Hopefully only edge case spawnbaseline.
+    ($input:ident, $parser:ident, $svc:ident, $dd:ident, $max_client:ident) => {{
+        let ($input, res) = $parser::parse($input, $dd, $max_client)?;
+        ($input, Message::EngineMessage(EngineMessage::$svc(res)))
+    }};
 }
+
+// If there is any design change then Message type is wrapped again in another type that can carry extra info.
+static mut MAX_CLIENT: u8 = 0;
 
 fn parse_single_netmsg<'a>(
     i: &'a [u8],
@@ -186,7 +208,13 @@ fn parse_single_netmsg<'a>(
                     wrap_parse!(i, SetAngle, SvcSetAngle)
                 }
                 EngineMessageType::SvcServerInfo => {
-                    wrap_parse!(i, ServerInfo, SvcServerInfo)
+                    let res = wrap_parse!(i, ServerInfo, SvcServerInfo);
+                    if let Message::EngineMessage(EngineMessage::SvcServerInfo(info)) = &res.1 {
+                        unsafe {
+                            MAX_CLIENT = info.max_players;
+                        }
+                    };
+                    res
                 }
                 EngineMessageType::SvcLightStyle => {
                     wrap_parse!(i, LightStyle, SvcLightStyle)
@@ -230,7 +258,14 @@ fn parse_single_netmsg<'a>(
                     wrap_parse!(i, EventReliable, SvcEventReliable, delta_decoders)
                 }
                 EngineMessageType::SvcSpawnBaseline => {
-                    wrap_parse!(i, SpawnBaseline, SvcSpawnBaseline, delta_decoders)
+                    let max_client = unsafe { MAX_CLIENT };
+                    wrap_parse!(
+                        i,
+                        SpawnBaseline,
+                        SvcSpawnBaseline,
+                        delta_decoders,
+                        max_client
+                    )
                 }
                 EngineMessageType::SvcTempEntity => {
                     wrap_parse!(i, TempEntity, SvcTempEntity)
@@ -393,7 +428,9 @@ pub fn write_single_netmsg<'a>(
             EngineMessage::SvcDamage => vec![EngineMessageType::SvcDamage as u8],
             EngineMessage::SvcSpawnStatic(i) => SpawnStatic::write(i),
             EngineMessage::SvcEventReliable(i) => EventReliable::write(i, delta_decoders),
-            EngineMessage::SvcSpawnBaseline(i) => SpawnBaseline::write(i, delta_decoders),
+            EngineMessage::SvcSpawnBaseline(i) => unsafe {
+                SpawnBaseline::write(i, delta_decoders, MAX_CLIENT)
+            },
             EngineMessage::SvcTempEntity(i) => TempEntity::write(i),
             EngineMessage::SvcSetPause(i) => SetPause::write(i),
             EngineMessage::SvcSignOnNum(i) => SignOnNum::write(i),
