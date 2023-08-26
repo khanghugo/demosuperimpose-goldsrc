@@ -1,16 +1,13 @@
 use std::{collections::HashMap, str::from_utf8};
 
 use nom::{
-    bits,
     bits::complete::take as take_bit,
-    bytes,
-    bytes::complete::{tag, take, take_until, take_until1},
-    character::complete::char,
-    combinator::{all_consuming, cond, flat_map, map, peek, rest},
+    bytes::complete::{tag, take, take_until},
+    combinator::{all_consuming, map, peek},
     multi::{count, many0},
     number::complete::{le_f32, le_i16, le_i32, le_i8, le_u16, le_u32, le_u8},
     sequence::{terminated, tuple},
-    AsChar, IResult, Parser,
+    IResult,
 };
 
 use bitvec::bitvec;
