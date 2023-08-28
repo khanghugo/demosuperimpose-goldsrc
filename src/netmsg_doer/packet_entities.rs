@@ -4,12 +4,12 @@ use super::{
 };
 
 pub struct PacketEntities {}
-impl<'a> NetMsgDoerWithDelta<'a, SvcPacketEntities> for PacketEntities {
+impl<'a> NetMsgDoerWithExtraInfo<'a, SvcPacketEntities> for PacketEntities {
     fn parse(
         i: &'a [u8],
         delta_decoders: &mut DeltaDecoderTable,
+        max_client: u8,
     ) -> IResult<&'a [u8], SvcPacketEntities> {
-        let clone = i;
         let mut br = BitReader::new(i);
 
         let entity_count = br.read_n_bit(16).to_owned();
@@ -57,7 +57,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcPacketEntities> for PacketEntities {
             } else {
                 None
             };
-            let between = entity_index > 0 && entity_index <= 32;
+            let between = entity_index > 0 && entity_index <= max_client as u16;
 
             let delta = if between {
                 parse_delta(
@@ -89,7 +89,6 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcPacketEntities> for PacketEntities {
         }
 
         let range = br.get_consumed_bytes();
-        let clone = clone[..range].to_owned();
         let (i, _) = take(range)(i)?;
 
         Ok((
@@ -97,12 +96,11 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcPacketEntities> for PacketEntities {
             SvcPacketEntities {
                 entity_count,
                 entity_states,
-                clone,
             },
         ))
     }
 
-    fn write(i: SvcPacketEntities, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
+    fn write(i: SvcPacketEntities, delta_decoders: &DeltaDecoderTable, max_client: u8) -> Vec<u8> {
         let mut writer = ByteWriter::new();
         let mut bw = BitWriter::new();
 
@@ -130,7 +128,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcPacketEntities> for PacketEntities {
                 bw.append_vec(entity.baseline_index.unwrap());
             }
 
-            let between = entity.entity_index > 0 && entity.entity_index <= 32;
+            let between = entity.entity_index > 0 && entity.entity_index <= max_client as u16;
             if between {
                 write_delta(
                     &entity.delta,
@@ -157,8 +155,6 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcPacketEntities> for PacketEntities {
         bw.append_vec(bitvec![u8, Lsb0; 0; 16]);
 
         writer.append_u8_slice(&bw.get_u8_vec());
-
-        // writer.append_u8_slice(&i.clone);
 
         writer.data
     }

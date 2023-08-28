@@ -85,7 +85,6 @@ pub struct SvcEvent {
     // [bool; 5]
     pub event_count: BitType,
     pub events: Vec<EventS>,
-    pub clone: Vec<u8>,
 }
 
 #[derive(Clone, Debug)]
@@ -228,7 +227,6 @@ pub struct SvcClientData {
     pub delta_update_mask: Option<BitType>,
     pub client_data: Delta,
     pub weapon_data: Option<Vec<ClientDataWeaponData>>,
-    pub clone: Vec<u8>,
 }
 
 #[derive(Clone, Debug)]
@@ -299,7 +297,6 @@ pub struct SvcEventReliable {
     pub has_fire_time: bool,
     // [bool; 16]
     pub fire_time: Option<BitType>,
-    pub clone: Vec<u8>,
 }
 
 /// SVC_SPAWNBASELINE 22
@@ -310,7 +307,6 @@ pub struct SvcSpawnBaseline {
     // [bool; 6]
     pub total_extra_data: BitType,
     pub extra_data: Vec<Delta>,
-    pub clone: Vec<u8>,
 }
 
 #[derive(Clone, Debug)]
@@ -583,13 +579,12 @@ pub struct SvcNewUserMsg<'a> {
     pub name: &'a [u8],
 }
 
-/// SVC_PACKETENTITIES (40)
+/// SVC_PACKETENTITIES 40
 #[derive(Clone, Debug)]
 pub struct SvcPacketEntities {
     // [bool; 16]
     pub entity_count: BitType,
     pub entity_states: Vec<EntityState>,
-    pub clone: Vec<u8>,
 }
 
 #[derive(Clone, Debug)]
@@ -616,7 +611,6 @@ pub struct SvcDeltaPacketEntities {
     // [bool; 8]
     pub delta_sequence: BitType,
     pub entity_states: Vec<EntityStateDelta>,
-    pub clone: Vec<u8>,
 }
 
 /// These infos are not like THE docs mention.

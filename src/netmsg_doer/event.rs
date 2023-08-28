@@ -6,7 +6,6 @@ use super::{
 pub struct Event {}
 impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
     fn parse(i: &'a [u8], delta_decoders: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcEvent> {
-        let clone = i;
         let mut br = BitReader::new(i);
 
         let event_count = br.read_n_bit(5).to_owned();
@@ -53,7 +52,6 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
             .collect();
 
         let range = br.get_consumed_bytes();
-        let clone = clone[..range].to_owned();
         let (i, _) = take(range)(i)?;
 
         Ok((
@@ -61,7 +59,6 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
             SvcEvent {
                 event_count,
                 events,
-                clone,
             },
         ))
     }
@@ -98,8 +95,6 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
         }
 
         writer.append_u8_slice(&bw.get_u8_vec());
-
-        // writer.append_u8_slice(&i.clone);
 
         writer.data
     }

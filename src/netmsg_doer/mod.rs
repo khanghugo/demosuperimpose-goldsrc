@@ -123,8 +123,8 @@ pub trait NetMsgDoerWithDelta<'a, T> {
     fn write(i: T, delta_decoders: &DeltaDecoderTable) -> Vec<u8>;
 }
 
-// Edge case.
-pub trait NetMsgDoerSpawnBaseline<'a, T> {
+// Edge cases.
+pub trait NetMsgDoerWithExtraInfo<'a, T> {
     fn parse(
         i: &'a [u8],
         delta_decoders: &mut DeltaDecoderTable,
@@ -321,14 +321,25 @@ fn parse_single_netmsg<'a>(
                     res
                 }
                 EngineMessageType::SvcPacketEntities => {
-                    wrap_parse!(i, PacketEntities, SvcPacketEntities, delta_decoders)
+                    let max_client = unsafe { MAX_CLIENT };
+                    wrap_parse!(
+                        i,
+                        PacketEntities,
+                        SvcPacketEntities,
+                        delta_decoders,
+                        max_client
+                    )
                 }
-                EngineMessageType::SvcDeltaPacketEntities => wrap_parse!(
-                    i,
-                    DeltaPacketEntities,
-                    SvcDeltaPacketEntities,
-                    delta_decoders
-                ),
+                EngineMessageType::SvcDeltaPacketEntities => {
+                    let max_client = unsafe { MAX_CLIENT };
+                    wrap_parse!(
+                        i,
+                        DeltaPacketEntities,
+                        SvcDeltaPacketEntities,
+                        delta_decoders,
+                        max_client
+                    )
+                }
                 EngineMessageType::SvcChoke => (i, Message::EngineMessage(EngineMessage::SvcChoke)),
                 EngineMessageType::SvcResourceList => {
                     wrap_parse!(i, ResourceList, SvcResourceList)
@@ -445,9 +456,13 @@ pub fn write_single_netmsg<'a>(
             EngineMessage::SvcRoomType(i) => RoomType::write(i),
             EngineMessage::SvcAddAngle(i) => AddAngle::write(i),
             EngineMessage::SvcNewUserMsg(i) => NewUserMsg::write(i),
-            EngineMessage::SvcPacketEntities(i) => PacketEntities::write(i, delta_decoders),
+            EngineMessage::SvcPacketEntities(i) => {
+                let max_client = unsafe { MAX_CLIENT };
+                PacketEntities::write(i, delta_decoders, max_client)
+            }
             EngineMessage::SvcDeltaPacketEntities(i) => {
-                DeltaPacketEntities::write(i, delta_decoders)
+                let max_client = unsafe { MAX_CLIENT };
+                DeltaPacketEntities::write(i, delta_decoders, max_client)
             }
             EngineMessage::SvcChoke => vec![EngineMessageType::SvcChoke as u8],
             EngineMessage::SvcResourceList(i) => ResourceList::write(i),

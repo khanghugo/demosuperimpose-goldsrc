@@ -4,13 +4,12 @@ use super::{
 };
 
 pub struct SpawnBaseline {}
-impl<'a> NetMsgDoerSpawnBaseline<'a, SvcSpawnBaseline> for SpawnBaseline {
+impl<'a> NetMsgDoerWithExtraInfo<'a, SvcSpawnBaseline> for SpawnBaseline {
     fn parse(
         i: &'a [u8],
         delta_decoders: &mut DeltaDecoderTable,
         max_client: u8,
     ) -> IResult<&'a [u8], SvcSpawnBaseline> {
-        let clone = i;
         let mut br = BitReader::new(i);
         let mut entities: Vec<EntityS> = vec![];
 
@@ -56,7 +55,6 @@ impl<'a> NetMsgDoerSpawnBaseline<'a, SvcSpawnBaseline> for SpawnBaseline {
             .collect();
 
         let range = br.get_consumed_bytes();
-        let clone = clone[..range].to_owned();
         let (i, _) = take(range)(i)?;
 
         Ok((
@@ -65,7 +63,6 @@ impl<'a> NetMsgDoerSpawnBaseline<'a, SvcSpawnBaseline> for SpawnBaseline {
                 entities,
                 total_extra_data,
                 extra_data,
-                clone,
             },
         ))
     }
@@ -115,8 +112,6 @@ impl<'a> NetMsgDoerSpawnBaseline<'a, SvcSpawnBaseline> for SpawnBaseline {
         }
 
         writer.append_u8_slice(&bw.get_u8_vec());
-
-        // writer.append_u8_slice(&i.clone);
 
         writer.data
     }
