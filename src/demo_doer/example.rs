@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 
-use demosuperimpose_goldsrc::netmsg_doer::{parse_netmsg, utils::get_initial_delta, write_netmsg};
+use demosuperimpose_goldsrc::netmsg_doer::{
+    client_data, parse_netmsg,
+    utils::{get_initial_delta, BitSliceCast},
+    write_netmsg,
+};
 use hldemo::{Demo, FrameData};
 
 use super::*;
@@ -107,62 +111,74 @@ pub fn example(demo: &mut Demo) {
     let mut i = 0;
     let mut j = 0;
 
-    // for entry in &mut demo.directory.entries {
-    //     for frame in &mut entry.frames {
-    //         // println!("{}", frame.time);
-    //         if let FrameData::NetMsg((_, data)) = &mut frame.data {
-    //             println!("{} {}", i, j);
-    //             let (_, netmsg) =
-    //                 parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
+    let mut count = 0;
 
-    //             if i == 0 && j == 3 {
-    //                 // println!("{:#?}", netmsg);
+    for entry in &mut demo.directory.entries {
+        for frame in &mut entry.frames {
+            // println!("frametime {}", frame.time);
+            // println!("{}", frame.time);
+            if let FrameData::NetMsg((_, data)) = &mut frame.data {
+                println!("{} {}", i, j);
 
-    //                 println!("");
-    //                 println!("fuck");
-    //                 println!("");
+                // if j == 600 {
+                //     panic!()
+                // }
+                let (_, netmsg) =
+                    parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
 
-    //                 let write = write_netmsg(netmsg, &delta_decoders, &custom_messages);
-    //                 let (i, parse) =
-    //                     parse_netmsg(&write, &mut delta_decoders, &mut custom_messages).unwrap();
-    //                 // println!("{:#?}", parse);
-    //                 // panic!();
-    //             }
+                for what in &netmsg {
+                    if let Message::EngineMessage(EngineMessage::SvcPacketEntities(what)) = what {
+                        // println!("{:#?}", what);
+                        // count += 1;
+                        // println!("count {}", count);
+                        // for entity in &what.entity_states {
+                        //     if entity.entity_index == 1 {
+                        //         println!("{:?}", entity);
+                        //     }
+                        // }
+                    }
 
-    //             for what in &netmsg {
-    //                 if let Message::EngineMessage(EngineMessage::SvcPacketEntities(what)) = what {
-    //                     // println!("{:#?}", what.entity_states);
-    //                     // for entity in &what.entity_states {
-    //                     //     if entity.entity_index == 1 {
-    //                     //         println!("{:?}", entity);
-    //                     //     }
-    //                     // }
-    //                 }
+                    if let Message::EngineMessage(EngineMessage::SvcDeltaPacketEntities(what)) =
+                        what
+                    {
+                        // println!("{:?}", what);
+                        // for entity in &what.entity_states {
+                        //     if entity.entity_index == 0 {
+                        //         println!("{:?}", entity);
+                        //     }
+                        // }
+                        // count += 1;
+                        // println!("count {}", count);
+                    }
 
-    //                 if let Message::EngineMessage(EngineMessage::SvcDeltaPacketEntities(what)) =
-    //                     what
-    //                 {
-    //                     // println!("{:#?}", what.entity_states);
-    //                     // for entity in &what.entity_states {
-    //                     //     if entity.entity_index == 0 {
-    //                     //         println!("{:?}", entity);
-    //                     //     }
-    //                     // }
-    //                 }
+                    if let Message::EngineMessage(EngineMessage::SvcStopSound(what)) = what {
+                        // println!("{:?}", netmsg);
+                    }
 
-    //                 if let Message::EngineMessage(EngineMessage::SvcSpawnBaseline(what)) = what {
-    //                     for (index, entity) in what.entities.iter().enumerate() {
-    //                         // println!("index {} entity {:?}", index, entity);
-    //                     }
-    //                 }
-    //             }
+                    if let Message::EngineMessage(EngineMessage::SvcSpawnBaseline(what)) = what {
+                        for (index, entity) in what.entities.iter().enumerate() {
+                            // println!("entity index {}", entity.index.to_u16());
+                        }
+                        // println!("{:#?}", what);
+                    }
 
-    //             // // data.msg = again.leak();
-    //             // data.msg = &[];
-    //         }
-    //         j += 1;
-    //     }
-    //     i += 1;
-    //     j = 0;
-    // }
+                    if let Message::EngineMessage(EngineMessage::SvcTempEntity(what)) = what {
+                        if what.entity_type == 29 {
+                            println!("{:?}", what.entity);
+                        }
+                    }
+
+                    if let Message::EngineMessage(EngineMessage::SvcSpawnStatic(what)) = what {
+                        // println!("{:#?}", what);
+                    }
+                }
+
+                // // data.msg = again.leak();
+                // data.msg = &[];
+            }
+            j += 1;
+        }
+        i += 1;
+        j = 0;
+    }
 }
