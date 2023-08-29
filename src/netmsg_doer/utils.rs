@@ -385,9 +385,8 @@ fn write_delta_field(description: &DeltaDecoderS, value: &[u8], bw: &mut BitWrit
         if is_signed {
             let res_value = f32::from_le_bytes(bytes);
             let signed_value = res_value * description.divisor as f32;
-            let is_negative = signed_value < 0.;
 
-            let value = if is_negative {
+            let value = if signed_value.is_sign_negative() {
                 bw.append_bit(true);
                 signed_value * -1.
             } else {
@@ -395,19 +394,19 @@ fn write_delta_field(description: &DeltaDecoderS, value: &[u8], bw: &mut BitWrit
                 signed_value
             };
 
-            bw.append_u32_range(value as u32, description.bits - 1);
+            bw.append_u32_range(value.round() as u32, description.bits - 1);
         } else {
             let res_value = f32::from_le_bytes(bytes);
             let value = res_value * description.divisor as f32;
 
-            bw.append_u32_range(value as u32, description.bits);
+            bw.append_u32_range(value.round() as u32, description.bits);
         }
     } else if is_angle {
         // Quick hack. Angle is i16 so here it is.
         let bytes: [u8; 4] = value[..4].try_into().unwrap();
         let res_value = f32::from_le_bytes(bytes);
         let multiplier = 360f32 / (1 << description.bits) as f32;
-        let value = (res_value / multiplier) as i16;
+        let value = (res_value / multiplier).round() as i16;
         bw.append_i32_range(value as i32, description.bits);
     } else if is_string {
         for c in value {

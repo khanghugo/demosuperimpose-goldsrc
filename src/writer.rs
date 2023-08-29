@@ -1,6 +1,6 @@
 use bitvec::slice::BitSlice;
 use bitvec::vec::BitVec;
-use hldemo::{Demo, Directory, DirectoryEntry, Frame, FrameData, Header};
+use hldemo::{Demo, Directory, DirectoryEntry, Frame, FrameData, Header, NetMsgFrameType};
 use std::fs;
 use std::io::Write;
 
@@ -66,15 +66,11 @@ impl ByteWriter {
     }
 
     pub fn append_f32_array(&mut self, i: [f32; 3]) {
-        self.data
-            .extend(i.iter().map(|x| x.to_le_bytes()).flatten());
-        self.offset(4 * 3);
+        i.iter().for_each(|num| self.append_f32(*num));
     }
 
     pub fn append_i32_array_4(&mut self, i: [i32; 4]) {
-        self.data
-            .extend(i.iter().map(|x| x.to_le_bytes()).flatten());
-        self.offset(4 * 4);
+        i.iter().for_each(|num| self.append_i32(*num));
     }
 }
 
@@ -223,11 +219,11 @@ impl DemoWriter {
     }
 
     fn write_directory(&mut self, directory: Directory) {
-        let directory_offset_pos = self.writer.offset;
-        let mut entry_offsets: Vec<usize> = Vec::new();
-
         // Delay writing directory offset
+        let directory_offset_pos = self.writer.offset;
         self.writer.append_i32(0i32);
+
+        let mut entry_offsets: Vec<usize> = Vec::new();
 
         for entry in &directory.entries {
             let mut has_written_next_section = false;
@@ -274,7 +270,7 @@ impl DemoWriter {
     }
 
     fn write_frame(&mut self, frame: &Frame) {
-        match frame.data {
+        match &frame.data {
             FrameData::DemoStart => self.writer.append_u8(2u8),
             FrameData::ConsoleCommand(_) => self.writer.append_u8(3u8),
             FrameData::ClientData(_) => self.writer.append_u8(4u8),
@@ -283,7 +279,11 @@ impl DemoWriter {
             FrameData::WeaponAnim(_) => self.writer.append_u8(7u8),
             FrameData::Sound(_) => self.writer.append_u8(8u8),
             FrameData::DemoBuffer(_) => self.writer.append_u8(9u8),
-            FrameData::NetMsg(_) => self.writer.append_u8(0u8),
+            FrameData::NetMsg((type_, _)) => match type_ {
+                NetMsgFrameType::Start => self.writer.append_u8(0u8),
+                NetMsgFrameType::Normal => self.writer.append_u8(1u8),
+                NetMsgFrameType::Unknown(what) => self.writer.append_u8(*what),
+            },
         }
 
         self.writer.append_f32(frame.time);

@@ -227,6 +227,7 @@ pub struct SvcClientData {
     pub delta_update_mask: Option<BitType>,
     pub client_data: Delta,
     pub weapon_data: Option<Vec<ClientDataWeaponData>>,
+    pub clone: Vec<u8>,
 }
 
 #[derive(Clone, Debug)]
