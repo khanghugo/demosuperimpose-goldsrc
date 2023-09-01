@@ -5,7 +5,19 @@ use hldemo::{Demo, FrameData};
 
 use super::*;
 
-pub fn netmsg_rewrite_test(demo: &mut Demo) {
+pub fn netmsg_rewrite_test(demo: &str) {
+    let mut bytes = Vec::new();
+    let mut f = File::open(demo).unwrap();
+    f.read_to_end(&mut bytes).unwrap();
+
+    let mut demo = hldemo::Demo::parse(bytes.leak()).unwrap(); // heh
+
+    _netmsg_rewrite_test(&mut demo);
+
+    write_demo!("test.dem", demo);
+}
+
+fn _netmsg_rewrite_test(demo: &mut Demo) {
     let mut delta_decoders = get_initial_delta();
     let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
 

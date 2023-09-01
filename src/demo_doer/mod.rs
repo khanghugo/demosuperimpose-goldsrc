@@ -17,3 +17,8 @@ pub mod superimpose;
 
 use bitvec::bitvec;
 use bitvec::prelude::*;
+
+use crate::write_demo;
+
+use std::fs::File;
+use std::io::Read;
