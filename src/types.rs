@@ -331,7 +331,7 @@ pub struct SvcTempEntity<'a> {
 #[derive(Clone, Debug)]
 pub enum TempEntityEntity<'a> {
     // [u8; 24]
-    TeBeamPoints(&'a [u8]) = 0,
+    TeBeamPoints(TeBeamPoints<'a>) = 0,
     // [u8; 20]
     TeBeamEntPoint(&'a [u8]) = 1,
     // [u8; 6]
@@ -361,7 +361,7 @@ pub enum TempEntityEntity<'a> {
     // [u8; 9]
     TeImplosion(&'a [u8]) = 14,
     // [u8; 19]
-    TeSpriteRail(&'a [u8]) = 15,
+    TeSpriteTrail(&'a [u8]) = 15,
     // [u8; 10]
     TeSprite(&'a [u8]) = 16,
     // [u8; 16]
@@ -451,6 +451,145 @@ pub enum TempEntityEntity<'a> {
     TeUserTracer(&'a [u8]) = 127,
 }
 
+// TE_BEAMPOINTS 0
+#[derive(Clone, Debug)]
+pub struct TeBeamPoints<'a> {
+    // [i16; 3]
+    pub start_position: Vec<i16>,
+    // [i16; 3]
+    pub end_position: Vec<i16>,
+    pub sprite_index: i16,
+    pub start_frame: u8,
+    pub frame_rate: u8,
+    pub life: u8,
+    pub width: u8,
+    pub noise: u8,
+    // [u8; 4] RGBA
+    pub color: &'a [u8],
+    pub speed: u8,
+}
+
+// TE_BEAMENTPOINTS 1
+#[derive(Clone, Debug)]
+pub struct TeBeamEntPoint<'a> {
+    pub start_entity: i16,
+    // [i16; 3]
+    pub end_position: &'a [i16],
+    pub sprite_index: i16,
+    pub start_frame: u8,
+    pub frame_rate: u8,
+    pub life: u8,
+    pub width: u8,
+    pub noise: u8,
+    // [i16; 4] RGBA
+    pub color: &'a [u8],
+    pub speed: u8,
+}
+
+// TE_GUNSHOT 2
+#[derive(Clone, Debug)]
+pub struct TeGunShot<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+}
+
+// TE_EXPLOSION 3
+#[derive(Clone, Debug)]
+pub struct TeExplosion<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub sprite_index: i16,
+    pub scale: u8,
+    pub frame_rame: u8,
+    pub flags: u8,
+}
+
+// TE_TAREXPLOSION 4
+#[derive(Clone, Debug)]
+pub struct TeTarExplosion<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+}
+
+// TE_SMOKE 5
+#[derive(Clone, Debug)]
+pub struct TeSmoke<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub sprite_index: i16,
+    pub scale: u8,
+    pub frame_rate: u8,
+}
+
+// TE_TRACER 6
+#[derive(Clone, Debug)]
+pub struct TeTracer<'a> {
+    // [i16; 3]
+    pub start_position: &'a [i16],
+    // [i16; 3]
+    pub end_position: &'a [i16],
+}
+
+// TE_LIGHTNING 7
+#[derive(Clone, Debug)]
+pub struct TeLightning<'a> {
+    // [i16; 3]
+    pub start_position: &'a [i16],
+    // [i16; 3]
+    pub end_position: &'a [i16],
+    pub life: u8,
+    pub width: u8,
+    pub noise: u8,
+    pub model_index: i16,
+}
+
+// TE_BEAMENTS 8
+#[derive(Clone, Debug)]
+pub struct TeBeamEnts<'a> {
+    // [i16; 3]
+    pub start_entity: i16,
+    pub end_entity: i16,
+    pub sprite_index: i16,
+    pub start_frame: u8,
+    pub life: u8,
+    pub width: u8,
+    pub noise: u8,
+    // [i16; 4] RGBA
+    pub color: &'a [u8],
+    pub speed: u8,
+}
+
+// TE_SPARKS 9
+#[derive(Clone, Debug)]
+pub struct TeSparks<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+}
+
+// TE_LAVASPLASH 10
+#[derive(Clone, Debug)]
+pub struct TeLavaSplash<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+}
+
+// TE_TELEPORT 11
+#[derive(Clone, Debug)]
+pub struct TeTeleport<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+}
+
+// TE_EXPLOSION2 12
+#[derive(Clone, Debug)]
+pub struct TeExplosion2<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub color: u8,
+    pub count: u8,
+}
+
+// TE_BSPDECAL 13
 #[derive(Clone, Debug)]
 pub struct TeBspDecal<'a> {
     // [u8; 8]
@@ -460,6 +599,178 @@ pub struct TeBspDecal<'a> {
     pub unknown2: Option<&'a [u8]>,
 }
 
+// TE_IMPLOSION 14
+#[derive(Clone, Debug)]
+pub struct TeImplosion<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub radius: u8,
+    pub count: u8,
+    pub life: u8,
+}
+
+// TE_SPRITETRAIL 15
+#[derive(Clone, Debug)]
+pub struct TeSpriteTrail<'a> {
+    // [i16; 3]
+    pub start_position: &'a [i16],
+    // [i16; 3]
+    pub end_position: &'a [i16],
+    pub sprite_index: i16,
+    pub count: u8,
+    pub life: u8,
+    pub scale: u8,
+    pub velocity: u8,
+    pub velocity_randomness: u8,
+}
+
+// TE_SPRITE 16
+#[derive(Clone, Debug)]
+pub struct TeSprite<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub sprite_index: i16,
+    pub scale: u8,
+    pub brightness: u8,
+}
+
+// TE_BEAMSPRITE 18
+#[derive(Clone, Debug)]
+pub struct TeBeamSprite<'a> {
+    // [i16; 3]
+    pub start_position: &'a [i16],
+    pub end_position: &'a [i16],
+    pub beam_sprite_index: i16,
+    pub end_sprite_index: i16,
+}
+
+// TE_BEAMTORUS 19
+#[derive(Clone, Debug)]
+pub struct TeBeamTorus<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    // [i16; 3]
+    pub axis: &'a [i16],
+    pub sprite_index: i16,
+    pub start_frame: u8,
+    pub life: u8,
+    pub width: u8,
+    pub noise: u8,
+    // [i16; 4] RGBA
+    pub color: &'a [u8],
+    pub speed: u8,
+}
+
+// TE_BEAMDISK 20
+#[derive(Clone, Debug)]
+pub struct TeBeamDisk<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    // [i16; 3]
+    pub axis: &'a [i16],
+    pub sprite_index: i16,
+    pub start_frame: u8,
+    pub life: u8,
+    pub width: u8,
+    pub noise: u8,
+    // [i16; 4] RGBA
+    pub color: &'a [u8],
+    pub speed: u8,
+}
+
+// TE_BEAMCYLINDER 21
+#[derive(Clone, Debug)]
+pub struct TeBeamCylinder<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    // [i16; 3]
+    pub axis: &'a [i16],
+    pub sprite_index: i16,
+    pub start_frame: u8,
+    pub life: u8,
+    pub width: u8,
+    pub noise: u8,
+    // [i16; 4] RGBA
+    pub color: &'a [u8],
+    pub speed: u8,
+}
+
+// TE_BEAMFOLLOW 22
+#[derive(Clone, Debug)]
+pub struct TeBeamFollow<'a> {
+    pub start_entity: i16,
+    pub sprite_index: i16,
+    pub start_frame: u8,
+    pub life: u8,
+    pub width: u8,
+    // [i16; 4] RGBA
+    pub color: &'a [u8],
+}
+
+// TE_GLOWSPRITE 23
+#[derive(Clone, Debug)]
+pub struct TeGlowSprite<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub model_index: i16,
+    pub scale: u8,
+    pub size: u8,
+    pub brightness: u8,
+}
+
+// TE_BEAMRING 24
+#[derive(Clone, Debug)]
+pub struct TeBeamRing<'a> {
+    pub start_entity: i16,
+    pub end_entity: i16,
+    pub sprite_index: i16,
+    pub start_frame: u8,
+    pub frame_rate: u8,
+    pub life: u8,
+    pub width: u8,
+    pub noise: u8,
+    // [i16; 4] RGBA
+    pub color: &'a [u8],
+    pub speed: u8,
+}
+
+// TE_STREAKSPLASH 25
+#[derive(Clone, Debug)]
+pub struct TeStreakSplash<'a> {
+    // [i16; 3]
+    pub start_position: &'a [i16],
+    // [i16; 3]
+    pub vector: &'a [i16],
+    pub color: i16,
+    pub count: u8,
+    pub velocity: i16,
+    pub velocity_randomness: i16,
+}
+// TE_DLIGHT 27
+#[derive(Clone, Debug)]
+pub struct TeDLight<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub radius: u8,
+    // [i16; 3]
+    pub color: &'a [u8],
+    pub life: u8,
+    pub decay_rate: u8,
+}
+
+// TE_ELIGHT 28
+#[derive(Clone, Debug)]
+pub struct TeELight<'a> {
+    pub entity_index: i16,
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub radius: i16,
+    // [i8; 3]
+    pub color: &'a [u8],
+    pub life: u8,
+    pub decay_rate: i16,
+}
+// TE_TEXTMESSAGE 29
 #[derive(Clone, Debug)]
 pub struct TeTextMessage<'a> {
     pub channel: i8,
@@ -475,6 +786,332 @@ pub struct TeTextMessage<'a> {
     pub hold_time: i16,
     pub effect_time: Option<i16>,
     pub message: &'a [u8],
+}
+
+// TE_LINE 30
+#[derive(Clone, Debug)]
+pub struct TeLine<'a> {
+    // [i16; 3]
+    pub start_position: &'a [i16],
+    // [i16; 3]
+    pub end_position: &'a [i16],
+    pub life: i16,
+    // [i8; 3]
+    pub color: &'a [u8],
+}
+
+// TE_BOX 31
+#[derive(Clone, Debug)]
+pub struct TeBox<'a> {
+    // [i16; 3]
+    pub start_position: &'a [i16],
+    // [i16; 3]
+    pub end_position: &'a [i16],
+    pub life: i16,
+    // [i8; 3]
+    pub color: &'a [u8],
+}
+
+// TE_KILLBEAM 99
+#[derive(Clone, Debug)]
+pub struct TeKillBeam {
+    pub entity_index: i16,
+}
+
+// TE_LARGEFUNNEL 100
+#[derive(Clone, Debug)]
+pub struct TeLargeFunnel<'a> {
+    // [i16; 3]
+    pub start_position: &'a [i16],
+    pub entity_index: i16,
+    pub flags: i16,
+}
+
+// TE_BLOODSTREAM 101
+#[derive(Clone, Debug)]
+pub struct TeBloodStream<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    // [i16; 3]
+    pub vector: i16,
+    pub color: u8,
+    pub count: u8,
+}
+
+// TE_SHOWLINE 102
+#[derive(Clone, Debug)]
+pub struct TeShowLine<'a> {
+    // [i16; 3]
+    pub start_position: &'a [i16],
+    // [i16; 3]
+    pub end_position: &'a [i16],
+}
+
+// TE_BLOOD 103
+#[derive(Clone, Debug)]
+pub struct TeBlood<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    // [i16; 3]
+    pub vector: i16,
+    pub color: u8,
+    pub count: u8,
+}
+
+// TE_DECAL 104
+#[derive(Clone, Debug)]
+pub struct TeDecal<'a> {
+    // [i16; 3]
+    pub positiion: &'a [i16],
+    pub decal_index: u8,
+    pub entity_index: i16,
+}
+
+// TE_FIZZ 105
+#[derive(Clone, Debug)]
+pub struct TeFizz {
+    pub entity_index: i16,
+    pub model_index: i16,
+    pub scale: u8,
+}
+
+// TE_MODEL 106
+#[derive(Clone, Debug)]
+pub struct TeModel<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    // [i16; 3]
+    pub velocity: &'a [i16],
+    pub angle_yaw: u8,
+    pub model_index: i16,
+    pub flags: u8,
+    pub life: u8,
+}
+
+// TE_EXPLODEMODEL 107
+#[derive(Clone, Debug)]
+pub struct TeExplodeModel<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    // [i16; 3]
+    pub velocity: &'a [i16],
+    pub model_index: i16,
+    pub count: i16,
+    pub life: u8,
+}
+
+// TE_BREAKMODEL 108
+#[derive(Clone, Debug)]
+pub struct TeBreakModel<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    // [i16; 3]
+    pub size: &'a [i16],
+    // [i16; 3]
+    pub velocity: &'a [i16],
+    pub velocity_randomness: u8,
+    pub object_index: i16,
+    pub count: u8,
+    pub life: u8,
+    pub flags: u8,
+}
+
+// TE_GUNSHOTDECAL 109
+#[derive(Clone, Debug)]
+pub struct TeGunshotDecal<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub entity_index: i16,
+    pub decal: u8,
+}
+
+// TE_SPRITESPRAY 110
+#[derive(Clone, Debug)]
+pub struct TeSpriteSpray<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    // [i16; 3]
+    pub velocity: &'a [i16],
+    pub model_index: i16,
+    pub count: u8,
+    pub speed: u8,
+    pub random: u8,
+}
+
+// TE_ARMORRICOCHET 111
+#[derive(Clone, Debug)]
+pub struct TeArmorRicochet<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub scale: u8,
+}
+
+// TE_PLAYERDECAL 112
+#[derive(Clone, Debug)]
+pub struct TePlayerDecal<'a> {
+    pub player_index: u8,
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub entity_index: i16,
+    pub decal_index: u8,
+}
+
+// TE_BUBBLES 113
+#[derive(Clone, Debug)]
+pub struct TeBubbles<'a> {
+    // [i16; 3]
+    pub min_start_positition: &'a [i16],
+    // [i16; 3]
+    pub max_start_position: &'a [i16],
+    pub scale: i16,
+    pub model_index: i16,
+    pub count: u8,
+    pub speed: i16,
+}
+
+// TE_BUBBLETRAIL 114
+#[derive(Clone, Debug)]
+pub struct TeBubbleTrail<'a> {
+    // [i16; 3]
+    pub min_start_positition: &'a [i16],
+    // [i16; 3]
+    pub max_start_position: &'a [i16],
+    pub scale: i16,
+    pub model_index: i16,
+    pub count: u8,
+    pub speed: i16,
+}
+
+// TE_BLOODSPRITE 115
+#[derive(Clone, Debug)]
+pub struct TeBloodSprite<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub model_index: i16,
+    pub decal_index: i16,
+    pub color: u8,
+    pub scale: u8,
+}
+
+// TE_WORLDDECAL 116
+#[derive(Clone, Debug)]
+pub struct TeWorldDecal<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub texture_index: u8,
+}
+
+// TE_WORLDDECALHIGH 117
+#[derive(Clone, Debug)]
+pub struct TeWorldDecalHigh<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub texture_index: u8,
+}
+
+// TE_DECALHIGH 118
+#[derive(Clone, Debug)]
+pub struct TeDecalHigh<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    pub decal_index: u8,
+    pub entity_index: i16,
+}
+
+// TE_PROJECTILE 119
+#[derive(Clone, Debug)]
+pub struct TeProjectile<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    // [i16; 3]
+    pub velocity: &'a [i16],
+    pub model_index: i16,
+    pub life: u8,
+    pub color: u8,
+}
+
+// TE_SPRAY 120
+#[derive(Clone, Debug)]
+pub struct TeSpray<'a> {
+    // [i16; 3]
+    pub position: &'a [i16],
+    // [i16; 3]
+    pub direction: &'a [i16],
+    pub model_index: i16,
+    pub count: u8,
+    pub life: u8,
+    pub owner: u8,
+}
+
+// TE_PLAYERSPRITES 121
+#[derive(Clone, Debug)]
+pub struct TePlayerSprites {
+    pub entity_index: i16,
+    pub model_index: i16,
+    pub count: u8,
+    pub variance: u8,
+}
+
+// TE_PARTICLEBURST 122
+#[derive(Clone, Debug)]
+pub struct TeParticleBurst<'a> {
+    // [i16; 3]
+    pub origin: &'a [i16],
+    pub scale: i16,
+    pub color: u8,
+    pub duration: u8,
+}
+
+// TE_FIREFIELD 123
+#[derive(Clone, Debug)]
+pub struct TeFireField<'a> {
+    // [i16; 3]
+    pub origin: &'a [i16],
+    pub scale: i16,
+    pub model_index: i16,
+    pub count: u8,
+    pub flags: u8,
+    pub duration: u8,
+}
+
+// TE_PLAYERATTACHMENT 124
+#[derive(Clone, Debug)]
+pub struct TePlayerAttachment {
+    pub entity_index: u8,
+    pub scale: i16,
+    pub model_index: i16,
+    pub life: i16,
+}
+
+// TE_KILLPLAYERATTACHMENT 125
+#[derive(Clone, Debug)]
+pub struct TeKillPlayerAttachment {
+    pub entity_index: u8,
+}
+
+// TE_MULTIGUNSHOT 126
+#[derive(Clone, Debug)]
+pub struct TeMultigunShot<'a> {
+    // [i16; 3]
+    pub origin: &'a [i16],
+    // [i16; 3]
+    pub direction: &'a [i16],
+    // [i16; 2]
+    pub noise: &'a [i16],
+    pub count: u8,
+    pub decal_index: u8,
+}
+
+// TE_USERTRACER 127
+#[derive(Clone, Debug)]
+pub struct TeUserTracer<'a> {
+    // [i16; 3]
+    pub origin: &'a [i16],
+    // [i16; 3]
+    pub velocity: &'a [i16],
+    pub life: u8,
+    pub color: u8,
+    pub scale: u8,
 }
 
 /// SVC_SETPAUSE 24

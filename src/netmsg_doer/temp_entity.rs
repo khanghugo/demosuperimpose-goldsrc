@@ -1,12 +1,57 @@
 use super::*;
 
+macro_rules! wrap_ent {
+    ($ent:ident, $data:ident) => {{
+        TempEntityEntity::$ent($data)
+    }};
+}
+
 pub struct TempEntity {}
 impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
     fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcTempEntity<'a>> {
         let (i, entity_type) = le_u8(i)?;
 
         let (i, entity) = match entity_type {
-            0 => map(take(24usize), |res| TempEntityEntity::TeBeamPoints(res))(i)?,
+            0 => map(
+                tuple((
+                    count(le_i16, 3),
+                    count(le_i16, 3),
+                    le_i16,
+                    le_u8,
+                    le_u8,
+                    le_u8,
+                    le_u8,
+                    le_u8,
+                    take(4usize),
+                    le_u8,
+                )),
+                |(
+                    start_position,
+                    end_position,
+                    sprite_index,
+                    start_frame,
+                    frame_rate,
+                    life,
+                    width,
+                    noise,
+                    color,
+                    speed,
+                )| {
+                    let res = TeBeamPoints {
+                        start_position,
+                        end_position,
+                        sprite_index,
+                        start_frame,
+                        frame_rate,
+                        life,
+                        width,
+                        noise,
+                        color,
+                        speed,
+                    };
+                    wrap_ent!(TeBeamPoints, res)
+                },
+            )(i)?,
             1 => map(take(20usize), |res| TempEntityEntity::TeBeamEntPoint(res))(i)?,
             2 => map(take(6usize), |res| TempEntityEntity::TeGunshot(res))(i)?,
             // The docs say 6 but its parser says 11.
@@ -24,7 +69,7 @@ impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
                 let (i, unknown1) = take(8usize)(i)?;
                 let (i, entity_index) = le_i16(i)?;
                 let (i, unknown2) = if entity_index != 0 {
-                    map(take(2usize), |what| Some(what))(i)?
+                    map(take(2usize), |i| Some(i))(i)?
                 } else {
                     (i, None)
                 };
@@ -39,7 +84,7 @@ impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
                 )
             }
             14 => map(take(9usize), |res| TempEntityEntity::TeImplosion(res))(i)?,
-            15 => map(take(19usize), |res| TempEntityEntity::TeSpriteRail(res))(i)?,
+            15 => map(take(19usize), |res| TempEntityEntity::TeSpriteTrail(res))(i)?,
             16 => map(take(10usize), |res| TempEntityEntity::TeSprite(res))(i)?,
             18 => map(take(16usize), |res| TempEntityEntity::TeBeamSprite(res))(i)?,
             19 => map(take(24usize), |res| TempEntityEntity::TeBeamTorus(res))(i)?,
@@ -78,7 +123,7 @@ impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
                 ))(i)?;
 
                 let (i, effect_time) = if effect != 0 {
-                    map(le_i16, |what| Some(what))(i)?
+                    map(le_i16, |i| Some(i))(i)?
                 } else {
                     (i, None)
                 };
@@ -159,87 +204,98 @@ impl<'a> NetMsgDoer<'a, SvcTempEntity<'a>> for TempEntity {
         writer.append_u8(i.entity_type);
 
         match i.entity {
-            TempEntityEntity::TeBeamPoints(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBeamEntPoint(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeGunshot(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeExplosion(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeTarExplosion(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeSmoke(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeTracer(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeLightning(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBeamEnts(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeSparks(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeLavaSplash(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeTeleport(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeExplosion2(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBspDecal(what) => {
-                writer.append_u8_slice(what.unknown1);
-                writer.append_i16(what.entity_index);
-                if what.entity_index != 0 {
-                    writer.append_u8_slice(what.unknown2.unwrap());
+            TempEntityEntity::TeBeamPoints(i) => {
+                writer.append_i16_slice(i.start_position.as_slice());
+                writer.append_i16_slice(i.end_position.as_slice());
+                writer.append_i16(i.sprite_index);
+                writer.append_u8(i.start_frame);
+                writer.append_u8(i.frame_rate);
+                writer.append_u8(i.life);
+                writer.append_u8(i.width);
+                writer.append_u8(i.noise);
+                writer.append_u8_slice(i.color);
+                writer.append_u8(i.speed);
+            }
+            TempEntityEntity::TeBeamEntPoint(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeGunshot(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeExplosion(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeTarExplosion(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeSmoke(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeTracer(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeLightning(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBeamEnts(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeSparks(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeLavaSplash(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeTeleport(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeExplosion2(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBspDecal(i) => {
+                writer.append_u8_slice(i.unknown1);
+                writer.append_i16(i.entity_index);
+                if i.entity_index != 0 {
+                    writer.append_u8_slice(i.unknown2.unwrap());
                 }
             }
-            TempEntityEntity::TeImplosion(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeSpriteRail(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeSprite(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBeamSprite(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBeamTorus(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBeamDisk(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBeamCylinder(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBeamFollow(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeGlowSprite(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBeamRing(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeStreakSplash(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeDLight(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeELight(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeTextMessage(what) => {
-                writer.append_i8(what.channel);
-                writer.append_i16(what.x);
-                writer.append_i16(what.y);
-                writer.append_i8(what.effect);
-                writer.append_u8_slice(what.text_color);
-                writer.append_u8_slice(what.effect_color);
-                writer.append_i16(what.fade_in_time);
-                writer.append_i16(what.fade_out_time);
-                writer.append_i16(what.hold_time);
+            TempEntityEntity::TeImplosion(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeSpriteTrail(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeSprite(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBeamSprite(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBeamTorus(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBeamDisk(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBeamCylinder(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBeamFollow(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeGlowSprite(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBeamRing(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeStreakSplash(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeDLight(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeELight(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeTextMessage(i) => {
+                writer.append_i8(i.channel);
+                writer.append_i16(i.x);
+                writer.append_i16(i.y);
+                writer.append_i8(i.effect);
+                writer.append_u8_slice(i.text_color);
+                writer.append_u8_slice(i.effect_color);
+                writer.append_i16(i.fade_in_time);
+                writer.append_i16(i.fade_out_time);
+                writer.append_i16(i.hold_time);
 
-                if what.effect != 0 {
-                    writer.append_i16(what.effect_time.unwrap());
+                if i.effect != 0 {
+                    writer.append_i16(i.effect_time.unwrap());
                 }
 
-                writer.append_u8_slice(what.message);
+                writer.append_u8_slice(i.message);
             }
-            TempEntityEntity::TeLine(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBox(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeKillBeam(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeLargeFunnel(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBloodStream(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeShowLine(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBlood(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeDecal(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeFizz(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeModel(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeExplodeModel(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBreakModel(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeGunshotDecal(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeSpriteSpray(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeArmorRicochet(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TePlayerDecal(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBubbles(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBubbleTrail(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeBloodSprite(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeWorldDecal(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeWorldDecalHigh(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeDecalHigh(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeProjectile(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeSpray(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TePlayerSprites(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeParticleBurst(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeFireField(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TePlayerAttachment(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeKillPlayerAttachment(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeMultigunShot(what) => writer.append_u8_slice(what),
-            TempEntityEntity::TeUserTracer(what) => writer.append_u8_slice(what),
+            TempEntityEntity::TeLine(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBox(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeKillBeam(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeLargeFunnel(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBloodStream(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeShowLine(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBlood(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeDecal(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeFizz(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeModel(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeExplodeModel(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBreakModel(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeGunshotDecal(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeSpriteSpray(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeArmorRicochet(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TePlayerDecal(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBubbles(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBubbleTrail(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeBloodSprite(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeWorldDecal(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeWorldDecalHigh(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeDecalHigh(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeProjectile(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeSpray(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TePlayerSprites(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeParticleBurst(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeFireField(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TePlayerAttachment(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeKillPlayerAttachment(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeMultigunShot(i) => writer.append_u8_slice(i),
+            TempEntityEntity::TeUserTracer(i) => writer.append_u8_slice(i),
         }
 
         writer.data

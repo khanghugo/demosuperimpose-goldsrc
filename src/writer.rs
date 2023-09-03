@@ -65,6 +65,12 @@ impl ByteWriter {
         self.offset(i.len());
     }
 
+    pub fn append_i16_slice(&mut self, i: &[i16]) {
+        for what in i {
+            self.append_i16(*what);
+        }
+    }
+
     pub fn append_f32_array(&mut self, i: [f32; 3]) {
         i.iter().for_each(|num| self.append_f32(*num));
     }
