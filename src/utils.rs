@@ -15,3 +15,14 @@ macro_rules! wrap_message {
         hah
     }};
 }
+
+#[macro_export]
+macro_rules! open_demo {
+    ($name:literal) => {{
+        let mut bytes = Vec::new();
+        let mut f = File::open($name).unwrap();
+        f.read_to_end(&mut bytes).unwrap();
+
+        hldemo::Demo::parse(bytes.leak()).unwrap()
+    }};
+}
