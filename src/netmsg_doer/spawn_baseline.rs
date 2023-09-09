@@ -15,6 +15,7 @@ impl<'a> NetMsgDoerWithExtraInfo<'a, SvcSpawnBaseline> for SpawnBaseline {
 
         while br.peek_n_bits(16).to_u32() != (1 << 16) - 1 {
             let index = br.read_n_bit(11).to_owned();
+            let entity_index = index.to_u16();
 
             let between = index.to_u16() > 0 && index.to_u16() <= max_client as u16;
             let type_ = br.read_n_bit(2).to_owned();
@@ -37,6 +38,7 @@ impl<'a> NetMsgDoerWithExtraInfo<'a, SvcSpawnBaseline> for SpawnBaseline {
 
             let res = EntityS {
                 index: index.clone(),
+                entity_index,
                 type_,
                 delta,
             };

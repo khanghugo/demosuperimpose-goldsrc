@@ -216,7 +216,7 @@ pub struct SvcDeltaDescription<'a> {
     pub name: &'a [u8],
     pub total_fields: u16,
     pub fields: DeltaDecoder,
-    pub clone: Vec<u8>,
+    pub clone: &'a [u8],
 }
 
 /// SVC_CLIENTDATA 15
@@ -227,7 +227,6 @@ pub struct SvcClientData {
     pub delta_update_mask: Option<BitType>,
     pub client_data: Delta,
     pub weapon_data: Option<Vec<ClientDataWeaponData>>,
-    pub clone: Vec<u8>,
 }
 
 #[derive(Clone, Debug)]
@@ -312,6 +311,8 @@ pub struct SvcSpawnBaseline {
 
 #[derive(Clone, Debug)]
 pub struct EntityS {
+    // Goodies
+    pub entity_index: u16,
     // [bool; 11]
     pub index: BitType,
     // [bool; 2]

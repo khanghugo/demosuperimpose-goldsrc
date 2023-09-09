@@ -46,7 +46,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaDescription<'a>> for DeltaDescription {
             .collect();
 
         let range = br.get_consumed_bytes();
-        let clone = clone[..range].to_owned();
+        let clone = &clone[..range];
         let (i, _) = take(range)(i)?;
 
         // It really should mutate the delta decoder table here but we're respecting ownership.
@@ -71,7 +71,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaDescription<'a>> for DeltaDescription {
 
         // This is intentionally done like this because I don't think anyone
         // would try to modify delta description.
-        writer.append_u8_slice(&i.clone);
+        writer.append_u8_slice(i.clone);
 
         writer.data
     }

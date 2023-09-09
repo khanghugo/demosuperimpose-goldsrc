@@ -25,4 +25,12 @@ macro_rules! open_demo {
 
         hldemo::Demo::parse(bytes.leak()).unwrap()
     }};
+
+    ($name:ident) => {{
+        let mut bytes = Vec::new();
+        let mut f = File::open($name).unwrap();
+        f.read_to_end(&mut bytes).unwrap();
+
+        hldemo::Demo::parse(bytes.leak()).unwrap()
+    }};
 }
