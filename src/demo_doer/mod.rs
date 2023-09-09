@@ -9,14 +9,16 @@ use std::collections::HashMap;
 
 use hldemo::{Demo, FrameData};
 
+pub mod add_debug;
 pub mod add_speedometer;
 pub mod example;
 pub mod netmsg_rewrite_test;
 pub mod remove_entities;
+pub mod remove_te_textmessage;
 pub mod superimpose;
 
-use bitvec::bitvec;
-use bitvec::prelude::*;
+// use bitvec::bitvec;
+// use bitvec::prelude::*;
 
 use crate::write_demo;
 
