@@ -244,8 +244,8 @@ fn parse_delta_field(description: &DeltaDecoderS, res: &mut Delta, br: &mut BitR
             res_value.to_vec()
         }
     } else if is_angle {
-        let value = (br.read_n_bit(description.bits as usize)).to_i32();
-        let multiplier = 360f32 / (1 << description.bits) as f32;
+        let value = (br.read_n_bit(description.bits as usize)).to_u32();
+        let multiplier = 360f32 / ((1 << description.bits) as f32);
         let res_value = (value as f32 * multiplier).to_le_bytes();
         res_value.to_vec()
     } else if is_string {
@@ -406,8 +406,8 @@ fn write_delta_field(description: &DeltaDecoderS, value: &[u8], bw: &mut BitWrit
         let bytes: [u8; 4] = value[..4].try_into().unwrap();
         let res_value = f32::from_le_bytes(bytes);
         let multiplier = 360f32 / (1 << description.bits) as f32;
-        let value = (res_value / multiplier).round() as i16;
-        bw.append_i32_range(value as i32, description.bits);
+        let value = (res_value / multiplier).round() as u32;
+        bw.append_u32_range(value as u32, description.bits);
     } else if is_string {
         for c in value {
             bw.append_u8(*c);
