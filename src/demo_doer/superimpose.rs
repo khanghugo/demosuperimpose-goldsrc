@@ -27,7 +27,7 @@ struct Anim {
 
 pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
     let (mut main_demo, other_demos) = parse_demos(main, &others);
-    let ghost_info = get_ghost(other_demos);
+    let ghost_info = get_ghost(other_demos, others.iter().map(|e| e.0.to_owned()).collect());
 
     let mut delta_decoders = get_initial_delta();
     let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
@@ -207,7 +207,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
 
                                     // Insert between ghost entity and next entity.
                                     // If it is last entity then there is no need to change.
-                                    if insert_index != packet.entity_states.len() - 1 {
+                                    if insert_index < packet.entity_states.len() {
                                         let next_entity = &mut packet.entity_states[insert_index];
                                         let difference =
                                             next_entity.entity_index - ghost_entity_index;
@@ -381,16 +381,19 @@ fn parse_demos<'a>(main_demo: String, others: &Vec<(String, f32)>) -> (Demo<'a>,
     (main_demo, other_demos)
 }
 
-fn get_ghost<'a>(other_demos: Vec<Demo<'a>>) -> Vec<GhostInfo> {
+fn get_ghost<'a>(other_demos: Vec<Demo<'a>>, other_demos_names: Vec<String>) -> Vec<GhostInfo> {
     other_demos
-        .iter()
-        .map(|other_demo| {
+        .iter().enumerate()
+        .map(|(demo_idx, other_demo)| {
             let mut origin: Vec<[f32; 3]> = vec![];
             let mut viewangles: Vec<[f32; 3]> = vec![];
             let mut anim: Vec<Anim> = vec![];
 
             let mut delta_decoders = get_initial_delta();
             let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
+
+            // Help with checking out which demo is unparse-able.
+            println!("Last parsed demo {}", other_demos_names[demo_idx]);
             for (_, entry) in other_demo.directory.entries.iter().enumerate() {
                 for frame in &entry.frames {
                     match &frame.data {
