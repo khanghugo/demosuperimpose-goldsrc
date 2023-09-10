@@ -32,7 +32,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
     let mut other_demos_indices: Vec<u16> = vec![];
     let mut current_frame_index = 0;
 
-    for entry in &mut main_demo.directory.entries {
+    for (_, entry) in main_demo.directory.entries.iter_mut().enumerate() {
         for (_, frame) in entry.frames.iter_mut().enumerate() {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
                 let (_, mut messages) =
@@ -99,104 +99,104 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     );
                                 }
                             }
-                            EngineMessage::SvcPacketEntities(packet) => {
-                                for (ghost, ghost_entity_index) in
-                                    ghost_info.iter().zip(&other_demos_indices)
-                                {
-                                    let mut new_entity_count = BitWriter::new();
-                                    new_entity_count
-                                        .append_u32_range(packet.entity_count.to_u32() + 1, 16);
+                            // EngineMessage::SvcPacketEntities(packet) => {
+                            //     for (ghost, ghost_entity_index) in
+                            //         ghost_info.iter().zip(&other_demos_indices)
+                            //     {
+                            //         let mut new_entity_count = BitWriter::new();
+                            //         new_entity_count
+                            //             .append_u32_range(packet.entity_count.to_u32() + 1, 16);
 
-                                    // Change count.
-                                    packet.entity_count = new_entity_count.data;
+                            //         // Change count.
+                            //         packet.entity_count = new_entity_count.data;
 
-                                    if ghost.origin.len() <= current_frame_index {
-                                        continue;
-                                    }
+                            //         if ghost.origin.len() <= current_frame_index {
+                            //             continue;
+                            //         }
 
-                                    let mut other_demo_entity_state_delta = Delta::new();
+                            //         let mut other_demo_entity_state_delta = Delta::new();
 
-                                    other_demo_entity_state_delta.insert(
-                                        "modelindex\0".to_string(),
-                                        main_demo_player_delta
-                                            .get("modelindex\0")
-                                            .unwrap()
-                                            .to_vec(),
-                                    );
+                            //         other_demo_entity_state_delta.insert(
+                            //             "modelindex\0".to_string(),
+                            //             main_demo_player_delta
+                            //                 .get("modelindex\0")
+                            //                 .unwrap()
+                            //                 .to_vec(),
+                            //         );
 
-                                    other_demo_entity_state_delta.insert(
-                                        "origin[0]\0".to_string(),
-                                        ghost.origin[current_frame_index][0].to_le_bytes().to_vec(),
-                                    );
-                                    other_demo_entity_state_delta.insert(
-                                        "origin[1]\0".to_string(),
-                                        ghost.origin[current_frame_index][1].to_le_bytes().to_vec(),
-                                    );
-                                    other_demo_entity_state_delta.insert(
-                                        "origin[2]\0".to_string(),
-                                        ghost.origin[current_frame_index][2].to_le_bytes().to_vec(),
-                                    );
+                            //         other_demo_entity_state_delta.insert(
+                            //             "origin[0]\0".to_string(),
+                            //             ghost.origin[current_frame_index][0].to_le_bytes().to_vec(),
+                            //         );
+                            //         other_demo_entity_state_delta.insert(
+                            //             "origin[1]\0".to_string(),
+                            //             ghost.origin[current_frame_index][1].to_le_bytes().to_vec(),
+                            //         );
+                            //         other_demo_entity_state_delta.insert(
+                            //             "origin[2]\0".to_string(),
+                            //             ghost.origin[current_frame_index][2].to_le_bytes().to_vec(),
+                            //         );
 
-                                    let mut other_demo_absolute_entity_index = BitWriter::new();
-                                    other_demo_absolute_entity_index
-                                        .append_u32_range(*ghost_entity_index as u32, 11);
+                            //         let mut other_demo_absolute_entity_index = BitWriter::new();
+                            //         other_demo_absolute_entity_index
+                            //             .append_u32_range(*ghost_entity_index as u32, 11);
 
-                                    // Insert entity then change the value for entity index difference correctly.
-                                    let mut insert_index = 0;
-                                    for entity in &packet.entity_states {
-                                        if entity.entity_index > *ghost_entity_index {
-                                            break;
-                                        }
+                            //         // Insert entity then change the value for entity index difference correctly.
+                            //         let mut insert_index = 0;
+                            //         for entity in &packet.entity_states {
+                            //             if entity.entity_index > *ghost_entity_index {
+                            //                 break;
+                            //             }
 
-                                        insert_index += 1;
-                                    }
+                            //             insert_index += 1;
+                            //         }
 
-                                    // Entity 0 is always there so there is no need to handle weird case where ghost index is 0.
-                                    // Insert between insert entity and ghost entity
-                                    let before_entity = &packet.entity_states[insert_index - 1];
-                                    let mut ghost_entity_index_difference = BitWriter::new();
+                            //         // Entity 0 is always there so there is no need to handle weird case where ghost index is 0.
+                            //         // Insert between insert entity and ghost entity
+                            //         let before_entity = &packet.entity_states[insert_index - 1];
+                            //         let mut ghost_entity_index_difference = BitWriter::new();
 
-                                    ghost_entity_index_difference.append_u32_range(
-                                        (ghost_entity_index - before_entity.entity_index) as u32,
-                                        6,
-                                    );
+                            //         ghost_entity_index_difference.append_u32_range(
+                            //             (ghost_entity_index - before_entity.entity_index) as u32,
+                            //             6,
+                            //         );
 
-                                    let other_demo_entity_state = EntityState {
-                                        entity_index: *ghost_entity_index, // This doesn't really do anything but for you to read.
-                                        increment_entity_number: false,
-                                        is_absolute_entity_index: Some(false),
-                                        absolute_entity_index: None,
-                                        entity_index_difference: Some(
-                                            ghost_entity_index_difference.data,
-                                        ),
-                                        has_custom_delta: false,
-                                        has_baseline_index: false,
-                                        baseline_index: None,
-                                        delta: other_demo_entity_state_delta,
-                                    };
+                            //         let other_demo_entity_state = EntityState {
+                            //             entity_index: *ghost_entity_index, // This doesn't really do anything but for you to read.
+                            //             increment_entity_number: false,
+                            //             is_absolute_entity_index: Some(false),
+                            //             absolute_entity_index: None,
+                            //             entity_index_difference: Some(
+                            //                 ghost_entity_index_difference.data,
+                            //             ),
+                            //             has_custom_delta: false,
+                            //             has_baseline_index: false,
+                            //             baseline_index: None,
+                            //             delta: other_demo_entity_state_delta,
+                            //         };
 
-                                    // Insert between ghost entity and next entity.
-                                    // If it is last entity then there is no need to change.
-                                    println!("len is {}", packet.entity_states.len());
-                                    if insert_index != packet.entity_states.len() - 1 {
-                                        let next_entity =
-                                            &mut packet.entity_states[insert_index + 1];
-                                        let difference =
-                                            next_entity.entity_index - ghost_entity_index;
+                            //         // Insert between ghost entity and next entity.
+                            //         // If it is last entity then there is no need to change.
+                            //         println!("len is {}", packet.entity_states.len());
+                            //         if insert_index != packet.entity_states.len() - 1 {
+                            //             let next_entity =
+                            //                 &mut packet.entity_states[insert_index + 1];
+                            //             let difference =
+                            //                 next_entity.entity_index - ghost_entity_index;
 
-                                        let mut next_entity_index_difference = BitWriter::new();
-                                        next_entity_index_difference
-                                            .append_u32_range(difference as u32, 6);
+                            //             let mut next_entity_index_difference = BitWriter::new();
+                            //             next_entity_index_difference
+                            //                 .append_u32_range(difference as u32, 6);
 
-                                        next_entity.entity_index_difference =
-                                            Some(next_entity_index_difference.data);
-                                    }
+                            //             next_entity.entity_index_difference =
+                            //                 Some(next_entity_index_difference.data);
+                            //         }
 
-                                    packet
-                                        .entity_states
-                                        .insert(insert_index, other_demo_entity_state);
-                                }
-                            }
+                            //         packet
+                            //             .entity_states
+                            //             .insert(insert_index, other_demo_entity_state);
+                            //     }
+                            // }
                             EngineMessage::SvcDeltaPacketEntities(packet) => {
                                 for (ghost, ghost_entity_index) in
                                     ghost_info.iter().zip(&other_demos_indices)
@@ -233,6 +233,24 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     other_demo_entity_state_delta.insert(
                                         "origin[2]\0".to_string(),
                                         ghost.origin[current_frame_index][2].to_le_bytes().to_vec(),
+                                    );
+                                    other_demo_entity_state_delta.insert(
+                                        "angles[0]\0".to_string(),
+                                        ghost.viewangles[current_frame_index][0]
+                                            .to_le_bytes()
+                                            .to_vec(),
+                                    );
+                                    other_demo_entity_state_delta.insert(
+                                        "angles[1]\0".to_string(),
+                                        ghost.viewangles[current_frame_index][1]
+                                            .to_le_bytes()
+                                            .to_vec(),
+                                    );
+                                    other_demo_entity_state_delta.insert(
+                                        "angles[2]\0".to_string(),
+                                        ghost.viewangles[current_frame_index][2]
+                                            .to_le_bytes()
+                                            .to_vec(),
                                     );
 
                                     let mut other_demo_absolute_entity_index = BitWriter::new();
@@ -290,6 +308,9 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                         .entity_states
                                         .insert(insert_index, other_demo_entity_state);
                                 }
+
+                                // Only increment after we find our frame.
+                                current_frame_index += 1;
                             }
                             _ => (),
                         },
@@ -300,8 +321,6 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                 let write = write_netmsg(messages, &delta_decoders, &custom_messages);
                 data.msg = write.leak();
             }
-
-            current_frame_index += 1;
         }
     }
 
@@ -327,10 +346,29 @@ fn get_ghost<'a>(other_demos: Vec<Demo<'a>>) -> Vec<GhostInfo> {
             let mut origin: Vec<[f32; 3]> = vec![];
             let mut viewangles: Vec<[f32; 3]> = vec![];
 
-            for frame in &other_demo.directory.entries[1].frames {
-                if let FrameData::ClientData(what) = &frame.data {
-                    origin.push(what.origin);
-                    viewangles.push(what.viewangles);
+            let mut delta_decoders = get_initial_delta();
+            let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
+            for (entry_index, entry) in other_demo.directory.entries.iter().enumerate() {
+                for frame in &entry.frames {
+                    if let FrameData::NetMsg((_, data)) = &frame.data {
+                        let (_, messages) =
+                            parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages)
+                                .unwrap();
+
+                        for message in messages {
+                            if matches!(message, Message::EngineMessage(EngineMessage::SvcTime(_))) && entry_index > 0
+                            {
+                                origin.push(data.info.ref_params.vieworg);
+                                viewangles.push(data.info.ref_params.viewangles);
+                                break;
+                            }
+                        }
+                    }
+
+                    // if let FrameData::ClientData(what) = &frame.data {
+                    //     origin.push(what.origin);
+                    //     viewangles.push(what.viewangles);
+                    // }
                 }
             }
 
