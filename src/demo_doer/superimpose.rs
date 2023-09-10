@@ -16,7 +16,6 @@ use super::*;
 struct GhostInfo {
     origin: Vec<[f32; 3]>,
     viewangles: Vec<[f32; 3]>,
-    // Not sure what to do.
     anim: Vec<Anim>,
 }
 
@@ -24,7 +23,6 @@ struct Anim {
     sequence: Option<Vec<u8>>,
     frame: Option<Vec<u8>>,
     animtime: Option<Vec<u8>>,
-
 }
 
 pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
@@ -34,13 +32,17 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
     let mut delta_decoders = get_initial_delta();
     let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
 
-    // Not sure how this would do yet.
     let mut main_demo_player_delta = Delta::new();
     // Model in entry 0 is different from entry 1.
     // Entry 0 is default model. Entry 1 is used model.
-    let mut main_demo_model_index: Vec<u8> = vec![];
     let mut other_demos_indices: Vec<u16> = vec![];
+
+    // Track the current ghost frame
     let mut current_frame_index = 0;
+
+    // Work around the lack of understanding why frame value increases unreasonably.
+    // f32 for alignment
+    let mut other_demos_sequence_frame: Vec<f32> = vec![0.; ghost_info.len()];
 
     for (_, entry) in main_demo.directory.entries.iter_mut().enumerate() {
         for (_, frame) in entry.frames.iter_mut().enumerate() {
@@ -114,8 +116,8 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                             EngineMessage::SvcPacketEntities(packet) => {
                                 for what in &packet.entity_states {
                                     if what.entity_index == 1 {
-                                        if let Some(modelindex) = what.delta.get("modelindex\0") {
-                                            main_demo_model_index = modelindex.to_owned();
+                                        if what.delta.get("modelindex\0").is_some() {
+                                            main_demo_player_delta = what.delta.clone();
                                         }
                                     }
                                 }
@@ -137,14 +139,6 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     let mut other_demo_entity_state_delta = Delta::new();
 
                                     other_demo_entity_state_delta.insert(
-                                        "modelindex\0".to_string(),
-                                        main_demo_player_delta
-                                            .get("modelindex\0")
-                                            .unwrap()
-                                            .to_vec(),
-                                    );
-
-                                    other_demo_entity_state_delta.insert(
                                         "origin[0]\0".to_string(),
                                         ghost.origin[current_frame_index][0].to_le_bytes().to_vec(),
                                     );
@@ -155,6 +149,22 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     other_demo_entity_state_delta.insert(
                                         "origin[2]\0".to_string(),
                                         ghost.origin[current_frame_index][2].to_le_bytes().to_vec(),
+                                    );
+
+                                    other_demo_entity_state_delta.insert(
+                                        "modelindex\0".to_string(),
+                                        main_demo_player_delta
+                                            .get("modelindex\0")
+                                            .unwrap()
+                                            .to_owned(),
+                                    );
+                                    other_demo_entity_state_delta.insert(
+                                        "framerate\0".to_string(),
+                                        0.01f32.to_le_bytes().to_vec(),
+                                    );
+                                    other_demo_entity_state_delta.insert(
+                                        "controller[0]\0".to_string(),
+                                        127u32.to_le_bytes().to_vec(),
                                     );
 
                                     let mut other_demo_absolute_entity_index = BitWriter::new();
@@ -216,8 +226,8 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                 }
                             }
                             EngineMessage::SvcDeltaPacketEntities(packet) => {
-                                for (ghost, ghost_entity_index) in
-                                    ghost_info.iter().zip(&other_demos_indices)
+                                for (enumerate_index, (ghost, ghost_entity_index)) in
+                                    ghost_info.iter().zip(&other_demos_indices).enumerate()
                                 {
                                     let mut new_entity_count = BitWriter::new();
                                     new_entity_count
@@ -262,18 +272,27 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                             .to_le_bytes()
                                             .to_vec(),
                                     );
-                                    other_demo_entity_state_delta.insert(
-                                        "modelindex\0".to_string(),
-                                        main_demo_model_index.to_owned(),
-                                    );
-                                    if let Some(sequence) = &ghost.anim[current_frame_index].sequence {
-                                        other_demo_entity_state_delta.insert("sequence\0".to_string(), sequence.to_vec());
+                                    if let Some(sequence) =
+                                        &ghost.anim[current_frame_index].sequence
+                                    {
+                                        other_demo_entity_state_delta
+                                            .insert("sequence\0".to_string(), sequence.to_vec());
+                                        other_demos_sequence_frame[enumerate_index] = 0.;
                                     }
-                                    if let Some(frame) = &ghost.anim[current_frame_index].frame {
-                                        other_demo_entity_state_delta.insert("frame\0".to_string(), frame.to_vec());
+                                    if let Some(_) = &ghost.anim[current_frame_index].frame {
+                                        other_demo_entity_state_delta.insert(
+                                            "frame\0".to_string(),
+                                            other_demos_sequence_frame[enumerate_index]
+                                                .to_le_bytes()
+                                                .to_vec(),
+                                        );
+                                        other_demos_sequence_frame[enumerate_index] += 1.;
                                     }
-                                    if let Some(animtime) = &ghost.anim[current_frame_index].animtime {
-                                        other_demo_entity_state_delta.insert("animtime\0".to_string(), animtime.to_vec());
+                                    if let Some(animtime) =
+                                        &ghost.anim[current_frame_index].animtime
+                                    {
+                                        other_demo_entity_state_delta
+                                            .insert("animtime\0".to_string(), animtime.to_vec());
                                     }
 
                                     let mut other_demo_absolute_entity_index = BitWriter::new();
@@ -372,7 +391,7 @@ fn get_ghost<'a>(other_demos: Vec<Demo<'a>>) -> Vec<GhostInfo> {
 
             let mut delta_decoders = get_initial_delta();
             let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
-            for (entry_index, entry) in other_demo.directory.entries.iter().enumerate() {
+            for (_, entry) in other_demo.directory.entries.iter().enumerate() {
                 for frame in &entry.frames {
                     match &frame.data {
                         FrameData::NetMsg((_, data)) => {
@@ -381,12 +400,6 @@ fn get_ghost<'a>(other_demos: Vec<Demo<'a>>) -> Vec<GhostInfo> {
                                     .unwrap();
 
                             for message in messages {
-                                // if matches!(message, Message::EngineMessage(EngineMessage::SvcTime(_))) && entry_index > 0
-                                // {
-                                //     origin.push(data.info.ref_params.vieworg);
-                                //     viewangles.push(data.info.ref_params.viewangles);
-                                //     break;
-                                // }
                                 match message {
                                     Message::EngineMessage(what) => match what {
                                         EngineMessage::SvcDeltaPacketEntities(what) => {
@@ -395,15 +408,37 @@ fn get_ghost<'a>(other_demos: Vec<Demo<'a>>) -> Vec<GhostInfo> {
                                             let mut animtime: Option<Vec<u8>> = None;
 
                                             for entity in &what.entity_states {
-                                                if entity.entity_index == 1 && entity.delta.is_some() {
-                                                    sequence = entity.delta.as_ref().unwrap().get("gaitsequence\0").cloned();
-                                                    frame = entity.delta.as_ref().unwrap().get("frame\0").cloned();
-                                                    animtime = entity.delta.as_ref().unwrap().get("animtime\0").cloned();
-
+                                                if entity.entity_index == 1
+                                                    && entity.delta.is_some()
+                                                {
+                                                    sequence = entity
+                                                        .delta
+                                                        .as_ref()
+                                                        .unwrap()
+                                                        .get("gaitsequence\0")
+                                                        .cloned();
+                                                    frame = entity
+                                                        .delta
+                                                        .as_ref()
+                                                        .unwrap()
+                                                        .get("frame\0")
+                                                        .cloned();
+                                                    animtime = entity
+                                                        .delta
+                                                        .as_ref()
+                                                        .unwrap()
+                                                        .get("animtime\0")
+                                                        .cloned();
                                                 }
                                             }
-
-                                            anim.push(Anim { sequence, frame, animtime });
+                                            // These numbers are not very close to what we want.
+                                            // origin.push(data.info.ref_params.vieworg);
+                                            // viewangles.push(data.info.ref_params.viewangles);
+                                            anim.push(Anim {
+                                                sequence,
+                                                frame,
+                                                animtime,
+                                            });
                                         }
                                         _ => (),
                                     },
@@ -421,7 +456,13 @@ fn get_ghost<'a>(other_demos: Vec<Demo<'a>>) -> Vec<GhostInfo> {
             }
 
             // Final offset to anim vector to have equal length with the other two.
-            anim.push(Anim { sequence: None, frame: None, animtime: None });
+            for i in 0..(origin.len() - anim.len()) {
+                anim.push(Anim {
+                    sequence: None,
+                    frame: None,
+                    animtime: None,
+                });
+            }
 
             GhostInfo {
                 origin,
