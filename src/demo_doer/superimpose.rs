@@ -17,7 +17,14 @@ struct GhostInfo {
     origin: Vec<[f32; 3]>,
     viewangles: Vec<[f32; 3]>,
     // Not sure what to do.
-    anim: Option<bool>,
+    anim: Vec<Anim>,
+}
+
+struct Anim {
+    sequence: Option<Vec<u8>>,
+    frame: Option<Vec<u8>>,
+    animtime: Option<Vec<u8>>,
+
 }
 
 pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
@@ -259,6 +266,15 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                         "modelindex\0".to_string(),
                                         main_demo_model_index.to_owned(),
                                     );
+                                    if let Some(sequence) = &ghost.anim[current_frame_index].sequence {
+                                        other_demo_entity_state_delta.insert("sequence\0".to_string(), sequence.to_vec());
+                                    }
+                                    if let Some(frame) = &ghost.anim[current_frame_index].frame {
+                                        other_demo_entity_state_delta.insert("frame\0".to_string(), frame.to_vec());
+                                    }
+                                    if let Some(animtime) = &ghost.anim[current_frame_index].animtime {
+                                        other_demo_entity_state_delta.insert("animtime\0".to_string(), animtime.to_vec());
+                                    }
 
                                     let mut other_demo_absolute_entity_index = BitWriter::new();
                                     other_demo_absolute_entity_index
@@ -352,37 +368,65 @@ fn get_ghost<'a>(other_demos: Vec<Demo<'a>>) -> Vec<GhostInfo> {
         .map(|other_demo| {
             let mut origin: Vec<[f32; 3]> = vec![];
             let mut viewangles: Vec<[f32; 3]> = vec![];
+            let mut anim: Vec<Anim> = vec![];
 
             let mut delta_decoders = get_initial_delta();
             let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
             for (entry_index, entry) in other_demo.directory.entries.iter().enumerate() {
                 for frame in &entry.frames {
-                    // if let FrameData::NetMsg((_, data)) = &frame.data {
-                    //     let (_, messages) =
-                    //         parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages)
-                    //             .unwrap();
+                    match &frame.data {
+                        FrameData::NetMsg((_, data)) => {
+                            let (_, messages) =
+                                parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages)
+                                    .unwrap();
 
-                    //     for message in messages {
-                    //         if matches!(message, Message::EngineMessage(EngineMessage::SvcTime(_))) && entry_index > 0
-                    //         {
-                    //             origin.push(data.info.ref_params.vieworg);
-                    //             viewangles.push(data.info.ref_params.viewangles);
-                    //             break;
-                    //         }
-                    //     }
-                    // }
+                            for message in messages {
+                                // if matches!(message, Message::EngineMessage(EngineMessage::SvcTime(_))) && entry_index > 0
+                                // {
+                                //     origin.push(data.info.ref_params.vieworg);
+                                //     viewangles.push(data.info.ref_params.viewangles);
+                                //     break;
+                                // }
+                                match message {
+                                    Message::EngineMessage(what) => match what {
+                                        EngineMessage::SvcDeltaPacketEntities(what) => {
+                                            let mut sequence: Option<Vec<u8>> = None;
+                                            let mut frame: Option<Vec<u8>> = None;
+                                            let mut animtime: Option<Vec<u8>> = None;
 
-                    if let FrameData::ClientData(what) = &frame.data {
-                        origin.push(what.origin);
-                        viewangles.push(what.viewangles);
+                                            for entity in &what.entity_states {
+                                                if entity.entity_index == 1 && entity.delta.is_some() {
+                                                    sequence = entity.delta.as_ref().unwrap().get("gaitsequence\0").cloned();
+                                                    frame = entity.delta.as_ref().unwrap().get("frame\0").cloned();
+                                                    animtime = entity.delta.as_ref().unwrap().get("animtime\0").cloned();
+
+                                                }
+                                            }
+
+                                            anim.push(Anim { sequence, frame, animtime });
+                                        }
+                                        _ => (),
+                                    },
+                                    _ => (),
+                                }
+                            }
+                        }
+                        FrameData::ClientData(what) => {
+                            origin.push(what.origin);
+                            viewangles.push(what.viewangles);
+                        }
+                        _ => (),
                     }
                 }
             }
 
+            // Final offset to anim vector to have equal length with the other two.
+            anim.push(Anim { sequence: None, frame: None, animtime: None });
+
             GhostInfo {
                 origin,
                 viewangles,
-                anim: None,
+                anim,
             }
         })
         .collect()
