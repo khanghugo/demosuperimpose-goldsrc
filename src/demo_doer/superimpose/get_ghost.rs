@@ -1,22 +1,32 @@
-use std::path::PathBuf;
+use std::{io::Write, path::PathBuf};
 
-use super::*;
+use super::{simen::simen_ghost_parse, surf_gateway::surf_gateway_ghost_parse, *};
 
 pub fn get_ghost(others: &Vec<(String, f32)>) -> Vec<GhostInfo> {
     others
         .iter()
-        .map(|(file_name, offset)| {
-            let pathbuf = PathBuf::from(file_name);
+        .enumerate()
+        .map(|(index, (filename, offset))| {
+            let pathbuf = PathBuf::from(filename);
             let ext = match pathbuf.extension() {
                 Some(ext) => ext,
-                None => panic!("File \"{}\" does not have an extension", file_name),
+                None => panic!("File \"{}\" does not have an extension", filename),
             };
 
+            print!("\rParsing {} ({}/{})", filename, index + 1, others.len());
+            std::io::stdout().flush().unwrap();
+
             let ghost = if ext == "dem" {
-                let demo = open_demo!(file_name);
-                get_ghost_from_demo(file_name, demo)
+                let demo = open_demo!(filename);
+                get_ghost_from_demo(filename, demo, *offset)
+            } else if ext == "simen" {
+                // Either this, or use enum in main file.
+                simen_ghost_parse(filename.to_owned(), *offset)
+            } else if ext == "sg" {
+                // Surf Gateway
+                surf_gateway_ghost_parse(filename.to_owned(), *offset)
             } else {
-                panic!("File \"{}\" does not use supported extension.", file_name);
+                panic!("File \"{}\" does not use supported extension.", filename);
             };
 
             ghost
@@ -24,7 +34,7 @@ pub fn get_ghost(others: &Vec<(String, f32)>) -> Vec<GhostInfo> {
         .collect()
 }
 
-fn get_ghost_from_demo<'a>(name: &str, demo: Demo<'a>) -> GhostInfo {
+fn get_ghost_from_demo<'a>(name: &str, demo: Demo<'a>, offset: f32) -> GhostInfo {
     // New ghost
     let mut ghost = GhostInfo::new();
     ghost.set_name(name.to_owned());
@@ -34,7 +44,7 @@ fn get_ghost_from_demo<'a>(name: &str, demo: Demo<'a>) -> GhostInfo {
     let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
 
     // Help with checking out which demo is unparse-able.
-    println!("Last parsed demo {}", ghost.get_name());
+    // println!("Last parsed demo {}", ghost.get_name());
 
     // Because player origin/viewangles and animation are on different frame, we have to sync it.
     // Order goes: players info > animation > player info > ...

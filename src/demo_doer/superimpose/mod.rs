@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use hldemo::{Demo, FrameData};
 
 use crate::{demo_doer::superimpose::get_ghost::get_ghost, open_demo, writer::BitWriter};
@@ -6,6 +8,7 @@ use super::*;
 
 mod get_ghost;
 mod simen;
+mod surf_gateway;
 
 struct GhostFrame {
     origin: [f32; 3],
@@ -92,6 +95,8 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
 
     let mut main_demo = open_demo!(main);
     let mut ghosts = get_ghost(&others);
+    // New line for our print finally
+    println!("");
 
     let mut delta_decoders = get_initial_delta();
     let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
@@ -104,8 +109,15 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
     // Track the current ghost frame
     let mut current_frame_index = 0;
 
-    for (_, entry) in main_demo.directory.entries.iter_mut().enumerate() {
-        for (_, frame) in entry.frames.iter_mut().enumerate() {
+    for (entry_idx, entry) in main_demo.directory.entries.iter_mut().enumerate() {
+        let frame_count = entry.frames.len();
+        for (frame_idx, frame) in entry.frames.iter_mut().enumerate() {
+            print!(
+                "\rWorking on entry {} frame {} out of {}",
+                entry_idx, frame_idx, frame_count
+            );
+            std::io::stdout().flush().unwrap();
+
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
                 let (_, mut messages) =
                     parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
@@ -474,6 +486,9 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
             }
         }
     }
+
+    // Newline print.
+    println!("");
 
     main_demo
 }

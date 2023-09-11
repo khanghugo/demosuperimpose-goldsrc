@@ -19,41 +19,7 @@ struct SimenGhostFrame {
     moves: [f32; 2],
 }
 
-fn simen_wrbot_header(i: &str) -> IResult<&str, u8> {
-    map(
-        tuple((
-            skip_line, // Time
-            skip_line, // Name
-            skip_line, // SteamID
-            skip_line, // Date
-            skip_line, // Location
-            skip_line, // ??
-        )),
-        |_| 0u8,
-    )(i)
-}
-
-fn simen_wrbot_line(i: &str) -> IResult<&str, SimenGhostFrame> {
-    map(
-        tuple((
-            float, float, float, float, float, float, float, float, u32, float, float,
-        )),
-        |(pitch, yaw, posx, posy, posz, velx, vely, velz, button, move1, move2)| SimenGhostFrame {
-            frame: GhostFrame {
-                origin: [posx, posy, posz],
-                viewangles: [pitch, yaw, 0.],
-                sequence: None,
-                frame: None,
-                animtime: None,
-            },
-            velocity: [velx, vely, velz],
-            button,
-            moves: [move1, move2],
-        },
-    )(i)
-}
-
-fn simen_ghost_parse(filename: String) -> GhostInfo {
+pub fn simen_ghost_parse(filename: String, offset: f32) -> GhostInfo {
     let pathbuf = PathBuf::from(filename.to_owned());
     let file = match std::fs::read_to_string(&pathbuf) {
         Ok(file) => file,
@@ -86,6 +52,40 @@ fn simen_ghost_parse(filename: String) -> GhostInfo {
     };
 
     res
+}
+
+fn simen_wrbot_header(i: &str) -> IResult<&str, u8> {
+    map(
+        tuple((
+            skip_line, // Time
+            skip_line, // Name
+            skip_line, // SteamID
+            skip_line, // Date
+            skip_line, // Location
+            skip_line, // ??
+        )),
+        |_| 0u8,
+    )(i)
+}
+
+fn simen_wrbot_line(i: &str) -> IResult<&str, SimenGhostFrame> {
+    map(
+        tuple((
+            float, float, float, float, float, float, float, float, u32, float, float,
+        )),
+        |(pitch, yaw, posx, posy, posz, velx, vely, velz, button, move1, move2)| SimenGhostFrame {
+            frame: GhostFrame {
+                origin: [posx, posy, posz],
+                viewangles: [pitch, yaw, 0.],
+                sequence: None,
+                frame: None,
+                animtime: None,
+            },
+            velocity: [velx, vely, velz],
+            button,
+            moves: [move1, move2],
+        },
+    )(i)
 }
 
 fn skip_line(i: &str) -> IResult<&str, u8> {
