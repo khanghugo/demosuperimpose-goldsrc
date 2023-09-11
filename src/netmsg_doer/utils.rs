@@ -236,7 +236,8 @@ fn parse_delta_field(description: &DeltaDecoderS, res: &mut Delta, br: &mut BitR
         if is_signed {
             let sign = if br.read_1_bit() { -1 } else { 1 };
             let value = (br.read_n_bit(description.bits as usize - 1)).to_u32();
-            let res_value = (((sign * value as i32) as f32) / (description.divisor as f32)).to_le_bytes();
+            let res_value =
+                (((sign * value as i32) as f32) / (description.divisor as f32)).to_le_bytes();
             res_value.to_vec()
         } else {
             let value = (br.read_n_bit(description.bits as usize)).to_u32();

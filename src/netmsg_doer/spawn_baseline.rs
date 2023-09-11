@@ -69,7 +69,11 @@ impl<'a> NetMsgDoerWithExtraInfo<'a, SvcSpawnBaseline> for SpawnBaseline {
         ))
     }
 
-    fn write(i: SvcSpawnBaseline, delta_decoders: &mut DeltaDecoderTable, max_client: u8) -> Vec<u8> {
+    fn write(
+        i: SvcSpawnBaseline,
+        delta_decoders: &mut DeltaDecoderTable,
+        max_client: u8,
+    ) -> Vec<u8> {
         let mut writer = ByteWriter::new();
 
         writer.append_u8(EngineMessageType::SvcSpawnBaseline as u8);

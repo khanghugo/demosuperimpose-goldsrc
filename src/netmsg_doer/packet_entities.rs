@@ -95,7 +95,11 @@ impl<'a> NetMsgDoerWithExtraInfo<'a, SvcPacketEntities> for PacketEntities {
         ))
     }
 
-    fn write(i: SvcPacketEntities, delta_decoders: &mut DeltaDecoderTable, max_client: u8) -> Vec<u8> {
+    fn write(
+        i: SvcPacketEntities,
+        delta_decoders: &mut DeltaDecoderTable,
+        max_client: u8,
+    ) -> Vec<u8> {
         let mut writer = ByteWriter::new();
         let mut bw = BitWriter::new();
 
