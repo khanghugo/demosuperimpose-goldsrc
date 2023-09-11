@@ -87,14 +87,14 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     let mut other_demo_delta = Delta::new();
 
                                     // This modelindex is default model.
-                                    other_demo_delta.insert(
-                                        "modelindex\0".to_string(),
-                                        main_demo_player_delta
-                                            .get("modelindex\0")
-                                            .clone()
-                                            .unwrap()
-                                            .to_vec(),
-                                    );
+                                    // other_demo_delta.insert(
+                                    //     "modelindex\0".to_string(),
+                                    //     main_demo_player_delta
+                                    //         .get("modelindex\0")
+                                    //         .clone()
+                                    //         .unwrap()
+                                    //         .to_vec(),
+                                    // );
 
                                     let mut other_demo_delta = main_demo_player_delta.clone();
                                     other_demo_delta.remove("gravity\0");
@@ -166,10 +166,8 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                         "controller[0]\0".to_string(),
                                         127u32.to_le_bytes().to_vec(),
                                     );
-
-                                    let mut other_demo_absolute_entity_index = BitWriter::new();
-                                    other_demo_absolute_entity_index
-                                        .append_u32_range(*ghost_entity_index as u32, 11);
+                                    other_demo_entity_state_delta.insert("solid\0".to_string(), 4u32.to_le_bytes().to_vec());
+                                    other_demo_entity_state_delta.insert("movetype\0".to_string(), 7u32.to_le_bytes().to_vec());
 
                                     // Insert entity then change the value for entity index difference correctly.
                                     let mut insert_index = 0;
@@ -184,21 +182,35 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     // Entity 0 is always there so there is no need to handle weird case where ghost index is 0.
                                     // Insert between insert entity and ghost entity
                                     let before_entity = &packet.entity_states[insert_index - 1];
-                                    let mut ghost_entity_index_difference = BitWriter::new();
+                                    let mut is_absolute_entity_index = false;
+                                    let mut ghost_absolute_entity_index: Option<BitType> = None;
+                                    let mut ghost_entity_index_difference: Option<BitType> = None;
 
-                                    ghost_entity_index_difference.append_u32_range(
-                                        (ghost_entity_index - before_entity.entity_index) as u32,
-                                        6,
-                                    );
+                                    // If difference is more than 63, we do absolute entity index instead.
+                                    // The reason is that difference is only 6 bits, so 63 max.
+                                    let difference = ghost_entity_index - before_entity.entity_index;
+                                    if difference > (1 << 6) - 1 {
+                                        let mut index = BitWriter::new();
+                                        index.append_u32_range(*ghost_entity_index as u32, 11);
+
+                                        ghost_absolute_entity_index = Some(index.data.to_owned());
+                                        is_absolute_entity_index = true;
+
+                                    } else {
+                                        let mut diff = BitWriter::new();
+                                        diff.append_u32_range(
+                                            (ghost_entity_index - before_entity.entity_index) as u32,
+                                            6,
+                                        );
+                                        ghost_entity_index_difference = Some(diff.data.to_owned());
+                                    }
 
                                     let other_demo_entity_state = EntityState {
                                         entity_index: *ghost_entity_index, // This doesn't really do anything but for you to read.
                                         increment_entity_number: false,
-                                        is_absolute_entity_index: Some(false),
-                                        absolute_entity_index: None,
-                                        entity_index_difference: Some(
-                                            ghost_entity_index_difference.data,
-                                        ),
+                                        is_absolute_entity_index: Some(is_absolute_entity_index),
+                                        absolute_entity_index: ghost_absolute_entity_index,
+                                        entity_index_difference: ghost_entity_index_difference,
                                         has_custom_delta: false,
                                         has_baseline_index: false,
                                         baseline_index: None,
@@ -212,12 +224,17 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                         let difference =
                                             next_entity.entity_index - ghost_entity_index;
 
-                                        let mut next_entity_index_difference = BitWriter::new();
-                                        next_entity_index_difference
-                                            .append_u32_range(difference as u32, 6);
-
-                                        next_entity.entity_index_difference =
-                                            Some(next_entity_index_difference.data);
+                                        if difference > (1 << 6) - 1 {
+                                            // It is possible that by the time this is hit,
+                                            // the next entity is already numbered by absolute index.
+                                        } else {
+                                            let mut next_entity_index_difference = BitWriter::new();
+                                            next_entity_index_difference
+                                                .append_u32_range(difference as u32, 6);
+    
+                                            next_entity.entity_index_difference =
+                                                Some(next_entity_index_difference.data);
+                                        }
                                     }
 
                                     packet
@@ -232,16 +249,15 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     let mut new_entity_count = BitWriter::new();
                                     new_entity_count
                                         .append_u32_range(packet.entity_count.to_u32() + 1, 16);
-
                                     packet.entity_count = new_entity_count.data;
-
+                                    
                                     if ghost.origin.len() <= current_frame_index {
                                         continue;
                                     }
 
-                                    // Append at the end to avoid arithmetic.
                                     let mut other_demo_entity_state_delta = Delta::new();
 
+                                    // Origin/viewangles
                                     other_demo_entity_state_delta.insert(
                                         "origin[0]\0".to_string(),
                                         ghost.origin[current_frame_index][0].to_le_bytes().to_vec(),
@@ -272,6 +288,8 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                             .to_le_bytes()
                                             .to_vec(),
                                     );
+
+                                    // Animation
                                     if let Some(sequence) =
                                         &ghost.anim[current_frame_index].sequence
                                     {
@@ -295,10 +313,6 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                             .insert("animtime\0".to_string(), animtime.to_vec());
                                     }
 
-                                    let mut other_demo_absolute_entity_index = BitWriter::new();
-                                    other_demo_absolute_entity_index
-                                        .append_u32_range(*ghost_entity_index as u32, 11);
-
                                     // Insert entity then change the value for entity index difference correctly.
                                     let mut insert_index = 0;
                                     for entity in &packet.entity_states {
@@ -312,21 +326,35 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     // Entity 0 is always there so there is no need to handle weird case where ghost index is 0.
                                     // Insert between insert entity and ghost entity
                                     let before_entity = &packet.entity_states[insert_index - 1];
-                                    let mut ghost_entity_index_difference = BitWriter::new();
+                                    let mut is_absolute_entity_index = false;
+                                    let mut ghost_absolute_entity_index: Option<BitType> = None;
+                                    let mut ghost_entity_index_difference: Option<BitType> = None;
 
-                                    ghost_entity_index_difference.append_u32_range(
-                                        (ghost_entity_index - before_entity.entity_index) as u32,
-                                        6,
-                                    );
+                                    // If difference is more than 63, we do absolute entity index instead.
+                                    // The reason is that difference is only 6 bits, so 63 max.
+                                    let difference = ghost_entity_index - before_entity.entity_index;
+                                    if difference > (1 << 6) - 1 {
+                                        let mut index = BitWriter::new();
+                                        index.append_u32_range(*ghost_entity_index as u32, 11);
+
+                                        ghost_absolute_entity_index = Some(index.data.to_owned());
+                                        is_absolute_entity_index = true;
+
+                                    } else {
+                                        let mut diff = BitWriter::new();
+                                        diff.append_u32_range(
+                                            (ghost_entity_index - before_entity.entity_index) as u32,
+                                            6,
+                                        );
+                                        ghost_entity_index_difference = Some(diff.data.to_owned());
+                                    }
 
                                     let other_demo_entity_state = EntityStateDelta {
                                         entity_index: *ghost_entity_index, // This doesn't really do anything but for you to read.
                                         remove_entity: false,
-                                        is_absolute_entity_index: false,
-                                        absolute_entity_index: None,
-                                        entity_index_difference: Some(
-                                            ghost_entity_index_difference.data,
-                                        ),
+                                        is_absolute_entity_index,
+                                        absolute_entity_index: ghost_absolute_entity_index,
+                                        entity_index_difference: ghost_entity_index_difference,
                                         has_custom_delta: Some(false),
                                         delta: Some(other_demo_entity_state_delta),
                                     };
@@ -338,12 +366,17 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                         let difference =
                                             next_entity.entity_index - ghost_entity_index;
 
-                                        let mut next_entity_index_difference = BitWriter::new();
-                                        next_entity_index_difference
-                                            .append_u32_range(difference as u32, 6);
-
-                                        next_entity.entity_index_difference =
-                                            Some(next_entity_index_difference.data);
+                                        if difference > (1 << 6) - 1 {
+                                            // It is possible that by the time this is hit,
+                                            // the next entity is already numbered by absolute index.
+                                        } else {
+                                            let mut next_entity_index_difference = BitWriter::new();
+                                            next_entity_index_difference
+                                                .append_u32_range(difference as u32, 6);
+    
+                                            next_entity.entity_index_difference =
+                                                Some(next_entity_index_difference.data);
+                                        }
                                     }
 
                                     packet
@@ -383,7 +416,8 @@ fn parse_demos<'a>(main_demo: String, others: &Vec<(String, f32)>) -> (Demo<'a>,
 
 fn get_ghost<'a>(other_demos: Vec<Demo<'a>>, other_demos_names: Vec<String>) -> Vec<GhostInfo> {
     other_demos
-        .iter().enumerate()
+        .iter()
+        .enumerate()
         .map(|(demo_idx, other_demo)| {
             let mut origin: Vec<[f32; 3]> = vec![];
             let mut viewangles: Vec<[f32; 3]> = vec![];
@@ -459,7 +493,7 @@ fn get_ghost<'a>(other_demos: Vec<Demo<'a>>, other_demos_names: Vec<String>) -> 
             }
 
             // Final offset to anim vector to have equal length with the other two.
-            for i in 0..(origin.len() - anim.len()) {
+            for _ in 0..(origin.len() - anim.len()) {
                 anim.push(Anim {
                     sequence: None,
                     frame: None,
