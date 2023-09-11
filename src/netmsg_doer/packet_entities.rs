@@ -30,26 +30,21 @@ impl<'a> NetMsgDoerWithExtraInfo<'a, SvcPacketEntities> for PacketEntities {
             } else {
                 Some(br.read_1_bit())
             };
-            let absolute_entity_index = if is_absolute_entity_index.is_some()
-                && is_absolute_entity_index.unwrap()
-                && !increment_entity_number
-            {
-                let val = br.read_n_bit(11).to_owned();
-                entity_index = val.to_u16();
-                Some(val)
-            } else {
-                None
-            };
-            let entity_index_difference = if (is_absolute_entity_index.is_none()
-                || (is_absolute_entity_index.is_some() && !is_absolute_entity_index.unwrap()))
-                && !increment_entity_number
-            {
-                let val = br.read_n_bit(6).to_owned();
-                entity_index += val.to_u16();
-                Some(val)
-            } else {
-                None
-            };
+            let (absolute_entity_index, entity_index_difference) =
+                if is_absolute_entity_index.is_some() {
+                    if !is_absolute_entity_index.unwrap() {
+                        let val = br.read_n_bit(6).to_owned();
+                        entity_index += val.to_u16();
+                        (None, Some(val))
+                    } else {
+                        let val = br.read_n_bit(11).to_owned();
+                        entity_index = val.to_u16();
+                        (Some(val), None)
+                    }
+                } else {
+                    (None, None)
+                };
+
             let has_custom_delta = br.read_1_bit();
             let has_baseline_index = br.read_1_bit();
             let baseline_index = if has_baseline_index {
