@@ -1,15 +1,11 @@
 use hldemo::{Demo, FrameData};
-use nom::{
-    bytes::complete::{take, take_till, take_until},
-    character::{complete::newline, is_newline},
-    combinator::map,
-    sequence::{self, tuple},
-    IResult,
-};
 
-use crate::{open_demo, writer::BitWriter};
+use crate::{demo_doer::superimpose::get_ghost::get_ghost, open_demo, writer::BitWriter};
 
 use super::*;
+
+mod get_ghost;
+mod simen;
 
 struct GhostFrame {
     origin: [f32; 3],
@@ -17,28 +13,6 @@ struct GhostFrame {
     sequence: Option<Vec<u8>>,
     frame: Option<Vec<u8>>,
     animtime: Option<Vec<u8>>,
-}
-
-impl GhostFrame {
-    pub fn get_origin(&self) -> [f32; 3] {
-        self.origin
-    }
-
-    pub fn get_viewangles(&self) -> [f32; 3] {
-        self.viewangles
-    }
-
-    pub fn get_sequence(&self) -> Option<&Vec<u8>> {
-        self.sequence.as_ref()
-    }
-
-    pub fn get_anim_frame(&self) -> Option<&Vec<u8>> {
-        self.frame.as_ref()
-    }
-
-    pub fn get_animtime(&self) -> Option<&Vec<u8>> {
-        self.animtime.as_ref()
-    }
 }
 
 struct GhostInfo {
@@ -116,9 +90,8 @@ impl GhostInfo {
 pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
     println!("Total demos: {} + 1", others.len());
 
-    let (mut main_demo, other_demos) = parse_demos(main, &others);
-    let mut ghosts =
-        get_ghost_from_demos(other_demos, others.iter().map(|e| e.0.to_owned()).collect());
+    let mut main_demo = open_demo!(main);
+    let mut ghosts = get_ghost(&others);
 
     let mut delta_decoders = get_initial_delta();
     let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
@@ -130,10 +103,6 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
 
     // Track the current ghost frame
     let mut current_frame_index = 0;
-
-    // Work around the lack of understanding why frame value increases unreasonably.
-    // f32 for alignment
-    let mut other_demos_sequence_frame: Vec<f32> = vec![0.; ghosts.len()];
 
     for (_, entry) in main_demo.directory.entries.iter_mut().enumerate() {
         for (_, frame) in entry.frames.iter_mut().enumerate() {
@@ -229,19 +198,19 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
 
                                     other_demo_entity_state_delta.insert(
                                         "origin[0]\0".to_string(),
-                                        ghost.get_frame(current_frame_index).get_origin()[0]
+                                        ghost.get_frame(current_frame_index).origin[0]
                                             .to_le_bytes()
                                             .to_vec(),
                                     );
                                     other_demo_entity_state_delta.insert(
                                         "origin[1]\0".to_string(),
-                                        ghost.get_frame(current_frame_index).get_origin()[1]
+                                        ghost.get_frame(current_frame_index).origin[1]
                                             .to_le_bytes()
                                             .to_vec(),
                                     );
                                     other_demo_entity_state_delta.insert(
                                         "origin[2]\0".to_string(),
-                                        ghost.get_frame(current_frame_index).get_origin()[2]
+                                        ghost.get_frame(current_frame_index).origin[2]
                                             .to_le_bytes()
                                             .to_vec(),
                                     );
@@ -358,38 +327,37 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     // Origin/viewangles
                                     other_demo_entity_state_delta.insert(
                                         "origin[0]\0".to_string(),
-                                        ghost.get_frame(current_frame_index).get_origin()[0]
+                                        ghost.get_frame(current_frame_index).origin[0]
                                             .to_le_bytes()
                                             .to_vec(),
                                     );
                                     other_demo_entity_state_delta.insert(
                                         "origin[1]\0".to_string(),
-                                        ghost.get_frame(current_frame_index).get_origin()[1]
+                                        ghost.get_frame(current_frame_index).origin[1]
                                             .to_le_bytes()
                                             .to_vec(),
                                     );
                                     other_demo_entity_state_delta.insert(
                                         "origin[2]\0".to_string(),
-                                        ghost.get_frame(current_frame_index).get_origin()[2]
+                                        ghost.get_frame(current_frame_index).origin[2]
                                             .to_le_bytes()
                                             .to_vec(),
                                     );
                                     other_demo_entity_state_delta.insert(
                                         "angles[0]\0".to_string(),
-                                        (ghost.get_frame(current_frame_index).get_viewangles()[0]
-                                            * -1.)
+                                        (ghost.get_frame(current_frame_index).viewangles[0] * -1.)
                                             .to_le_bytes()
                                             .to_vec(),
                                     );
                                     other_demo_entity_state_delta.insert(
                                         "angles[1]\0".to_string(),
-                                        ghost.get_frame(current_frame_index).get_viewangles()[1]
+                                        ghost.get_frame(current_frame_index).viewangles[1]
                                             .to_le_bytes()
                                             .to_vec(),
                                     );
                                     other_demo_entity_state_delta.insert(
                                         "angles[2]\0".to_string(),
-                                        ghost.get_frame(current_frame_index).get_viewangles()[2]
+                                        ghost.get_frame(current_frame_index).viewangles[2]
                                             .to_le_bytes()
                                             .to_vec(),
                                     );
@@ -397,16 +365,14 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     // Animation
                                     // Eh, I dont know.
                                     if let Some(sequence) =
-                                        ghost.get_frame(current_frame_index).get_sequence()
+                                        &ghost.get_frame(current_frame_index).sequence
                                     {
                                         other_demo_entity_state_delta
                                             .insert("sequence\0".to_string(), sequence.to_vec());
                                         ghost.reset_ghost_anim_frame();
                                     }
 
-                                    if let Some(_) =
-                                        ghost.get_frame(current_frame_index).get_anim_frame()
-                                    {
+                                    if let Some(_) = ghost.get_frame(current_frame_index).frame {
                                         // It uses tracked value for frame value.
                                         other_demo_entity_state_delta.insert(
                                             "frame\0".to_string(),
@@ -416,7 +382,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     }
 
                                     if let Some(animtime) =
-                                        ghost.get_frame(current_frame_index).get_animtime()
+                                        &ghost.get_frame(current_frame_index).animtime
                                     {
                                         other_demo_entity_state_delta
                                             .insert("animtime\0".to_string(), animtime.to_vec());
@@ -511,134 +477,3 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
 
     main_demo
 }
-
-fn parse_demos<'a>(main_demo: String, others: &Vec<(String, f32)>) -> (Demo<'a>, Vec<Demo<'a>>) {
-    let main_demo = open_demo!(main_demo);
-    let mut other_demos: Vec<Demo> = vec![];
-
-    for (other, _) in others {
-        let other_demo = open_demo!(other);
-        other_demos.push(other_demo);
-    }
-
-    (main_demo, other_demos)
-}
-
-fn get_ghost_from_demos<'a>(
-    other_demos: Vec<Demo<'a>>,
-    other_demos_names: Vec<String>,
-) -> Vec<GhostInfo> {
-    other_demos
-        .iter()
-        .enumerate()
-        .map(|(demo_idx, other_demo)| {
-            // New ghost
-            let mut ghost = GhostInfo::new();
-            ghost.set_name(other_demos_names[demo_idx].to_owned());
-            ghost.reset_ghost_anim_frame();
-
-            let mut delta_decoders = get_initial_delta();
-            let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
-
-            // Help with checking out which demo is unparse-able.
-            println!("Last parsed demo {}", other_demos_names[demo_idx]);
-
-            // Because player origin/viewangles and animation are on different frame, we have to sync it.
-            // Order goes: players info > animation > player info > ...
-            let mut sequence: Option<Vec<u8>> = None;
-            let mut anim_frame: Option<Vec<u8>> = None;
-            let mut animtime: Option<Vec<u8>> = None;
-
-            for (_, entry) in other_demo.directory.entries.iter().enumerate() {
-                for frame in &entry.frames {
-                    match &frame.data {
-                        FrameData::NetMsg((_, data)) => {
-                            let (_, messages) =
-                                parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages)
-                                    .unwrap();
-
-                            for message in messages {
-                                match message {
-                                    Message::EngineMessage(what) => match what {
-                                        EngineMessage::SvcDeltaPacketEntities(what) => {
-                                            for entity in &what.entity_states {
-                                                if entity.entity_index == 1
-                                                    && entity.delta.is_some()
-                                                {
-                                                    sequence = entity
-                                                        .delta
-                                                        .as_ref()
-                                                        .unwrap()
-                                                        .get("gaitsequence\0")
-                                                        .cloned();
-                                                    anim_frame = entity
-                                                        .delta
-                                                        .as_ref()
-                                                        .unwrap()
-                                                        .get("frame\0")
-                                                        .cloned();
-                                                    animtime = entity
-                                                        .delta
-                                                        .as_ref()
-                                                        .unwrap()
-                                                        .get("animtime\0")
-                                                        .cloned();
-                                                }
-                                            }
-                                            // These numbers are not very close to what we want.
-                                            // They are vieworigin, not player origin.
-                                            // origin.push(data.info.ref_params.vieworg);
-                                            // viewangles.push(data.info.ref_params.viewangles);
-                                        }
-                                        _ => (),
-                                    },
-                                    _ => (),
-                                }
-                            }
-                        }
-                        FrameData::ClientData(what) => {
-                            // Append frame on this frame because the demo orders like it.
-                            ghost.append_frame(
-                                what.origin,
-                                what.viewangles,
-                                sequence.to_owned(),
-                                anim_frame.to_owned(),
-                                animtime.to_owned(),
-                            );
-
-                            // Reset for next find.
-                            sequence = None;
-                            anim_frame = None;
-                            animtime = None;
-                        }
-                        _ => (),
-                    }
-                }
-            }
-
-            ghost
-        })
-        .collect()
-}
-
-// fn get_ghost_from_simen_wrbots<'a>(wrbots: Vec<&'a [u8]>) -> Vec<GhostInfo> {}
-
-fn skip_line(i: &str) -> IResult<&str, u8> {
-    map(tuple((take_till(|c| c == '\n'), take(1usize))), |what| 0u8)(i)
-}
-
-fn simen_wrbot_header(i: &str) -> IResult<&str, u8> {
-    map(
-        tuple((
-            skip_line, // Time
-            skip_line, // Name
-            skip_line, // SteamID
-            skip_line, // Date
-            skip_line, // Location
-            skip_line, // ??
-        )),
-        |what| 0u8,
-    )(i)
-}
-
-// fn simen_wrbot_line(i: &str) -> IResult<&str> {}
