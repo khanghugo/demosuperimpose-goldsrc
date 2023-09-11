@@ -61,7 +61,7 @@ pub fn remove_entities(demo: &mut Demo, listed_entities: Vec<u16>) {
                     messages.remove(*i);
                 }
 
-                let write = write_netmsg(messages, &delta_decoders, &custom_messages);
+                let write = write_netmsg(messages, &mut delta_decoders, &custom_messages);
 
                 data.msg = write.leak();
                 // data.msg = &[]; // sanity check

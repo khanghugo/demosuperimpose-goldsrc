@@ -31,7 +31,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEventReliable> for EventReliable {
         ))
     }
 
-    fn write(i: SvcEventReliable, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
+    fn write(i: SvcEventReliable, delta_decoders: &mut DeltaDecoderTable) -> Vec<u8> {
         let mut writer = ByteWriter::new();
         let mut bw = BitWriter::new();
 
@@ -40,7 +40,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEventReliable> for EventReliable {
         bw.append_vec(i.event_index);
         write_delta(
             &i.event_args,
-            delta_decoders.get("event_t\0").unwrap(),
+            delta_decoders.get_mut("event_t\0").unwrap(),
             &mut bw,
         );
 

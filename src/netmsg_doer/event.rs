@@ -63,7 +63,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
         ))
     }
 
-    fn write(i: SvcEvent, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
+    fn write(i: SvcEvent, delta_decoders: &mut DeltaDecoderTable) -> Vec<u8> {
         let mut writer = ByteWriter::new();
         let mut bw = BitWriter::new();
 
@@ -82,7 +82,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
                 if event.has_delta.unwrap() {
                     write_delta(
                         &event.delta.unwrap(),
-                        delta_decoders.get("event_t\0").unwrap(),
+                        delta_decoders.get_mut("event_t\0").unwrap(),
                         &mut bw,
                     );
                 }

@@ -27,7 +27,7 @@ fn _netmsg_rewrite_test(demo: &mut Demo) {
                 let (_, messages) =
                     parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
 
-                let write = write_netmsg(messages, &delta_decoders, &custom_messages);
+                let write = write_netmsg(messages, &mut delta_decoders, &custom_messages);
 
                 data.msg = write.leak();
                 // data.msg = &[];

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::from_utf8};
 
 use demosuperimpose_goldsrc::netmsg_doer::{
     client_data, parse_netmsg,
@@ -8,6 +8,8 @@ use demosuperimpose_goldsrc::netmsg_doer::{
 use hldemo::{Demo, FrameData};
 
 use super::*;
+
+// Lots of stuff here is to debug.
 
 /// Simply parses netmsg.
 pub fn netmsg_parse(demo: &mut Demo) {
@@ -63,7 +65,7 @@ pub fn netmsg_parse_write(demo: &mut Demo) {
                 let (_, messages) =
                     parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
 
-                let write = write_netmsg(messages, &delta_decoders, &custom_messages);
+                let write = write_netmsg(messages, &mut delta_decoders, &custom_messages);
 
                 data.msg = write.leak();
                 // data.msg = &[]; // sanity check
@@ -95,7 +97,7 @@ pub fn netmsg_parse_write_parse(demo: &mut Demo) {
 
                 println!("{:?}", messages);
 
-                let write = write_netmsg(messages, &delta_decoders, &custom_messages);
+                let write = write_netmsg(messages, &mut delta_decoders, &custom_messages);
 
                 let (_, parse_write) = parse_netmsg(
                     write.leak(),
@@ -145,7 +147,7 @@ pub fn netmsg_parse_write_parse_extra(demo: &mut Demo) {
 
                 // println!("{:?}", messages);
 
-                let write = write_netmsg(messages, &delta_decoders, &custom_messages);
+                let write = write_netmsg(messages, &mut delta_decoders, &custom_messages);
 
                 let (_, parse_write) = parse_netmsg(
                     write.leak(),
@@ -224,17 +226,25 @@ pub fn example(demo: &mut Demo) {
         for frame in &mut entry.frames {
             // println!("frametime {}", frame.time);
             // println!("{}", frame.time);
+            if i == 1 && (vec![6809, 6810, 6811, 6812, 6813].contains(&j)) {
+                // println!("frame is  {:?}", frame.data);
+            }
+
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
                 println!("{} {}", i, j);
 
-                // if j == 600 {
-                //     panic!()
-                // }
+                if j == 600 {
+                    panic!()
+                }
                 let (_, netmsg) =
                     parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
-                println!("{:#?}", netmsg);
+                // println!("{:#?}", netmsg);
 
                 // println!("{} {} {}", i, j, netmsg.len());
+
+                if vec![6809, 6810, 6811, 6812, 6813].contains(&j) {
+                    // println!("netmsg is {:#?}", netmsg);
+                }
 
                 for what in &netmsg {
                     if let Message::EngineMessage(EngineMessage::SvcPacketEntities(what)) = what {
@@ -242,10 +252,26 @@ pub fn example(demo: &mut Demo) {
                         // count += 1;
                         // println!("count {}", count);
                         // for entity in &what.entity_states {
-                        //     if entity.entity_index == 1 {
-                        //         println!("{:?}", entity);
+                        //     if entity.entity_index == 78 {
+                        //         println!("pe {:?}", entity);
                         //     }
                         // }
+                    }
+
+                    if let Message::EngineMessage(EngineMessage::SvcDeltaPacketEntities(what)) =
+                        what
+                    {
+                        if what.entity_states.len() > 20 {
+                            println!("{:#?}", what);
+                        }
+                        // count += 1;
+                        // println!("count {}", count);
+                        // for entity in &what.entity_states {
+                        //     if entity.entity_index == 82 {
+                        //         println!("delta pe {:?}", entity);
+                        //     }
+                        // }
+                        // println!("entity count es {}", what.entity_count.to_u32());
                     }
 
                     if let Message::EngineMessage(EngineMessage::SvcClientData(what)) = what {
@@ -268,9 +294,9 @@ pub fn example(demo: &mut Demo) {
                     }
 
                     if let Message::EngineMessage(EngineMessage::SvcSpawnBaseline(what)) = what {
-                        for (index, entity) in what.entities.iter().enumerate() {
-                            // println!("entity index {}", entity.index.to_u16());
-                        }
+                        // for (index, entity) in what.entities.iter().enumerate() {
+                        // println!("entity index {}", entity.index.to_u16());
+                        // }
                         // println!("{:#?}", what);
                     }
 
@@ -282,6 +308,29 @@ pub fn example(demo: &mut Demo) {
 
                     if let Message::EngineMessage(EngineMessage::SvcSpawnStatic(what)) = what {
                         // println!("{:#?}", what);
+                    }
+
+                    if let Message::EngineMessage(EngineMessage::SvcPrint(what)) = what {
+                        // println!("{:?}", from_utf8(what.message));
+                        // println!("{:?}", what);
+                    }
+
+                    if let Message::EngineMessage(EngineMessage::SvcStuffText(what)) = what {
+                        // println!("{:?}", from_utf8(what.command));
+                    }
+
+                    if let Message::UserMessage(what) = what {
+                        // println!("{:?}", what);
+                        // println!("{:?}", from_utf8(what.data));
+                        // println!("{:?}", custom_messages.get(&77u8).unwrap());
+                    }
+
+                    if let Message::EngineMessage(EngineMessage::SvcBad) = what {
+                        println!("BAD");
+                    }
+
+                    if let Message::EngineMessage(EngineMessage::SvcServerInfo(what)) = what {
+                        // println!("server info {:#?}", what);
                     }
                 }
 

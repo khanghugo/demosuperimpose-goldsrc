@@ -39,7 +39,7 @@ pub fn add_debug(demo: &mut Demo) {
 
                     messages.push(wrap_message!(SvcTempEntity, temp_entity));
 
-                    let write = write_netmsg(messages, &delta_decoders, &custom_messages);
+                    let write = write_netmsg(messages, &mut delta_decoders, &custom_messages);
 
                     data.msg = write.leak();
                 }

@@ -61,7 +61,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaDescription<'a>> for DeltaDescription {
         ))
     }
 
-    fn write(i: SvcDeltaDescription<'a>, _: &DeltaDecoderTable) -> Vec<u8> {
+    fn write(i: SvcDeltaDescription<'a>, _: &mut DeltaDecoderTable) -> Vec<u8> {
         let mut writer = ByteWriter::new();
 
         writer.append_u8(EngineMessageType::SvcDeltaDescription as u8);

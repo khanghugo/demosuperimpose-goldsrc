@@ -120,7 +120,7 @@ pub trait NetMsgDoer<'a, T> {
 
 pub trait NetMsgDoerWithDelta<'a, T> {
     fn parse(i: &'a [u8], delta_decoders: &mut DeltaDecoderTable) -> IResult<&'a [u8], T>;
-    fn write(i: T, delta_decoders: &DeltaDecoderTable) -> Vec<u8>;
+    fn write(i: T, delta_decoders: &mut DeltaDecoderTable) -> Vec<u8>;
 }
 
 // Edge cases.
@@ -130,10 +130,9 @@ pub trait NetMsgDoerWithExtraInfo<'a, T> {
         delta_decoders: &mut DeltaDecoderTable,
         max_client: u8,
     ) -> IResult<&'a [u8], T>;
-    fn write(i: T, delta_decoders: &DeltaDecoderTable, max_client: u8) -> Vec<u8>;
+    fn write(i: T, delta_decoders: &mut DeltaDecoderTable, max_client: u8) -> Vec<u8>;
 }
 
-// Should have done one differently for normal netmessage and ones with delta as well....
 pub trait UserMessageDoer<'a, T> {
     /// Does not parse the type byte but only the message after that.
     fn parse(
@@ -408,7 +407,7 @@ pub fn parse_netmsg<'a>(
 
 pub fn write_single_netmsg<'a>(
     i: Message<'a>,
-    delta_decoders: &DeltaDecoderTable,
+    delta_decoders: &mut DeltaDecoderTable,
     custom_messages: &HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> Vec<u8> {
     match i {
@@ -487,7 +486,7 @@ pub fn write_single_netmsg<'a>(
 
 pub fn write_netmsg<'a>(
     i: Vec<Message<'a>>,
-    delta_decoders: &DeltaDecoderTable,
+    delta_decoders: &mut DeltaDecoderTable,
     custom_messages: &HashMap<u8, SvcNewUserMsg<'a>>,
 ) -> Vec<u8> {
     let mut res: Vec<u8> = vec![];

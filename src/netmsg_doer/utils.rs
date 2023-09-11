@@ -255,15 +255,12 @@ fn parse_delta_field(description: &DeltaDecoderS, res: &mut Delta, br: &mut BitR
     }
 }
 
-pub fn write_delta(delta: &Delta, delta_decoder: &DeltaDecoder, bw: &mut BitWriter) {
+pub fn write_delta(delta: &Delta, delta_decoder: &mut DeltaDecoder, bw: &mut BitWriter) {
     // Consider this like a modulo.
     // Delta with description of index 13 is byte_mask[13 / 8] at 13 % 8.
     // Byte mask count adds accordingly if we have entry with biggest index number.
     let mut byte_mask = [0u8; 8];
     let mut byte_mask_count = 0u8;
-
-    // TODO: optimization, we can use mutable reference of delta_decoder, change in place, then restore.
-    let mut delta_decoder = delta_decoder.clone();
     let mut yes_data = false;
 
     // This step marks which delta field will be encoded.
@@ -297,6 +294,9 @@ pub fn write_delta(delta: &Delta, delta_decoder: &DeltaDecoder, bw: &mut BitWrit
                 bw,
             );
         }
+
+        // Reset
+        description.should_write = false;
     }
 }
 

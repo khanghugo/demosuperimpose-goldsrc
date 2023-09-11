@@ -393,7 +393,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                     }
                 }
 
-                let write = write_netmsg(messages, &delta_decoders, &custom_messages);
+                let write = write_netmsg(messages, &mut delta_decoders, &custom_messages);
                 data.msg = write.leak();
             }
         }
