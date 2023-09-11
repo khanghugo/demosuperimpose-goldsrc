@@ -9,3 +9,4 @@ edition = "2021"
 bitvec = "1.0.1"
 hldemo = {git = "https://github.com/YaLTeR/hldemo-rs.git"}
 nom = "7.1.3"
+serde = "1.0.188"
