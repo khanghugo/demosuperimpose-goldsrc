@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{fs, io::Write, path::PathBuf};
 
 use hldemo::{Demo, FrameData};
 
@@ -90,6 +90,17 @@ impl GhostInfo {
     }
 }
 
+pub fn superimpose_folder<'a>(main: String, folder: String) -> Demo<'a> {
+    let pathbuf = PathBuf::from(folder);
+    let files = fs::read_dir(pathbuf).unwrap();
+
+    let others: Vec<(String, f32)> = files
+        .map(|file| (file.unwrap().path().to_str().unwrap().to_owned(), 0.))
+        .collect();
+
+    superimpose(main, others)
+}
+
 pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
     println!("Total demos: {} + 1", others.len());
 
@@ -113,7 +124,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
         let frame_count = entry.frames.len();
         for (frame_idx, frame) in entry.frames.iter_mut().enumerate() {
             print!(
-                "\rWorking on entry {} frame {} out of {}",
+                "\rWorking on entry {} frame {} out of {}   ",
                 entry_idx, frame_idx, frame_count
             );
             std::io::stdout().flush().unwrap();
@@ -157,22 +168,21 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     let mut other_demo_type = BitWriter::new();
                                     other_demo_type.append_u32_range(1, 2);
 
-                                    // let mut other_demo_delta = Delta::new();
-                                    // This modelindex is default model.
-                                    // other_demo_delta.insert(
-                                    //     "modelindex\0".to_string(),
-                                    //     main_demo_player_delta
-                                    //         .get("modelindex\0")
-                                    //         .clone()
-                                    //         .unwrap()
-                                    //         .to_vec(),
-                                    // );
-
                                     let mut other_demo_delta = main_demo_player_delta.clone();
                                     other_demo_delta.remove("gravity\0");
                                     other_demo_delta.remove("friction\0");
                                     other_demo_delta.remove("usehull\0");
                                     other_demo_delta.remove("spectator\0");
+
+                                    // This modelindex is default model.
+                                    other_demo_delta.insert(
+                                        "modelindex\0".to_string(),
+                                        main_demo_player_delta
+                                            .get("modelindex\0")
+                                            .clone()
+                                            .unwrap()
+                                            .to_vec(),
+                                    );
 
                                     baseline.entities.insert(
                                         insert_idx,
@@ -227,27 +237,27 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                             .to_vec(),
                                     );
 
-                                    other_demo_entity_state_delta.insert(
-                                        "modelindex\0".to_string(),
-                                        main_demo_player_delta
-                                            .get("modelindex\0")
-                                            .unwrap()
-                                            .to_owned(),
-                                    );
-                                    other_demo_entity_state_delta.insert(
-                                        "framerate\0".to_string(),
-                                        0.01f32.to_le_bytes().to_vec(),
-                                    );
-                                    other_demo_entity_state_delta.insert(
-                                        "controller[0]\0".to_string(),
-                                        127u32.to_le_bytes().to_vec(),
-                                    );
-                                    other_demo_entity_state_delta
-                                        .insert("solid\0".to_string(), 4u32.to_le_bytes().to_vec());
-                                    other_demo_entity_state_delta.insert(
-                                        "movetype\0".to_string(),
-                                        7u32.to_le_bytes().to_vec(),
-                                    );
+                                    // other_demo_entity_state_delta.insert(
+                                    //     "modelindex\0".to_string(),
+                                    //     main_demo_player_delta
+                                    //         .get("modelindex\0")
+                                    //         .unwrap()
+                                    //         .to_owned(),
+                                    // );
+                                    // other_demo_entity_state_delta.insert(
+                                    //     "framerate\0".to_string(),
+                                    //     0.01f32.to_le_bytes().to_vec(),
+                                    // );
+                                    // other_demo_entity_state_delta.insert(
+                                    //     "controller[0]\0".to_string(),
+                                    //     127u32.to_le_bytes().to_vec(),
+                                    // );
+                                    // other_demo_entity_state_delta
+                                    //     .insert("solid\0".to_string(), 4u32.to_le_bytes().to_vec());
+                                    // other_demo_entity_state_delta.insert(
+                                    //     "movetype\0".to_string(),
+                                    //     7u32.to_le_bytes().to_vec(),
+                                    // );
 
                                     // Insert entity then change the value for entity index difference correctly.
                                     let mut insert_index = 0;

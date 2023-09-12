@@ -8,24 +8,26 @@ pub fn get_ghost(others: &Vec<(String, f32)>) -> Vec<GhostInfo> {
         .enumerate()
         .map(|(index, (filename, offset))| {
             let pathbuf = PathBuf::from(filename);
-            let ext = match pathbuf.extension() {
-                Some(ext) => ext,
-                None => panic!("File \"{}\" does not have an extension", filename),
-            };
 
-            print!("\rParsing {} ({}/{})", filename, index + 1, others.len());
+            print!(
+                "\rParsing {} ({}/{})    ",
+                filename,
+                index + 1,
+                others.len()
+            );
             std::io::stdout().flush().unwrap();
 
-            let ghost = if ext == "dem" {
+            let ghost = if pathbuf.to_str().unwrap().ends_with(".dem") {
                 let demo = open_demo!(filename);
                 get_ghost_from_demo(filename, demo, *offset)
-            } else if ext == "simen" {
+            } else if pathbuf.to_str().unwrap().ends_with(".simen.txt") {
                 // Either this, or use enum in main file.
                 simen_ghost_parse(filename.to_owned(), *offset)
-            } else if ext == "sg" {
+            } else if pathbuf.to_str().unwrap().ends_with(".sg.json") {
                 // Surf Gateway
                 surf_gateway_ghost_parse(filename.to_owned(), *offset)
             } else {
+                println!("");
                 panic!("File \"{}\" does not use supported extension.", filename);
             };
 
