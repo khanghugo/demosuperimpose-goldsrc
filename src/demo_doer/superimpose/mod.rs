@@ -231,13 +231,13 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                             .to_vec(),
                                     );
 
-                                    // other_demo_entity_state_delta.insert(
-                                    //     "modelindex\0".to_string(),
-                                    //     main_demo_player_delta
-                                    //         .get("modelindex\0")
-                                    //         .unwrap()
-                                    //         .to_owned(),
-                                    // );
+                                    other_demo_entity_state_delta.insert(
+                                        "modelindex\0".to_string(),
+                                        main_demo_player_delta
+                                            .get("modelindex\0")
+                                            .unwrap()
+                                            .to_owned(),
+                                    );
                                     // other_demo_entity_state_delta.insert(
                                     //     "framerate\0".to_string(),
                                     //     0.01f32.to_le_bytes().to_vec(),
@@ -325,6 +325,11 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     packet
                                         .entity_states
                                         .insert(insert_index, other_demo_entity_state);
+                                }
+
+                                if packet.entity_count.to_u16() >= 256 {
+                                    println!("");
+                                    panic!("Exceeding 256 entities update limit ({} entities). Demo will not work.", packet.entity_count.to_u16())
                                 }
                             }
                             EngineMessage::SvcDeltaPacketEntities(packet) => {
@@ -469,6 +474,11 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
 
                                 // Only increment after we add entity update.
                                 current_frame_index += 1;
+
+                                if packet.entity_count.to_u16() >= 256 {
+                                    println!("");
+                                    panic!("Exceeding 256 entities update limit ({} entities). Demo will not work.", packet.entity_count.to_u16())
+                                }
                             }
                             _ => (),
                         },
