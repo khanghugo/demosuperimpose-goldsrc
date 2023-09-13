@@ -34,3 +34,12 @@ macro_rules! open_demo {
         hldemo::Demo::parse(bytes.leak()).unwrap()
     }};
 }
+
+#[macro_export]
+macro_rules! nbit_num {
+    ($num:expr, $bit:expr) => {{
+        let mut writer = BitWriter::new();
+        writer.append_u32_range($num as u32, $bit);
+        writer.data
+    }};
+}

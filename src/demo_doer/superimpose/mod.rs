@@ -1,5 +1,6 @@
 use std::{fs, io::Write, path::PathBuf};
 
+use demosuperimpose_goldsrc::nbit_num;
 use hldemo::{Demo, FrameData};
 
 use crate::{demo_doer::superimpose::get_ghost::get_ghost, open_demo, writer::BitWriter};
@@ -161,12 +162,8 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     ghost.set_entity_index(current_free_entity);
 
                                     // Insert new baseline.
-                                    let mut other_demo_entity_idx = BitWriter::new();
-                                    other_demo_entity_idx
-                                        .append_u32_range(current_free_entity as u32, 11);
-
-                                    let mut other_demo_type = BitWriter::new();
-                                    other_demo_type.append_u32_range(1, 2);
+                                    let other_demo_entity_idx = nbit_num!(current_free_entity, 11);
+                                    let other_demo_type = nbit_num!(1, 2);
 
                                     let mut other_demo_delta = main_demo_player_delta.clone();
                                     other_demo_delta.remove("gravity\0");
@@ -187,9 +184,9 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     baseline.entities.insert(
                                         insert_idx,
                                         EntityS {
-                                            entity_index: other_demo_entity_idx.data.to_u16(),
-                                            index: other_demo_entity_idx.data,
-                                            type_: other_demo_type.data,
+                                            entity_index: other_demo_entity_idx.to_u16(),
+                                            index: other_demo_entity_idx,
+                                            type_: other_demo_type,
                                             delta: other_demo_delta,
                                         },
                                     );
@@ -205,12 +202,9 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                 }
 
                                 for ghost in ghosts.iter() {
-                                    let mut new_entity_count = BitWriter::new();
-                                    new_entity_count
-                                        .append_u32_range(packet.entity_count.to_u32() + 1, 16);
-
                                     // Change count.
-                                    packet.entity_count = new_entity_count.data;
+                                    packet.entity_count =
+                                        nbit_num!(packet.entity_count.to_u32() + 1, 16);
 
                                     if ghost.get_size() <= current_frame_index {
                                         continue;
@@ -335,10 +329,10 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                             }
                             EngineMessage::SvcDeltaPacketEntities(packet) => {
                                 for ghost in ghosts.iter_mut() {
-                                    let mut new_entity_count = BitWriter::new();
-                                    new_entity_count
-                                        .append_u32_range(packet.entity_count.to_u32() + 1, 16);
-                                    packet.entity_count = new_entity_count.data;
+                                    // Increment entity count because we have ghost
+                                    // Should increase before the continue line because we don't remove entity.
+                                    packet.entity_count =
+                                        nbit_num!(packet.entity_count.to_u32() + 1, 16);
 
                                     if ghost.get_size() <= current_frame_index {
                                         continue;
@@ -432,19 +426,14 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     let difference =
                                         ghost.get_entity_index() - before_entity.entity_index;
                                     if difference > (1 << 6) - 1 {
-                                        let mut index = BitWriter::new();
-                                        index.append_u32_range(ghost.get_entity_index() as u32, 11);
-
-                                        ghost_absolute_entity_index = Some(index.data.to_owned());
+                                        ghost_absolute_entity_index =
+                                            Some(nbit_num!(ghost.get_entity_index(), 11));
                                         is_absolute_entity_index = true;
                                     } else {
-                                        let mut diff = BitWriter::new();
-                                        diff.append_u32_range(
-                                            (ghost.get_entity_index() - before_entity.entity_index)
-                                                as u32,
-                                            6,
-                                        );
-                                        ghost_entity_index_difference = Some(diff.data.to_owned());
+                                        ghost_entity_index_difference = Some(nbit_num!(
+                                            ghost.get_entity_index() - before_entity.entity_index,
+                                            6
+                                        ));
                                     }
 
                                     let other_demo_entity_state = EntityStateDelta {
@@ -468,12 +457,8 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                             // It is possible that by the time this is hit,
                                             // the next entity is already numbered by absolute index.
                                         } else {
-                                            let mut next_entity_index_difference = BitWriter::new();
-                                            next_entity_index_difference
-                                                .append_u32_range(difference as u32, 6);
-
                                             next_entity.entity_index_difference =
-                                                Some(next_entity_index_difference.data);
+                                                Some(nbit_num!(difference, 6));
                                         }
                                     }
 
