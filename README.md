@@ -1,8 +1,8 @@
 # demosuperimpose-goldsrc
 
-WIP ghost reimplementation of [demsuperimpose](https://github.com/matthewearl/demsuperimpose) and [demogobbler](https://github.com/lipsanen/demogobbler).
+Demo superimpose/ghost reimplementation of [demsuperimpose](https://github.com/matthewearl/demsuperimpose) and [demogobbler](https://github.com/lipsanen/demogobbler) for GoldSrc.
 
-Parser should work as far as its dependency [hldemo-rs](https://github.com/YaLTeR/hldemo-rs) goes. 
+Beside that functionality, this thing can also write and parse demo.
 
 ## Why
 
@@ -22,3 +22,4 @@ Mostly based of these.
 
 [coldemoplayer](https://github.com/jpcy/coldemoplayer)
 
+[hldemo](https://github.com/Matherunner/hldemojs)
