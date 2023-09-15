@@ -22,4 +22,4 @@ Mostly based of these.
 
 [coldemoplayer](https://github.com/jpcy/coldemoplayer)
 
-[hldemo](https://github.com/Matherunner/hldemojs)
+[hldemojs](https://github.com/Matherunner/hldemojs)
