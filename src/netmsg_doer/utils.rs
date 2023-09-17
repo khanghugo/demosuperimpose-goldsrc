@@ -112,7 +112,7 @@ impl BitReader {
         let start = self.offset;
 
         // The second condition is to make sure we are aligned.
-        while self.peek_byte() != 0 || (self.peek_byte() == 0 && (self.offset - start) % 8 != 0) {
+        while self.peek_byte() != 0 || (self.offset - start) % 8 != 0 {
             self.offset += 1;
         }
 
