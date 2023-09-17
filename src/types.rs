@@ -182,7 +182,7 @@ pub struct SvcServerInfo<'a> {
     pub spawn_count: i32,
     pub map_checksum: i32,
     // [u8; 16]
-    pub client_dll_hash: Vec<u8>,
+    pub client_dll_hash: &'a [u8],
     pub max_players: u8,
     pub player_index: u8,
     pub is_deathmatch: u8,
@@ -258,11 +258,11 @@ pub struct PingS {
 
 /// SVC_PARTICLE 18
 #[derive(Clone, Debug)]
-pub struct SvcParticle {
+pub struct SvcParticle<'a> {
     // Vec3
     pub origin: Vec<i16>,
     // Vec3
-    pub direction: Vec<i8>,
+    pub direction: &'a [u8],
     pub count: u8,
     pub color: u8,
 }
@@ -271,7 +271,7 @@ pub struct SvcParticle {
 
 /// SVC_SPAWNSTATIC 20
 #[derive(Clone, Debug)]
-pub struct SvcSpawnStatic {
+pub struct SvcSpawnStatic<'a> {
     pub model_index: i16,
     pub sequence: i8,
     pub frame: i8,
@@ -285,7 +285,7 @@ pub struct SvcSpawnStatic {
     pub rotation_z: i8,
     pub has_render_mode: i8,
     // [u8; 3]
-    pub render_color: Option<Vec<u8>>,
+    pub render_color: Option<&'a [u8]>,
 }
 
 /// SVC_EVENTRELIABLE 21
@@ -1472,9 +1472,9 @@ pub enum EngineMessage<'a> {
     SvcClientData(SvcClientData) = 15,
     SvcStopSound(SvcStopSound) = 16,
     SvcPings(SvcPings) = 17,
-    SvcParticle(SvcParticle) = 18,
+    SvcParticle(SvcParticle<'a>) = 18,
     SvcDamage = 19,
-    SvcSpawnStatic(SvcSpawnStatic) = 20,
+    SvcSpawnStatic(SvcSpawnStatic<'a>) = 20,
     SvcEventReliable(SvcEventReliable) = 21,
     SvcSpawnBaseline(SvcSpawnBaseline) = 22,
     SvcTempEntity(SvcTempEntity<'a>) = 23,

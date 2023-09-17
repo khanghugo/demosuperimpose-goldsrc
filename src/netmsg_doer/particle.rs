@@ -1,10 +1,10 @@
 use super::*;
 
 pub struct Particle {}
-impl<'a> NetMsgDoer<'a, SvcParticle> for Particle {
+impl<'a> NetMsgDoer<'a, SvcParticle<'a>> for Particle {
     fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcParticle> {
         map(
-            tuple((count(le_i16, 3), count(le_i8, 3), le_u8, le_u8)),
+            tuple((count(le_i16, 3), take(3usize), le_u8, le_u8)),
             |(origin, direction, count, color)| SvcParticle {
                 origin,
                 direction,
@@ -22,9 +22,7 @@ impl<'a> NetMsgDoer<'a, SvcParticle> for Particle {
         for j in 0..3 {
             writer.append_i16(i.origin[j])
         }
-        for j in 0..3 {
-            writer.append_i8(i.direction[j])
-        }
+        writer.append_u8_slice(i.direction);
         writer.append_u8(i.count);
         writer.append_u8(i.color);
 

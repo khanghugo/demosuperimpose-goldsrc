@@ -1,7 +1,7 @@
 use super::*;
 
 pub struct SpawnStatic {}
-impl<'a> NetMsgDoer<'a, SvcSpawnStatic> for SpawnStatic {
+impl<'a> NetMsgDoer<'a, SvcSpawnStatic<'a>> for SpawnStatic {
     fn parse(i: &'a [u8]) -> IResult<&'a [u8], SvcSpawnStatic> {
         let (
             i,
@@ -24,7 +24,7 @@ impl<'a> NetMsgDoer<'a, SvcSpawnStatic> for SpawnStatic {
         ))(i)?;
 
         let (i, render_color) = if has_render_mode != 0 {
-            map(count(le_u8, 3), |what| Some(what))(i)?
+            map(take(3usize), |what| Some(what))(i)?
         } else {
             (i, None)
         };
@@ -68,9 +68,7 @@ impl<'a> NetMsgDoer<'a, SvcSpawnStatic> for SpawnStatic {
         writer.append_i8(i.has_render_mode);
 
         if i.has_render_mode != 0 {
-            for what in i.render_color.unwrap() {
-                writer.append_u8(what);
-            }
+            writer.append_u8_slice(i.render_color.unwrap());
         }
 
         writer.data

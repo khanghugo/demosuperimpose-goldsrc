@@ -8,7 +8,7 @@ impl<'a> NetMsgDoer<'a, SvcServerInfo<'a>> for ServerInfo {
                 le_i32,
                 le_i32,
                 le_i32,
-                count(le_u8, 16),
+                take(16usize),
                 le_u8,
                 le_u8,
                 le_u8,
@@ -56,7 +56,7 @@ impl<'a> NetMsgDoer<'a, SvcServerInfo<'a>> for ServerInfo {
         writer.append_i32(i.protocol);
         writer.append_i32(i.spawn_count);
         writer.append_i32(i.map_checksum);
-        writer.append_u8_slice(&i.client_dll_hash);
+        writer.append_u8_slice(i.client_dll_hash);
         writer.append_u8(i.max_players);
         writer.append_u8(i.player_index);
         writer.append_u8(i.is_deathmatch);
