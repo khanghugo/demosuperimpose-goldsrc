@@ -198,7 +198,7 @@ pub fn encode_edict_flags(flags: Vec<EdictFlags>) -> u32 {
 // In delta.lst, it is an integer described with 4 bits so it is more than 4 bits.
 #[repr(i32)]
 pub enum MoveType {
-    NONE = 0,        // Capitalized due to Rust.
+    None = 0,
     AngleClip = 1,   // unused
     AngleNoClip = 2, // unused
     Walk = 3,
@@ -216,7 +216,7 @@ pub enum MoveType {
 
 pub fn decode_movetype(movetype: i32) -> MoveType {
     match movetype {
-        0 => MoveType::NONE,
+        0 => MoveType::None,
         1 => MoveType::AngleClip,
         2 => MoveType::AngleNoClip,
         3 => MoveType::Walk,
@@ -236,7 +236,7 @@ pub fn decode_movetype(movetype: i32) -> MoveType {
 
 #[repr(i32)]
 pub enum CSWeapon {
-    NONE = 0, // Capitalized due to Rust.
+    None = 0,
     P228 = 1,
     Glock = 2,
     Scout = 3,
@@ -272,7 +272,7 @@ pub enum CSWeapon {
 
 pub fn decode_cs_weapon(weapon: i32) -> CSWeapon {
     match weapon {
-        0 => CSWeapon::NONE,
+        0 => CSWeapon::None,
         1 => CSWeapon::P228,
         2 => CSWeapon::Glock,
         3 => CSWeapon::Scout,
