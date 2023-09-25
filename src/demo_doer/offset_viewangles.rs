@@ -45,6 +45,9 @@ pub fn offset_yaw(demo: &mut Demo, over_start: usize, over_end: usize, amount: f
     }
 }
 
+/// Scalar should best be a rounded number.
+///
+/// So if we have 1, it means it will rotate at most 1 revolution. 2 is 2 revs, and so on.
 fn scalar_complete_rotation(
     demo: &mut Demo,
     start: usize,
@@ -72,18 +75,22 @@ fn scalar_complete_rotation(
                     }
 
                     if frame_idx >= start && start_frame_viewangles.is_none() {
+                        let sign = if scalar.is_sign_positive() { 1. } else { -1. };
+
                         start_frame_viewangles = Some(data.info.ref_params.viewangles);
                         length = if scalar.is_sign_positive() {
                             Some(
-                                (360. - start_frame_viewangles.unwrap()[viewangles_index]
+                                (360. * scalar.abs().floor()
+                                    - start_frame_viewangles.unwrap()[viewangles_index]
                                     + end_frame_viewangles[viewangles_index])
-                                    * scalar,
+                                    * sign,
                             )
                         } else {
                             Some(
-                                (360. + start_frame_viewangles.unwrap()[viewangles_index]
+                                (360. * scalar.abs().floor()
+                                    + start_frame_viewangles.unwrap()[viewangles_index]
                                     - end_frame_viewangles[viewangles_index])
-                                    * scalar,
+                                    * sign,
                             )
                         };
 
