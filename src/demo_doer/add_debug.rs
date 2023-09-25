@@ -14,7 +14,13 @@ pub fn add_debug(demo: &mut Demo) {
                     let (_, mut messages) =
                         parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
 
-                    let message = format!("{} {}\0", entry_idx, frame_idx);
+                    let message = format!(
+                        "{} {} \n {} {}\0",
+                        entry_idx,
+                        frame_idx,
+                        data.info.ref_params.viewangles[0],
+                        data.info.ref_params.viewangles[1]
+                    );
                     let message = message.as_bytes();
 
                     let text = TeTextMessage {
