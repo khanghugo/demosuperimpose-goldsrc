@@ -45,8 +45,13 @@ pub fn offset_yaw(demo: &mut Demo, over_start: usize, over_end: usize, amount: f
     }
 }
 
-/// Generic flip. Scalar is to go how fast. For frontflip and backflip.
-fn scalar_flip(demo: &mut Demo, start: usize, end: usize, scalar: f32) {
+fn scalar_complete_rotation(
+    demo: &mut Demo,
+    start: usize,
+    end: usize,
+    scalar: f32,
+    viewangles_index: usize,
+) {
     for (entry_idx, entry) in demo.directory.entries.iter_mut().enumerate() {
         if entry_idx == 0 {
             continue;
@@ -70,14 +75,14 @@ fn scalar_flip(demo: &mut Demo, start: usize, end: usize, scalar: f32) {
                         start_frame_viewangles = Some(data.info.ref_params.viewangles);
                         length = if scalar.is_sign_positive() {
                             Some(
-                                (360. - start_frame_viewangles.unwrap()[0]
-                                    + end_frame_viewangles[0])
+                                (360. - start_frame_viewangles.unwrap()[viewangles_index]
+                                    + end_frame_viewangles[viewangles_index])
                                     * scalar,
                             )
                         } else {
                             Some(
-                                (360. + start_frame_viewangles.unwrap()[0]
-                                    - end_frame_viewangles[0])
+                                (360. + start_frame_viewangles.unwrap()[viewangles_index]
+                                    - end_frame_viewangles[viewangles_index])
                                     * scalar,
                             )
                         };
@@ -92,15 +97,21 @@ fn scalar_flip(demo: &mut Demo, start: usize, end: usize, scalar: f32) {
                         let t = (frame_idx - start) as f32 / range as f32;
                         // `length` says how much we spin, so we cannot end with length but something plus length.
                         // Because we start with `start`, so it ends with `start` offset by `length`, which is `end_frame`.
-                        data.info.ref_params.viewangles[0] = (1. - t)
-                            * start_frame_viewangles.unwrap()[0]
-                            + t * (start_frame_viewangles.unwrap()[0] + length.unwrap());
+                        data.info.ref_params.viewangles[viewangles_index] = (1. - t)
+                            * start_frame_viewangles.unwrap()[viewangles_index]
+                            + t * (start_frame_viewangles.unwrap()[viewangles_index]
+                                + length.unwrap());
                     }
                 }
                 _ => (),
             }
         }
     }
+}
+
+/// Generic flip. Scalar is to go how fast. For frontflip and backflip.
+pub fn scalar_flip(demo: &mut Demo, start: usize, end: usize, scalar: f32) {
+    scalar_complete_rotation(demo, start, end, scalar, 0);
 }
 
 /// Rotate pitch by around 360 degrees forward from `start` pitch to `end` pitch.
@@ -111,6 +122,18 @@ pub fn front_flip(demo: &mut Demo, start: usize, end: usize) {
 /// Frontflip but is backflip
 pub fn back_flip(demo: &mut Demo, start: usize, end: usize) {
     scalar_flip(demo, start, end, -1.)
+}
+
+pub fn scalar_spin(demo: &mut Demo, start: usize, end: usize, scalar: f32) {
+    scalar_complete_rotation(demo, start, end, scalar, 1);
+}
+
+pub fn spin_left(demo: &mut Demo, start: usize, end: usize) {
+    scalar_spin(demo, start, end, 1.);
+}
+
+pub fn spin_right(demo: &mut Demo, start: usize, end: usize) {
+    scalar_spin(demo, start, end, -1.)
 }
 
 // Specify how far we search for the frame.
