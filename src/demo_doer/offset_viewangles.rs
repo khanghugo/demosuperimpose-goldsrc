@@ -1,5 +1,3 @@
-use hldemo::parse::frame;
-
 use super::*;
 
 /// Offset the yaw for `amount` starting at `over_end` but with `over_start` to smoothly change.
@@ -10,9 +8,11 @@ pub fn offset_yaw(demo: &mut Demo, over_start: usize, over_end: usize, amount: f
         }
 
         // Frame at over_end
-        let (_, end_frame_viewangles) = search_client_data_frame(&entry.frames, over_end);
+        // Override over_end because we have more accurate number.
+        let (over_end, end_frame_viewangles) = search_client_data_frame(&entry.frames, over_end);
         let mut start_frame_viewangles: Option<[f32; 3]> = None;
-        let range = over_end - over_start;
+        let mut range = over_end - over_start;
+        let mut over_start = over_start;
 
         for (frame_idx, frame) in entry.frames.iter_mut().enumerate() {
             match &mut frame.data {
@@ -23,9 +23,12 @@ pub fn offset_yaw(demo: &mut Demo, over_start: usize, over_end: usize, amount: f
 
                     if frame_idx >= over_start && start_frame_viewangles.is_none() {
                         start_frame_viewangles = Some(data.info.ref_params.viewangles);
+
+                        over_start = frame_idx;
+                        range = over_end - over_start;
                     }
 
-                    if frame_idx > over_end {
+                    if frame_idx >= over_end {
                         // Overdue, just set it
                         data.info.ref_params.viewangles[1] += amount;
                     } else {
@@ -40,6 +43,74 @@ pub fn offset_yaw(demo: &mut Demo, over_start: usize, over_end: usize, amount: f
             }
         }
     }
+}
+
+/// Generic flip. Scalar is to go how fast. For frontflip and backflip.
+fn scalar_flip(demo: &mut Demo, start: usize, end: usize, scalar: f32) {
+    for (entry_idx, entry) in demo.directory.entries.iter_mut().enumerate() {
+        if entry_idx == 0 {
+            continue;
+        }
+
+        // Frame at over_end
+        let (end, end_frame_viewangles) = search_client_data_frame(&entry.frames, end);
+        let mut start_frame_viewangles: Option<[f32; 3]> = None;
+        let mut length: Option<f32> = None;
+        let mut range = end - start;
+        let mut start = start;
+
+        for (frame_idx, frame) in entry.frames.iter_mut().enumerate() {
+            match &mut frame.data {
+                FrameData::NetMsg((_, data)) => {
+                    if frame_idx < start {
+                        continue;
+                    }
+
+                    if frame_idx >= start && start_frame_viewangles.is_none() {
+                        start_frame_viewangles = Some(data.info.ref_params.viewangles);
+                        length = if scalar.is_sign_positive() {
+                            Some(
+                                (360. - start_frame_viewangles.unwrap()[0]
+                                    + end_frame_viewangles[0])
+                                    * scalar,
+                            )
+                        } else {
+                            Some(
+                                (360. + start_frame_viewangles.unwrap()[0]
+                                    - end_frame_viewangles[0])
+                                    * scalar,
+                            )
+                        };
+
+                        // Reassign for correct interpolation
+                        start = frame_idx;
+                        range = end - start;
+                    }
+
+                    if frame_idx >= start && frame_idx < end && length.is_some() {
+                        // Gradient change
+                        let t = (frame_idx - start) as f32 / range as f32;
+                        // `length` says how much we spin, so we cannot end with length but something plus length.
+                        // Because we start with `start`, so it ends with `start` offset by `length`, which is `end_frame`.
+                        data.info.ref_params.viewangles[0] = (1. - t)
+                            * start_frame_viewangles.unwrap()[0]
+                            + t * (start_frame_viewangles.unwrap()[0] + length.unwrap());
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+}
+
+/// Rotate pitch by around 360 degrees forward from `start` pitch to `end` pitch.
+pub fn front_flip(demo: &mut Demo, start: usize, end: usize) {
+    scalar_flip(demo, start, end, 1.);
+}
+
+/// Frontflip but is backflip
+pub fn back_flip(demo: &mut Demo, start: usize, end: usize) {
+    scalar_flip(demo, start, end, -1.)
 }
 
 // Specify how far we search for the frame.
