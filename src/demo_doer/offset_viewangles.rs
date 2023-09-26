@@ -189,6 +189,36 @@ pub fn spin_right(demo: &mut Demo, start: usize, end: usize) {
     scalar_spin(demo, start, end, -1.)
 }
 
+/// Makes the view stopped until `end` while everything goes on normally.
+pub fn pause_view(demo: &mut Demo, start: usize, end: usize) {
+    for (entry_idx, entry) in demo.directory.entries.iter_mut().enumerate() {
+        if entry_idx == 0 {
+            continue;
+        }
+
+        let mut start_frame_viewangles: Option<[f32; 3]> = None;
+
+        for (frame_idx, frame) in entry.frames.iter_mut().enumerate() {
+            match &mut frame.data {
+                FrameData::NetMsg((_, data)) => {
+                    if frame_idx < start {
+                        continue;
+                    }
+
+                    if frame_idx >= start && start_frame_viewangles.is_none() {
+                        start_frame_viewangles = Some(data.info.ref_params.viewangles);
+                    }
+
+                    if frame_idx >= start && frame_idx < end && start_frame_viewangles.is_some() {
+                        data.info.ref_params.viewangles = start_frame_viewangles.unwrap();
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+}
+
 // Specify how far we search for the frame.
 const SEARCH_RANGE: usize = 3;
 
