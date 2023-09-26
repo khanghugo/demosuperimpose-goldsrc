@@ -189,7 +189,7 @@ pub fn spin_right(demo: &mut Demo, start: usize, end: usize) {
     scalar_spin(demo, start, end, -1.)
 }
 
-/// Makes the view stopped until `end` while everything goes on normally.
+/// Makes the view stopped until `end` while everything goes on normally. This also changes vieworigin.
 pub fn pause_view(demo: &mut Demo, start: usize, end: usize) {
     for (entry_idx, entry) in demo.directory.entries.iter_mut().enumerate() {
         if entry_idx == 0 {
@@ -197,6 +197,7 @@ pub fn pause_view(demo: &mut Demo, start: usize, end: usize) {
         }
 
         let mut start_frame_viewangles: Option<[f32; 3]> = None;
+        let mut start_frame_vieworigin: Option<[f32; 3]> = None;
 
         for (frame_idx, frame) in entry.frames.iter_mut().enumerate() {
             match &mut frame.data {
@@ -207,10 +208,12 @@ pub fn pause_view(demo: &mut Demo, start: usize, end: usize) {
 
                     if frame_idx >= start && start_frame_viewangles.is_none() {
                         start_frame_viewangles = Some(data.info.ref_params.viewangles);
+                        start_frame_vieworigin = Some(data.info.ref_params.vieworg);
                     }
 
                     if frame_idx >= start && frame_idx < end && start_frame_viewangles.is_some() {
                         data.info.ref_params.viewangles = start_frame_viewangles.unwrap();
+                        data.info.ref_params.vieworg = start_frame_vieworigin.unwrap();
                     }
                 }
                 _ => (),
