@@ -45,6 +45,52 @@ pub fn offset_yaw(demo: &mut Demo, over_start: usize, over_end: usize, amount: f
     }
 }
 
+/// Mirror pitch around where the player looks at. 30 -> 150. -30 -> -150
+pub fn mirror_pitch(demo: &mut Demo, over_start: usize, over_end: usize) {
+    for (entry_idx, entry) in demo.directory.entries.iter_mut().enumerate() {
+        if entry_idx == 0 {
+            continue;
+        }
+
+        // Frame at over_end
+        // Override over_end because we have more accurate number.
+        let (over_end, end_frame_viewangles) = search_client_data_frame(&entry.frames, over_end);
+        let mut start_frame_viewangles: Option<[f32; 3]> = None;
+        let mut range = over_end - over_start;
+        let mut over_start = over_start;
+
+        for (frame_idx, frame) in entry.frames.iter_mut().enumerate() {
+            match &mut frame.data {
+                FrameData::NetMsg((_, data)) => {
+                    if frame_idx < over_start {
+                        continue;
+                    }
+
+                    if frame_idx >= over_start && start_frame_viewangles.is_none() {
+                        start_frame_viewangles = Some(data.info.ref_params.viewangles);
+
+                        over_start = frame_idx;
+                        range = over_end - over_start;
+                    }
+
+                    if frame_idx >= over_end {
+                        // Overdue, just set it
+                        data.info.ref_params.viewangles[0] =
+                            180. - data.info.ref_params.viewangles[0];
+                    } else {
+                        // Gradient change
+                        let t = (frame_idx - over_start) as f32 / range as f32;
+                        data.info.ref_params.viewangles[0] = (1. - t)
+                            * start_frame_viewangles.unwrap()[0]
+                            + t * (180. - end_frame_viewangles[0]);
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+}
+
 /// Scalar should best be a rounded number.
 ///
 /// So if we have 1, it means it will rotate at most 1 revolution. 2 is 2 revs, and so on.
