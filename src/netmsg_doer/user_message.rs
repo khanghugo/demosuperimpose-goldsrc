@@ -5,7 +5,7 @@ impl<'a> UserMessageDoer<'a, NetMsgUserMessage<'a>> for UserMessage {
     fn parse(
         i: &'a [u8],
         id: u8,
-        custom_messages: &mut HashMap<u8, SvcNewUserMsg<'a>>,
+        custom_messages: &HashMap<u8, SvcNewUserMsg<'a>>,
     ) -> IResult<&'a [u8], NetMsgUserMessage<'a>> {
         let custom_message = custom_messages.get(&id);
 

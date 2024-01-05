@@ -5,7 +5,7 @@ use super::{
 
 pub struct Event {}
 impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
-    fn parse(i: &'a [u8], delta_decoders: &mut DeltaDecoderTable) -> IResult<&'a [u8], SvcEvent> {
+    fn parse(i: &'a [u8], delta_decoders: &DeltaDecoderTable) -> IResult<&'a [u8], SvcEvent> {
         let mut br = BitReader::new(i);
 
         let event_count = br.read_n_bit(5).to_owned();
@@ -63,7 +63,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
         ))
     }
 
-    fn write(i: SvcEvent, delta_decoders: &mut DeltaDecoderTable) -> Vec<u8> {
+    fn write(i: SvcEvent, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
         let mut writer = ByteWriter::new();
         let mut bw = BitWriter::new();
 
@@ -82,7 +82,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcEvent> for Event {
                 if event.has_delta.unwrap() {
                     write_delta(
                         &event.delta.unwrap(),
-                        delta_decoders.get_mut("event_t\0").unwrap(),
+                        delta_decoders.get("event_t\0").unwrap(),
                         &mut bw,
                     );
                 }

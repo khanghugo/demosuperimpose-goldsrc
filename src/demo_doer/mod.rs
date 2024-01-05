@@ -15,7 +15,6 @@ pub mod kz_stats;
 pub mod netmsg_rewrite_test;
 pub mod offset_viewangles;
 pub mod remove_entities;
-pub mod remove_te_textmessage;
 pub mod superimpose;
 
 // use bitvec::bitvec;

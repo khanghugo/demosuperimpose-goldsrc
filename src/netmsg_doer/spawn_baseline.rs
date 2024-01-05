@@ -7,7 +7,7 @@ pub struct SpawnBaseline {}
 impl<'a> NetMsgDoerWithExtraInfo<'a, SvcSpawnBaseline> for SpawnBaseline {
     fn parse(
         i: &'a [u8],
-        delta_decoders: &mut DeltaDecoderTable,
+        delta_decoders: &DeltaDecoderTable,
         max_client: u8,
     ) -> IResult<&'a [u8], SvcSpawnBaseline> {
         let mut br = BitReader::new(i);
@@ -69,11 +69,7 @@ impl<'a> NetMsgDoerWithExtraInfo<'a, SvcSpawnBaseline> for SpawnBaseline {
         ))
     }
 
-    fn write(
-        i: SvcSpawnBaseline,
-        delta_decoders: &mut DeltaDecoderTable,
-        max_client: u8,
-    ) -> Vec<u8> {
+    fn write(i: SvcSpawnBaseline, delta_decoders: &DeltaDecoderTable, max_client: u8) -> Vec<u8> {
         let mut writer = ByteWriter::new();
 
         writer.append_u8(EngineMessageType::SvcSpawnBaseline as u8);
@@ -89,20 +85,20 @@ impl<'a> NetMsgDoerWithExtraInfo<'a, SvcSpawnBaseline> for SpawnBaseline {
                 if between {
                     write_delta(
                         &entity.delta,
-                        delta_decoders.get_mut("entity_state_player_t\0").unwrap(),
+                        delta_decoders.get("entity_state_player_t\0").unwrap(),
                         &mut bw,
                     )
                 } else {
                     write_delta(
                         &entity.delta,
-                        delta_decoders.get_mut("entity_state_t\0").unwrap(),
+                        delta_decoders.get("entity_state_t\0").unwrap(),
                         &mut bw,
                     )
                 }
             } else {
                 write_delta(
                     &entity.delta,
-                    delta_decoders.get_mut("custom_entity_state_t\0").unwrap(),
+                    delta_decoders.get("custom_entity_state_t\0").unwrap(),
                     &mut bw,
                 )
             }
@@ -112,7 +108,7 @@ impl<'a> NetMsgDoerWithExtraInfo<'a, SvcSpawnBaseline> for SpawnBaseline {
 
         bw.append_vec(i.total_extra_data);
 
-        let extra_data_description = delta_decoders.get_mut("entity_state_t\0").unwrap();
+        let extra_data_description = delta_decoders.get("entity_state_t\0").unwrap();
         for data in i.extra_data {
             write_delta(&data, extra_data_description, &mut bw)
         }

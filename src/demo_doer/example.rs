@@ -33,13 +33,32 @@ pub fn print_netmsg(demo: &mut Demo) {
     let mut i = 0;
     let mut j = 0;
 
-    for entry in &mut demo.directory.entries {
-        for frame in &mut entry.frames {
+    for (entry_idx, entry) in demo.directory.entries.iter_mut().enumerate() {
+        for (frame_idx, frame) in entry.frames.iter_mut().enumerate() {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
                 let (_, netmsg) =
                     parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
 
-                println!("{} {} {:?}", i, j, netmsg);
+                for what in netmsg {
+                    match what {
+                        Message::EngineMessage(huh) => match huh {
+                            EngineMessage::SvcNewUserMsg(_) => {
+                                println!("1 {} {}", entry_idx, frame_idx)
+                            }
+                            EngineMessage::SvcDeltaDescription(_) => {
+                                println!("2 {} {}", entry_idx, frame_idx)
+                            }
+                            EngineMessage::SvcServerInfo(_) => {
+                                println!("3 {} {}", entry_idx, frame_idx)
+                            }
+
+                            _ => (),
+                        },
+                        _ => (),
+                    };
+                }
+
+                // println!("{} {} {:?}", i, j, netmsg);
             }
 
             j += 1;

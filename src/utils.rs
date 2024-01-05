@@ -44,6 +44,33 @@ macro_rules! nbit_num {
     }};
 }
 
+#[macro_export]
+macro_rules! init_parse {
+    ($demo:ident) => {{
+        let mut delta_decoders = get_initial_delta();
+        let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
+
+        // use hldemo::Demo;
+        for frame in $demo
+            .directory
+            .entries
+            .get_mut(0)
+            .unwrap()
+            .frames
+            .iter_mut()
+        {
+            match &mut frame.data {
+                FrameData::NetMsg((_, data)) => {
+                    parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
+                }
+                _ => (),
+            }
+        }
+
+        (delta_decoders, custom_messages)
+    }};
+}
+
 #[repr(u16)]
 pub enum Buttons {
     Attack = 1 << 0,

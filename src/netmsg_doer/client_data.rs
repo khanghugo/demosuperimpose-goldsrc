@@ -5,10 +5,7 @@ use super::{
 
 pub struct ClientData {}
 impl<'a> NetMsgDoerWithDelta<'a, SvcClientData> for ClientData {
-    fn parse(
-        i: &'a [u8],
-        delta_decoders: &mut DeltaDecoderTable,
-    ) -> IResult<&'a [u8], SvcClientData> {
+    fn parse(i: &'a [u8], delta_decoders: &DeltaDecoderTable) -> IResult<&'a [u8], SvcClientData> {
         let mut br = BitReader::new(i);
 
         let has_delta_update_mask = br.read_1_bit();
@@ -54,7 +51,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcClientData> for ClientData {
         ))
     }
 
-    fn write(i: SvcClientData, delta_decoders: &mut DeltaDecoderTable) -> Vec<u8> {
+    fn write(i: SvcClientData, delta_decoders: &DeltaDecoderTable) -> Vec<u8> {
         let mut writer = ByteWriter::new();
         let mut bw = BitWriter::new();
 
@@ -68,7 +65,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcClientData> for ClientData {
 
         write_delta(
             &i.client_data,
-            delta_decoders.get_mut("clientdata_t\0").unwrap(),
+            delta_decoders.get("clientdata_t\0").unwrap(),
             &mut bw,
         );
 
@@ -78,7 +75,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcClientData> for ClientData {
                 bw.append_vec(data.weapon_index);
                 write_delta(
                     &data.weapon_data,
-                    delta_decoders.get_mut("weapon_data_t\0").unwrap(),
+                    delta_decoders.get("weapon_data_t\0").unwrap(),
                     &mut bw,
                 );
             }

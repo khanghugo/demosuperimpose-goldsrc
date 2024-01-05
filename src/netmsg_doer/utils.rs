@@ -256,7 +256,7 @@ fn parse_delta_field(description: &DeltaDecoderS, res: &mut Delta, br: &mut BitR
     }
 }
 
-pub fn write_delta(delta: &Delta, delta_decoder: &mut DeltaDecoder, bw: &mut BitWriter) {
+pub fn write_delta(delta: &Delta, delta_decoder: &DeltaDecoder, bw: &mut BitWriter) {
     // Consider this like a modulo.
     // Delta with description of index 13 is byte_mask[13 / 8] at 13 % 8.
     // Byte mask count adds accordingly if we have entry with biggest index number.
@@ -272,7 +272,6 @@ pub fn write_delta(delta: &Delta, delta_decoder: &mut DeltaDecoder, bw: &mut Bit
 
         byte_mask[quotient] |= 1 << remainder;
         byte_mask_count = byte_mask_count.max(quotient as u8);
-        delta_decoder[index].should_write = true;
         yes_data = true;
     }
 
@@ -288,16 +287,13 @@ pub fn write_delta(delta: &Delta, delta_decoder: &mut DeltaDecoder, bw: &mut Bit
 
     // We have to write delta by the described order.
     for description in delta_decoder {
-        if description.should_write {
+        if delta.contains_key(from_utf8(&description.name).unwrap()) {
             write_delta_field(
                 &description,
                 &find_delta_value(&description.name, delta),
                 bw,
             );
         }
-
-        // Reset
-        description.should_write = false;
     }
 }
 

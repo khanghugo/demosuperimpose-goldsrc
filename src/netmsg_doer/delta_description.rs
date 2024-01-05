@@ -5,7 +5,7 @@ pub struct DeltaDescription {}
 impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaDescription<'a>> for DeltaDescription {
     fn parse(
         i: &'a [u8],
-        delta_decoders: &mut DeltaDecoderTable,
+        delta_decoders: &DeltaDecoderTable,
     ) -> IResult<&'a [u8], SvcDeltaDescription<'a>> {
         let (i, name) = null_string(i)?;
         let (i, total_fields) = le_u16(i)?;
@@ -61,7 +61,7 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaDescription<'a>> for DeltaDescription {
         ))
     }
 
-    fn write(i: SvcDeltaDescription<'a>, _: &mut DeltaDecoderTable) -> Vec<u8> {
+    fn write(i: SvcDeltaDescription<'a>, _: &DeltaDecoderTable) -> Vec<u8> {
         let mut writer = ByteWriter::new();
 
         writer.append_u8(EngineMessageType::SvcDeltaDescription as u8);
