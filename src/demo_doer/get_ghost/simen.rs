@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use super::*;
 
 use nom::{
     bytes::complete::{tag, take, take_till},
@@ -9,8 +9,6 @@ use nom::{
     sequence::{delimited, preceded, tuple},
     IResult,
 };
-
-use super::*;
 
 struct SimenGhostFrame {
     frame: GhostFrame,
