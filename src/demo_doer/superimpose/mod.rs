@@ -3,7 +3,7 @@ use std::{fs, io::Write, path::PathBuf};
 use demosuperimpose_goldsrc::nbit_num;
 use hldemo::{Demo, FrameData};
 
-use crate::{demo_doer::superimpose::get_ghost::get_ghost, open_demo, writer::BitWriter};
+use crate::{demo_doer::superimpose::get_ghost::get_ghosts, open_demo, writer::BitWriter};
 
 use super::*;
 
@@ -22,7 +22,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
     println!("Total demos: {} + 1", others.len());
 
     let mut main_demo = open_demo!(main);
-    let mut ghosts = get_ghost(&others);
+    let mut ghosts = get_ghosts(&others);
     // New line for our print finally
     println!("");
 
