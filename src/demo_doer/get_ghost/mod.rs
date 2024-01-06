@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::Read;
 use std::{io::Write, path::PathBuf};
 
+use crate::demo_doer::get_ghost::romanian_jumpers::romanian_jumpers_ghost_parse;
 use crate::{
     demo_doer::get_ghost::{
         demo::demo_ghost_parse, simen::simen_ghost_parse, surf_gateway::surf_gateway_ghost_parse,
@@ -43,6 +44,9 @@ pub fn get_ghost(others: &Vec<(String, f32)>) -> Vec<GhostInfo> {
             } else if pathbuf.to_str().unwrap().ends_with(".sg.json") {
                 // Surf Gateway
                 surf_gateway_ghost_parse(filename.to_owned(), *offset)
+            } else if pathbuf.to_str().unwrap().ends_with(".rj.json") {
+                // Romanian-Jumprs
+                romanian_jumpers_ghost_parse(filename.to_owned(), *offset)
             } else {
                 println!("");
                 panic!("File \"{}\" does not use supported extension.", filename);
