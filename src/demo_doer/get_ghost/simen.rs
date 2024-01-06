@@ -40,6 +40,7 @@ pub fn simen_ghost_parse(filename: String, offset: f32) -> GhostInfo {
         |frames| GhostInfo {
             ghost_name: filename.to_owned(),
             entity_index: 0,
+            use_frametime: false,
             frames,
             ghost_anim_frame: 0.,
         },
@@ -73,6 +74,7 @@ fn simen_wrbot_line(i: &str) -> IResult<&str, SimenGhostFrame> {
         )),
         |(pitch, yaw, posx, posy, posz, velx, vely, velz, button, move1, move2)| SimenGhostFrame {
             frame: GhostFrame {
+                frametime: 0.,
                 origin: [posx, posy, posz],
                 viewangles: [pitch, yaw, 0.],
                 sequence: None,

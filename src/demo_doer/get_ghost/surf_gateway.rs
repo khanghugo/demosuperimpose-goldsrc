@@ -37,10 +37,12 @@ pub fn surf_gateway_ghost_parse(filename: String, offset: f32) -> GhostInfo {
     GhostInfo {
         ghost_name: filename,
         entity_index: 0,
+        use_frametime: false,
         frames: surf_gateway_ghost
             .frames
             .iter()
             .map(|ghost| GhostFrame {
+                frametime: 0.,
                 origin: ghost.origin,
                 viewangles: ghost.viewangles,
                 sequence: None,

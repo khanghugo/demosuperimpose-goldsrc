@@ -35,10 +35,12 @@ pub fn romanian_jumpers_ghost_parse(filename: String, offset: f32) -> GhostInfo 
     GhostInfo {
         ghost_name: filename,
         entity_index: 0,
+        use_frametime: true,
         frames: romanian_jumpers_ghost
             .frames
             .iter()
             .map(|ghost| GhostFrame {
+                frametime: ghost.frametime,
                 origin: ghost.origin,
                 viewangles: [ghost.viewangles[0], ghost.viewangles[1], 0.],
                 sequence: None,

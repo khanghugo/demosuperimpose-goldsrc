@@ -1,4 +1,5 @@
 pub struct GhostFrame {
+    pub frametime: f32,
     pub origin: [f32; 3],
     pub viewangles: [f32; 3],
     pub sequence: Option<Vec<u8>>,
@@ -9,6 +10,7 @@ pub struct GhostFrame {
 pub struct GhostInfo {
     pub ghost_name: String,
     pub entity_index: u16,
+    pub use_frametime: bool,
     pub frames: Vec<GhostFrame>,
     pub ghost_anim_frame: f32,
 }
@@ -18,6 +20,7 @@ impl GhostInfo {
         Self {
             ghost_name: "".to_string(),
             entity_index: 0,
+            use_frametime: false,
             frames: vec![],
             ghost_anim_frame: 0.,
         }
@@ -31,7 +34,20 @@ impl GhostInfo {
         frame: Option<Vec<u8>>,
         animtime: Option<Vec<u8>>,
     ) {
+        self.append_frame_with_time(0., origin, viewangles, sequence, frame, animtime);
+    }
+
+    pub fn append_frame_with_time(
+        &mut self,
+        frametime: f32,
+        origin: [f32; 3],
+        viewangles: [f32; 3],
+        sequence: Option<Vec<u8>>,
+        frame: Option<Vec<u8>>,
+        animtime: Option<Vec<u8>>,
+    ) {
         self.frames.push(GhostFrame {
+            frametime,
             origin,
             viewangles,
             sequence,
