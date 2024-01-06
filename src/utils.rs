@@ -47,6 +47,10 @@ macro_rules! nbit_num {
 #[macro_export]
 macro_rules! init_parse {
     ($demo:ident) => {{
+        use crate::demo_doer::{
+            get_initial_delta, parse_netmsg, FrameData, HashMap, SvcNewUserMsg,
+        };
+
         let mut delta_decoders = get_initial_delta();
         let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
 
