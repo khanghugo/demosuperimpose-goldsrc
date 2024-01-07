@@ -1,0 +1,3 @@
+[submodule "hlbsp-viewer"]
+	path = hlbsp-viewer
+	url = https://github.com/r4v3n6101/hlbsp-viewer.git
