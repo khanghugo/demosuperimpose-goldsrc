@@ -1,9 +1,23 @@
 // bsp info to insert
 // ghost demo to insert
 
+/// frame 0: SvcServerInfo SvcDeltaDescription
+///
+/// SvcSetView might or might not be necessary if we don't cache model. Without it, the player model moves just fine
+/// but view origin is detached. If included, set to player index = 1. In another word, it would hide player model.
+///
+/// frame 1: SvcResourceList
+/// frame 2: 8 nopes, omittable
+/// frame 3: SvcSpawnBaseline, SvcSignOnNum(_) = 1,
+/// frame 4: svcpackent entity
 use demosuperimpose_goldsrc::{
-    init_parse,
-    netmsg_doer::{parse_netmsg_immutable, write_netmsg},
+    init_parse, nbit_num, nbit_str,
+    netmsg_doer::{
+        parse_netmsg, parse_netmsg_immutable, resource_list::ResourceList, write_netmsg, NetMsgDoer,
+    },
+    types::Resource,
+    types::{EngineMessage, Message, SvcDeltaDescription, SvcResourceList},
+    utils::{get_cs_delta_msg, NetMsgDataMethods, ResourceType},
 };
 use hldemo::{
     parse::frame, ClientDataData, Demo, DemoBufferData, Frame, FrameData, MoveVars, NetMsgData,
@@ -12,17 +26,119 @@ use hldemo::{
 
 use super::get_ghost::get_ghost;
 
-mod bsp;
+pub mod bsp;
 
-// demo buffer bytes presumable little endian [1, 0, 0, 0, 0, 0, 180, 66]
 const DEMO_BUFFER_SIZE: [u8; 8] = [1, 0, 0, 0, 0, 0, 180, 66];
-const VEC_0: [f32; 3] = [0., 0., 0.];
-const VIEWHEIGHT: [f32; 3] = [0.0, 0.0, 17.0];
-const VIEWPORT: [i32; 4] = [0, 0, 1024, 768];
 const DEFAULT_IN_SEQ: i32 = 1969;
 
-// TODO: for now only singular please
-// override frametime will force uniform frametime for all frames.
+fn insert_delta_description(demo: &mut Demo, seq: i32) {
+    let mut new_netmsg_data = NetMsgData::new(seq);
+    new_netmsg_data.msg = get_cs_delta_msg().leak();
+
+    let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
+    let netmsg_frame = Frame {
+        time: 0.,
+        frame: 0,
+        data: netmsg_framedata,
+    };
+
+    demo.directory.entries[0].frames.push(netmsg_frame);
+    demo.directory.entries[0].frame_count += 1;
+}
+
+/// `seq` is again to make sure things don't crash. Very sad.
+fn insert_resourcelist(demo: &mut Demo, seq: i32) {
+    // Resource list
+    // 0 = usp model
+    // 1-4 = pl_step
+    // TODO it is possible to include texture in here as well
+
+    let v_usp = Resource {
+        type_: nbit_num!(ResourceType::Skin, 4),
+        name: nbit_str!("models/v_usp.mdl\0"),
+        index: nbit_num!(0, 12),
+        size: nbit_num!(0, 3 * 8),
+        flags: nbit_num!(0, 3),
+        md5_hash: None,
+        has_extra_info: false,
+        extra_info: None,
+    };
+
+    let pl_steps: Vec<Resource> = (1..=4)
+        .map(|i| Resource {
+            type_: nbit_num!(ResourceType::Sound, 4),
+            name: nbit_str!(format!("player/pl_step{}.wav\0", i)),
+            index: nbit_num!(i, 12),
+            size: nbit_num!(0, 3 * 8),
+            // TODO not sure what the flag does
+            flags: nbit_num!(0, 3),
+            md5_hash: None,
+            has_extra_info: false,
+            extra_info: None,
+        })
+        .collect();
+
+    let resource_list = SvcResourceList {
+        resource_count: nbit_num!(1 + 4, 12), // remember to increase accordingly
+        resources: [vec![v_usp], pl_steps].concat(),
+        consistencies: vec![],
+    };
+
+    let resource_list = ResourceList::write(resource_list);
+
+    let mut new_netmsg_data = NetMsgData::new(seq);
+    new_netmsg_data.msg = resource_list.leak();
+
+    let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
+    let netmsg_frame = Frame {
+        time: 0.,
+        frame: 0,
+        data: netmsg_framedata,
+    };
+
+    demo.directory.entries[0].frames.push(netmsg_frame);
+    demo.directory.entries[0].frame_count += 1;
+}
+
+/// checking out what can be deleted
+fn removing_msg(demo: &mut Demo) {
+    let (mut delta_decoders, mut custom_messages) = init_parse!(demo);
+
+    if let FrameData::NetMsg((_, data)) = &mut demo.directory.entries[0].frames[0].data {
+        let (_, messages) =
+            parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
+
+        let messages: Vec<Message<'_>> = messages
+            .into_iter()
+            .filter(|msg| {
+                !matches!(
+                    msg,
+                    Message::EngineMessage(
+                        EngineMessage::SvcCustomization(_)
+                            | EngineMessage::SvcUpdateUserInfo(_)
+                            | EngineMessage::SvcTime(_)
+                            | EngineMessage::SvcClientData(_)
+                            | EngineMessage::SvcLightStyle(_)
+                            | EngineMessage::SvcResourceRequest(_)
+                            | EngineMessage::SvcSendExtraInfo(_)
+                            | EngineMessage::SvcNewMovevars(_)
+                            | EngineMessage::SvcCdTrack(_)
+                            | EngineMessage::SvcNewUserMsg(_)
+                            | EngineMessage::SvcStuffText(_)
+                    ) | Message::UserMessage(_)
+                )
+            })
+            .collect();
+
+        let write = write_netmsg(messages, &delta_decoders, &custom_messages);
+
+        data.msg = write.leak();
+    }
+
+    // demo.directory.entries[0].frame_count -= 1;
+    // demo.directory.entries[0].frames.remove(2);
+}
+
 pub fn insert_ghost(
     demo: &mut Demo,
     ghost_file_name: &str,
@@ -32,6 +148,8 @@ pub fn insert_ghost(
     // setup
     let ghost_info = get_ghost(ghost_file_name, &0.);
     // let (delta_decoders, custom_messages) = init_parse!(demo);
+
+    // removing_msg(demo);
 
     // set directory entry info
     let entry1 = &mut demo.directory.entries[1];
@@ -87,109 +205,19 @@ pub fn insert_ghost(
         };
 
         // netmsg
-        let sky_name_bind = vec![0u8; 32];
-        let netmsg_framedata = FrameData::NetMsg((
-            NetMsgFrameType::Normal,
-            NetMsgData {
-                info: NetMsgInfo {
-                    timestamp: 0.0,
-                    ref_params: RefParams {
-                        vieworg: frame.origin,
-                        viewangles: frame.viewangles,
-                        forward: VEC_0,
-                        right: VEC_0,
-                        up: VEC_0,
-                        frametime,
-                        time,
-                        intermission: 0,
-                        paused: 0,
-                        spectator: 0,
-                        onground: 0,
-                        waterlevel: 0,
-                        simvel: VEC_0,
-                        simorg: frame.origin,
-                        viewheight: VIEWHEIGHT,
-                        idealpitch: 0.,
-                        cl_viewangles: frame.viewangles,
-                        health: 100,
-                        crosshairangle: VEC_0,
-                        viewsize: 120.,
-                        punchangle: VEC_0,
-                        maxclients: 32,
-                        viewentity: 1,
-                        playernum: 0,
-                        max_entities: 6969,
-                        demoplayback: 0,
-                        hardware: 1,
-                        smoothing: 1,
-                        ptr_cmd: 0,
-                        ptr_movevars: 0,
-                        viewport: VIEWPORT,
-                        next_view: 0,
-                        only_client_draw: 0,
-                    },
-                    usercmd: UserCmd {
-                        lerp_msec: 9,
-                        msec: 10,
-                        viewangles: frame.viewangles,
-                        forwardmove: 0.,
-                        sidemove: 0.,
-                        upmove: 0.,
-                        lightlevel: 68,
-                        buttons: 0,
-                        impulse: 0,
-                        weaponselect: 0,
-                        impact_index: 0,
-                        impact_position: VEC_0,
-                    },
-                    movevars: MoveVars {
-                        gravity: 800.0,
-                        stopspeed: 75.0,
-                        maxspeed: 320.,
-                        spectatormaxspeed: 500.,
-                        accelerate: 5.,
-                        airaccelerate: 10.,
-                        wateraccelerate: 10.,
-                        friction: 4.,
-                        edgefriction: 2.,
-                        waterfriction: 1.,
-                        entgravity: 1.,
-                        bounce: 1.,
-                        stepsize: 1.,
-                        maxvelocity: 2000.,
-                        zmax: 409600.,
-                        wave_height: 0.,
-                        footsteps: 1,
-                        sky_name: sky_name_bind.leak(), // TODO
-                        rollangle: 0.,
-                        rollspeed: 0.,
-                        skycolor_r: 0.,
-                        skycolor_g: 0.,
-                        skycolor_b: 0.,
-                        skyvec_x: 0.,
-                        skyvec_y: 0.,
-                        skyvec_z: 0.,
-                    },
-                    view: frame.origin,
-                    viewmodel: 256,
-                },
-                // in seq
-                // in ack = in seq - 1
-                // incoming_reliable_acknowledged = 1
-                // incoming_reliable_sequence = 0
-                // out seq = in seq
-                // reliable_sequence = 1
-                // last_reliable_sequence < in seq
-                incoming_sequence: DEFAULT_IN_SEQ,
-                incoming_acknowledged: DEFAULT_IN_SEQ - 1,
-                incoming_reliable_acknowledged: 1,
-                incoming_reliable_sequence: 0,
-                outgoing_sequence: DEFAULT_IN_SEQ,
-                reliable_sequence: 1,
-                last_reliable_sequence: DEFAULT_IN_SEQ - 69,
-                msg: &[],
-            },
-        ));
+        let mut new_netmsg_data = NetMsgData::new(DEFAULT_IN_SEQ + frame_idx as i32);
+        new_netmsg_data.info.ref_params.vieworg = frame.origin;
+        new_netmsg_data.info.ref_params.viewangles = frame.viewangles;
+        new_netmsg_data.info.ref_params.frametime = frametime;
+        new_netmsg_data.info.ref_params.time = time;
+        new_netmsg_data.info.ref_params.simorg = frame.origin;
+        new_netmsg_data.info.ref_params.cl_viewangles = frame.viewangles;
+        new_netmsg_data.info.usercmd.viewangles = frame.viewangles;
+        // new_netmsg_data.info.movevars.sky_name = hehe; // TODO... DO NOT ASSIGN to &[]
+        new_netmsg_data.info.view = frame.origin;
+
+        let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Normal, new_netmsg_data));
+
         let netmsg_frame = Frame {
             time,
             frame: (frame_idx + 1) as i32,

@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::from_utf8};
 
 use bitvec::vec::BitVec;
 
@@ -53,10 +53,17 @@ pub type DeltaDecoderTable = HashMap<String, DeltaDecoder>;
 
 pub type BitType = BitVec<u8>;
 
-// pub struct delta_description_t<'a> {
-//     flags: u32,
-//     name:
-// }
+pub trait BitTypeDebug {
+    fn bittype_to_string(&self) -> String;
+}
+
+impl BitTypeDebug for BitType {
+    fn bittype_to_string(&self) -> String {
+        let mut what = self.to_owned();
+        what.force_align();
+        from_utf8(&what.into_vec()).unwrap().to_owned()
+    }
+}
 
 /// UserMessage
 #[derive(Clone, Debug)]
