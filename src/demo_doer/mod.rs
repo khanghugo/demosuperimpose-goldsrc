@@ -12,6 +12,7 @@ use hldemo::{Demo, FrameData};
 pub mod add_debug;
 pub mod example;
 pub mod get_ghost;
+pub mod ghost_to_demo;
 pub mod kz_stats;
 pub mod netmsg_rewrite_test;
 pub mod offset_viewangles;
