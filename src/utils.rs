@@ -194,6 +194,14 @@ macro_rules! append_packet_entities {
     }};
 }
 
+#[macro_export]
+macro_rules! rand_int_range {
+    ($x1:expr,$x2:expr) => {{
+        use rand::prelude::*;
+        (rand::random::<f32>() * ($x2 - $x1) as f32 + $x1 as f32).round() as u32
+    }};
+}
+
 #[repr(u16)]
 pub enum Buttons {
     Attack = 1 << 0,

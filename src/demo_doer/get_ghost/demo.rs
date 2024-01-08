@@ -78,6 +78,7 @@ pub fn demo_ghost_parse<'a>(name: &str, demo: Demo<'a>, offset: f32) -> GhostInf
                         sequence.to_owned(),
                         anim_frame.to_owned(),
                         animtime.to_owned(),
+                        None,
                     );
 
                     // Reset for next find.

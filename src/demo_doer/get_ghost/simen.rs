@@ -13,7 +13,7 @@ use nom::{
 struct SimenGhostFrame {
     frame: GhostFrame,
     velocity: [f32; 3],
-    button: u32,
+    buttons: u32,
     moves: [f32; 2],
 }
 
@@ -72,7 +72,7 @@ fn simen_wrbot_line(i: &str) -> IResult<&str, SimenGhostFrame> {
         tuple((
             float, float, float, float, float, float, float, float, u32, float, float,
         )),
-        |(pitch, yaw, posx, posy, posz, velx, vely, velz, button, move1, move2)| SimenGhostFrame {
+        |(pitch, yaw, posx, posy, posz, velx, vely, velz, buttons, move1, move2)| SimenGhostFrame {
             frame: GhostFrame {
                 frametime: 0.,
                 origin: [posx, posy, posz],
@@ -80,9 +80,10 @@ fn simen_wrbot_line(i: &str) -> IResult<&str, SimenGhostFrame> {
                 sequence: None,
                 frame: None,
                 animtime: None,
+                buttons: buttons.into(),
             },
             velocity: [velx, vely, velz],
-            button,
+            buttons,
             moves: [move1, move2],
         },
     )(i)

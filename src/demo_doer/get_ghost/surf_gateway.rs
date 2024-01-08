@@ -48,6 +48,7 @@ pub fn surf_gateway_ghost_parse(filename: String, offset: f32) -> GhostInfo {
                 sequence: None,
                 frame: None,
                 animtime: None,
+                buttons: ghost.buttons.into(),
             })
             .collect(),
         ghost_anim_frame: 0.,

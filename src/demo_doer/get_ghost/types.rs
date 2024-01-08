@@ -5,6 +5,7 @@ pub struct GhostFrame {
     pub sequence: Option<Vec<u8>>,
     pub frame: Option<Vec<u8>>,
     pub animtime: Option<Vec<u8>>,
+    pub buttons: Option<u32>,
 }
 
 pub struct GhostInfo {
@@ -33,8 +34,9 @@ impl GhostInfo {
         sequence: Option<Vec<u8>>,
         frame: Option<Vec<u8>>,
         animtime: Option<Vec<u8>>,
+        buttons: Option<u32>,
     ) {
-        self.append_frame_with_time(0., origin, viewangles, sequence, frame, animtime);
+        self.append_frame_with_time(0., origin, viewangles, sequence, frame, animtime, buttons);
     }
 
     pub fn append_frame_with_time(
@@ -45,6 +47,7 @@ impl GhostInfo {
         sequence: Option<Vec<u8>>,
         frame: Option<Vec<u8>>,
         animtime: Option<Vec<u8>>,
+        buttons: Option<u32>,
     ) {
         self.frames.push(GhostFrame {
             frametime,
@@ -53,6 +56,7 @@ impl GhostInfo {
             sequence,
             frame,
             animtime,
+            buttons,
         });
     }
 
