@@ -40,7 +40,6 @@ impl<'a> NetMsgDoerWithDelta<'a, SvcDeltaDescription<'a>> for DeltaDescription {
                     flags: u32::from_le_bytes(
                         entry.get("flags").unwrap().as_slice().try_into().unwrap(),
                     ),
-                    should_write: false,
                 }
             })
             .collect();
