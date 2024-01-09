@@ -10,6 +10,7 @@ use bsp_render::level::entities::parse_entities;
 use demosuperimpose_goldsrc::get_cs_delta_msg;
 use demosuperimpose_goldsrc::netmsg_doer::delta_description::DeltaDescription;
 use demosuperimpose_goldsrc::netmsg_doer::new_movevars::NewMovevars;
+use demosuperimpose_goldsrc::netmsg_doer::packet_entities::PacketEntities;
 use demosuperimpose_goldsrc::netmsg_doer::server_info::ServerInfo;
 use demosuperimpose_goldsrc::netmsg_doer::set_view::SetView;
 use demosuperimpose_goldsrc::netmsg_doer::sign_on_num::SignOnNum;
@@ -21,8 +22,10 @@ use demosuperimpose_goldsrc::rand_int_range;
 use demosuperimpose_goldsrc::types::Delta;
 use demosuperimpose_goldsrc::types::DeltaDecoderTable;
 use demosuperimpose_goldsrc::types::EntityS;
+use demosuperimpose_goldsrc::types::EntityState;
 use demosuperimpose_goldsrc::types::OriginCoord;
 use demosuperimpose_goldsrc::types::SvcNewMoveVars;
+use demosuperimpose_goldsrc::types::SvcPacketEntities;
 use demosuperimpose_goldsrc::types::SvcServerInfo;
 use demosuperimpose_goldsrc::types::SvcSetView;
 use demosuperimpose_goldsrc::types::SvcSignOnNum;
@@ -64,11 +67,12 @@ struct ServerFrame<'a> {
 }
 
 pub fn ghost_to_demo(ghost_file_name: &str, map_file_name: &str, demo: &mut Demo) {
-    demo.directory.entries[0].frames.remove(0);
-    demo.directory.entries[0].frames.remove(0);
-    demo.directory.entries[0].frames.remove(0);
-    demo.directory.entries[0].frames.remove(0);
-    demo.directory.entries[0].frame_count -= 4;
+    demo.directory.entries[0].frames.remove(0); // 0
+    demo.directory.entries[0].frames.remove(0); // 1
+    demo.directory.entries[0].frames.remove(0); // 2
+    demo.directory.entries[0].frames.remove(0); // 3
+    demo.directory.entries[0].frames.remove(0); // 4
+    demo.directory.entries[0].frame_count -= 5;
 
     let game_resource_index_start = insert_base_netmsg(demo, map_file_name);
     demo.directory.entries[0].frame_count += 1;
@@ -354,6 +358,27 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
     // packet entities is not enough
     // we need delta packet entities also to make the entities appear
     // svcpacketentity is almost redundant but just add it there to make sure
+    let player_entity_state = EntityState {
+        entity_index: 1,
+        increment_entity_number: true,
+        is_absolute_entity_index: false.into(),
+        absolute_entity_index: None,
+        entity_index_difference: None,
+        has_custom_delta: false,
+        has_baseline_index: false,
+        baseline_index: None,
+        // delta: Delta::from([("angles[0]\0".to_owned(), vec![0, 0, 0, 0])]),
+        delta: Delta::new(),
+    };
+
+    let entity_states = vec![vec![player_entity_state]].concat();
+
+    let packet_entities = SvcPacketEntities {
+        entity_count: nbit_num!(entity_states.len(), 16),
+        entity_states,
+    };
+    let packet_entities =
+        PacketEntities::write(packet_entities, &mut get_cs_delta_decoder_table!(), 1);
 
     let mut new_netmsg_data = NetMsgData::new(2);
     new_netmsg_data.msg = [
@@ -364,6 +389,7 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
         resource_list,
         spawn_baseline,
         sign_on_num,
+        packet_entities,
     ]
     .concat()
     .leak();
