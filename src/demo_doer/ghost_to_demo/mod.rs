@@ -1,10 +1,13 @@
 // bsp info to insert
 // ghost demo to insert
 
-/// frame 0: SvcServerInfo SvcDeltaDescription
+/// frame 0: SvcServerInfo SvcDeltaDescription SvcSetView SvcNewMovevars
 ///
-/// SvcSetView might or might not be necessary if we don't cache model. Without it, the player model moves just fine
-/// but view origin is detached. If included, set to player index = 1. In another word, it would hide player model.
+/// SvcSetView needs setting to 1 otherwise game crash
+///
+/// SvcNewMovevars is needed otherwise game black screen
+///
+/// SvcServerInfo: wrong checksum ok
 ///
 /// frame 1: SvcResourceList
 /// frame 2: 8 nopes, omittable
@@ -14,10 +17,21 @@
 use bitvec::bitvec;
 use bitvec::prelude::*;
 
+use demosuperimpose_goldsrc::get_cs_delta_msg;
+use demosuperimpose_goldsrc::netmsg_doer::delta_description::DeltaDescription;
+use demosuperimpose_goldsrc::netmsg_doer::new_movevars::NewMovevars;
+use demosuperimpose_goldsrc::netmsg_doer::server_info::ServerInfo;
+use demosuperimpose_goldsrc::netmsg_doer::set_view::SetView;
 use demosuperimpose_goldsrc::netmsg_doer::sound::Sound;
+use demosuperimpose_goldsrc::netmsg_doer::NetMsgDoerWithDelta;
 use demosuperimpose_goldsrc::rand_int_range;
+use demosuperimpose_goldsrc::types::DeltaDecoderTable;
 use demosuperimpose_goldsrc::types::OriginCoord;
+use demosuperimpose_goldsrc::types::SvcNewMoveVars;
+use demosuperimpose_goldsrc::types::SvcServerInfo;
+use demosuperimpose_goldsrc::types::SvcSetView;
 use demosuperimpose_goldsrc::utils::Buttons;
+use demosuperimpose_goldsrc::wrap_message;
 use demosuperimpose_goldsrc::{
     init_parse, nbit_num, nbit_str,
     netmsg_doer::{
@@ -25,7 +39,7 @@ use demosuperimpose_goldsrc::{
     },
     types::Resource,
     types::{EngineMessage, Message, SvcDeltaDescription, SvcResourceList, SvcSound},
-    utils::{get_cs_delta_msg, NetMsgDataMethods, ResourceType},
+    utils::{NetMsgDataMethods, ResourceType},
 };
 use hldemo::parse::frame::netmsg;
 use hldemo::{
@@ -42,9 +56,105 @@ const DEMO_BUFFER_SIZE: [u8; 8] = [1, 0, 0, 0, 0, 0, 180, 66];
 const DEFAULT_IN_SEQ: i32 = 1969;
 const STEP_TIME: f32 = 0.3;
 
-fn insert_delta_description(demo: &mut Demo, seq: i32) {
-    let mut new_netmsg_data = NetMsgData::new(seq);
-    new_netmsg_data.msg = get_cs_delta_msg().leak();
+struct ServerFrame<'a> {
+    /// Must include null terminator
+    game_dir: &'a [u8],
+    /// Must include null terminator
+    host_name: Option<&'a [u8]>,
+    /// Must include null terminator. Path must be full path relatively from game
+    ///
+    /// E.g.: maps/rvp_tundra-bhop.bsp
+    map_file_name: &'a [u8],
+}
+
+fn insert_demo_base(demo: &mut Demo) {
+    let server_frame = ServerFrame {
+        game_dir: b"cstrike\0",
+        host_name: None,
+        map_file_name: b"maps/rvp_tundra-bhop.bsp\0",
+    };
+    let server_info = SvcServerInfo {
+        protocol: 48,
+        spawn_count: 5, // ?
+        map_checksum: 0,
+        client_dll_hash: &[0u8; 16],
+        max_players: 1,
+        player_index: 0,
+        is_deathmatch: 0,
+        game_dir: server_frame.game_dir,
+        hostname: server_frame.host_name.unwrap_or(b"Ghost Demo Replay\0"),
+        map_file_name: server_frame.map_file_name,
+        map_cycle: &[
+            100, 101, 95, 97, 105, 114, 115, 116, 114, 105, 112, 13, 10, 99, 115, 95, 104, 97, 118,
+            97, 110, 97, 13, 10, 100, 101, 95, 99, 104, 97, 116, 101, 97, 117, 13, 10, 100, 101,
+            95, 97, 122, 116, 101, 99, 13, 10, 97, 115, 95, 111, 105, 108, 114, 105, 103, 13, 10,
+            99, 115, 95, 115, 105, 101, 103, 101, 13, 10, 100, 101, 95, 99, 98, 98, 108, 101, 13,
+            10, 100, 101, 95, 100, 117, 115, 116, 13, 10, 99, 115, 95, 55, 52, 55, 13, 10, 100,
+            101, 95, 112, 114, 111, 100, 105, 103, 121, 13, 10, 99, 115, 95, 97, 115, 115, 97, 117,
+            108, 116, 13, 10, 99, 115, 95, 111, 102, 102, 105, 99, 101, 13, 10, 99, 115, 95, 105,
+            116, 97, 108, 121, 13, 10, 99, 115, 95, 98, 97, 99, 107, 97, 108, 108, 101, 121, 13,
+            10, 99, 115, 95, 109, 105, 108, 105, 116, 105, 97, 13, 10, 100, 101, 95, 116, 114, 97,
+            105, 110, 13, 10, 13, 10, 13, 10, 13, 10, 13, 10, 0,
+        ], // must be null string
+        unknown: 0u8,
+    };
+
+    let server_info = ServerInfo::write(server_info);
+
+    let dds: Vec<u8> = get_cs_delta_msg!()
+        .iter()
+        .flat_map(|dd| DeltaDescription::write(dd.to_owned(), &DeltaDecoderTable::new()))
+        .collect();
+
+    let bsp = Resource {
+        type_: nbit_num!(ResourceType::Model, 4),
+        name: nbit_str!("maps/rvp_tundra-bhop.bsp\0"),
+        index: nbit_num!(1, 12),
+        size: nbit_num!(0, 3 * 8),
+        flags: nbit_num!(1, 3),
+        md5_hash: None,
+        has_extra_info: false,
+        extra_info: None,
+    };
+
+    let v_usp = Resource {
+        type_: nbit_num!(ResourceType::Skin, 4),
+        name: nbit_str!("models/v_usp.mdl\0"),
+        index: nbit_num!(0, 12),
+        size: nbit_num!(0, 3 * 8),
+        flags: nbit_num!(0, 3),
+        md5_hash: None,
+        has_extra_info: false,
+        extra_info: None,
+    };
+
+    let pl_steps: Vec<Resource> = (1..=4)
+        .map(|i| Resource {
+            type_: nbit_num!(ResourceType::Sound, 4),
+            name: nbit_str!(format!("player/pl_step{}.wav\0", i)),
+            index: nbit_num!(i + 1, 12), // remember to increment
+            size: nbit_num!(0, 3 * 8),
+            // TODO not sure what the flag does
+            flags: nbit_num!(0, 3),
+            md5_hash: None,
+            has_extra_info: false,
+            extra_info: None,
+        })
+        .collect();
+
+    // add resources here
+    let resources = [vec![bsp, v_usp], pl_steps].concat();
+
+    let resource_list = SvcResourceList {
+        resource_count: nbit_num!(resources.len(), 12),
+        resources,
+        consistencies: vec![],
+    };
+
+    let resource_list = ResourceList::write(resource_list);
+
+    let mut new_netmsg_data = NetMsgData::new(2);
+    new_netmsg_data.msg = [server_info, dds, resource_list].concat().leak();
 
     let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
     let netmsg_frame = Frame {
@@ -53,8 +163,75 @@ fn insert_delta_description(demo: &mut Demo, seq: i32) {
         data: netmsg_framedata,
     };
 
-    demo.directory.entries[0].frames.push(netmsg_frame);
-    demo.directory.entries[0].frame_count += 1;
+    demo.directory.entries[0].frames.insert(0, netmsg_frame);
+}
+
+/// Including SvcServerInfo and SvcDeltaDescription
+fn insert_server(demo: &mut Demo, server_frame: ServerFrame, seq: i32) {
+    let mut new_netmsg_data = NetMsgData::new(seq);
+
+    let server_info = SvcServerInfo {
+        protocol: 48,
+        spawn_count: 5, // ?
+        map_checksum: 0,
+        client_dll_hash: &[0u8; 16],
+        max_players: 1,
+        player_index: 0,
+        is_deathmatch: 0,
+        game_dir: server_frame.game_dir,
+        hostname: server_frame.host_name.unwrap_or(b"Ghost Demo Replay\0"),
+        map_file_name: server_frame.map_file_name,
+        map_cycle: b"a\0", // must be null string
+        unknown: 0u8,
+    };
+    let server_info = ServerInfo::write(server_info);
+
+    let dds: Vec<u8> = get_cs_delta_msg!()
+        .iter()
+        .flat_map(|dd| DeltaDescription::write(dd.to_owned(), &DeltaDecoderTable::new()))
+        .collect();
+
+    let set_view = SvcSetView { entity_index: 1 }; // always 1
+    let set_view = SetView::write(set_view);
+
+    let new_movevars = SvcNewMoveVars {
+        gravity: 800.,
+        stop_speed: 75.,
+        max_speed: 320.,
+        spectator_max_speed: 500.,
+        accelerate: 5.,
+        airaccelerate: 10.,
+        water_accelerate: 10.,
+        friction: 4.,
+        edge_friction: 2.,
+        water_friction: 1.,
+        ent_garvity: 1.,
+        bounce: 1.,
+        step_size: 18.,
+        max_velocity: 2000.,
+        z_max: 409600.,
+        wave_height: 0.,
+        footsteps: 1,
+        roll_angle: 0.,
+        roll_speed: -1.9721523e-31, // have to use these magic numbers to work
+        sky_color: vec![-1.972168e-31, -1.972168e-31, 9.4e-44],
+        sky_vec: vec![-0.0, 2.68e-43, 2.7721908e20],
+        sky_name: &[0],
+    };
+    let new_movevars = NewMovevars::write(new_movevars);
+
+    new_netmsg_data.msg = [server_info, dds, set_view, new_movevars].concat().leak();
+    println!("{:?}", new_netmsg_data.msg);
+
+    let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
+    let netmsg_frame = Frame {
+        time: 0.,
+        frame: 0,
+        data: netmsg_framedata,
+    };
+
+    demo.directory.entries[0].frames.insert(0, netmsg_frame);
+    // demo.directory.entries[0].frame_count += 1;
 }
 
 /// `seq` is again to make sure things don't crash. Very sad.
@@ -122,17 +299,14 @@ fn insert_resourcelist(demo: &mut Demo, seq: i32) {
         data: netmsg_framedata,
     };
 
-    demo.directory.entries[0].frames.push(netmsg_frame);
-    demo.directory.entries[0].frame_count += 1;
-
-    // demo.directory.entries[0].frames[1] = netmsg_frame;
+    // demo.directory.entries[0].frames.push(netmsg_frame);
+    demo.directory.entries[0].frames.insert(1, netmsg_frame);
+    // demo.directory.entries[0].frame_count += 1;
 }
 
-/// checking out what can be deleted
-fn removing_msg(demo: &mut Demo) {
+fn isolated_case(demo: &mut Demo) {
     let (mut delta_decoders, mut custom_messages) = init_parse!(demo);
-
-    if let FrameData::NetMsg((_, data)) = &mut demo.directory.entries[0].frames[1].data {
+    if let FrameData::NetMsg((_, data)) = &mut demo.directory.entries[0].frames[0].data {
         let (_, messages) =
             parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
 
@@ -142,68 +316,88 @@ fn removing_msg(demo: &mut Demo) {
                 !matches!(
                     msg,
                     Message::EngineMessage(
-                        // EngineMessage::SvcCustomization(_)
-                        //     | EngineMessage::SvcUpdateUserInfo(_)
-                        //     | EngineMessage::SvcTime(_)
-                        //     | EngineMessage::SvcClientData(_)
-                        //     | EngineMessage::SvcLightStyle(_)
-                        //     | EngineMessage::SvcResourceRequest(_)
-                        //     | EngineMessage::SvcSendExtraInfo(_)
-                        //     | EngineMessage::SvcNewMovevars(_)
-                        //     | EngineMessage::SvcCdTrack(_)
-                        //     | EngineMessage::SvcNewUserMsg(_)
-                        //     | EngineMessage::SvcStuffText(_)
-                            | EngineMessage::SvcResourceList(_)
-                    ) | Message::UserMessage(_)
+                        EngineMessage::SvcDeltaDescription(_)
+                            | EngineMessage::SvcServerInfo(_)
+                            | EngineMessage::SvcSetView(_)
+                            | EngineMessage::SvcNewMovevars(_)
+                            | EngineMessage::SvcNewUserMsg(_)
+                            | EngineMessage::SvcSendExtraInfo(_)
+                            | EngineMessage::SvcCdTrack(_)
+                            | EngineMessage::SvcStuffText(_) // | EngineMessage::SvcUpdateUserInfo(_)
+                            | EngineMessage::SvcUpdateUserInfo(_) // | EngineMessage::SvcSetView(_)
+                                                                  // | EngineMessage::SvcSetView(_)
+                    ) // | Message::UserMessage(_)
                 )
             })
             .collect();
 
-        let bsp = Resource {
-            type_: nbit_num!(ResourceType::Model, 4),
-            name: nbit_str!("maps/rvp_tundra-bhop.bsp\0"),
-            index: nbit_num!(1, 12),
-            size: nbit_num!(0, 3 * 8),
-            flags: nbit_num!(1, 3),
-            md5_hash: None,
-            has_extra_info: false,
-            extra_info: None,
+        let server_frame = ServerFrame {
+            game_dir: b"cstrike\0",
+            host_name: None,
+            map_file_name: b"maps/rvp_tundra-bhop.bsp\0",
         };
 
-        let v_usp = Resource {
-            type_: nbit_num!(ResourceType::Skin, 4),
-            name: nbit_str!("models/v_usp.mdl\0"),
-            index: nbit_num!(0, 12),
-            size: nbit_num!(0, 3 * 8),
-            flags: nbit_num!(0, 3),
-            md5_hash: None,
-            has_extra_info: false,
-            extra_info: None,
+        let server_info = SvcServerInfo {
+            protocol: 48,
+            spawn_count: 5, // ?
+            map_checksum: 0,
+            client_dll_hash: &[0u8; 16],
+            max_players: 1,
+            player_index: 0,
+            is_deathmatch: 0,
+            game_dir: server_frame.game_dir,
+            hostname: server_frame.host_name.unwrap_or(b"Ghost Demo Replay\0"),
+            map_file_name: server_frame.map_file_name,
+            map_cycle: &[
+                100, 101, 95, 97, 105, 114, 115, 116, 114, 105, 112, 13, 10, 99, 115, 95, 104, 97,
+                118, 97, 110, 97, 13, 10, 100, 101, 95, 99, 104, 97, 116, 101, 97, 117, 13, 10,
+                100, 101, 95, 97, 122, 116, 101, 99, 13, 10, 97, 115, 95, 111, 105, 108, 114, 105,
+                103, 13, 10, 99, 115, 95, 115, 105, 101, 103, 101, 13, 10, 100, 101, 95, 99, 98,
+                98, 108, 101, 13, 10, 100, 101, 95, 100, 117, 115, 116, 13, 10, 99, 115, 95, 55,
+                52, 55, 13, 10, 100, 101, 95, 112, 114, 111, 100, 105, 103, 121, 13, 10, 99, 115,
+                95, 97, 115, 115, 97, 117, 108, 116, 13, 10, 99, 115, 95, 111, 102, 102, 105, 99,
+                101, 13, 10, 99, 115, 95, 105, 116, 97, 108, 121, 13, 10, 99, 115, 95, 98, 97, 99,
+                107, 97, 108, 108, 101, 121, 13, 10, 99, 115, 95, 109, 105, 108, 105, 116, 105, 97,
+                13, 10, 100, 101, 95, 116, 114, 97, 105, 110, 13, 10, 13, 10, 13, 10, 13, 10, 13,
+                10, 0,
+            ], // must be null string
+            unknown: 0u8,
         };
 
-        let pl_steps: Vec<Resource> = (1..=4)
-            .map(|i| Resource {
-                type_: nbit_num!(ResourceType::Sound, 4),
-                name: nbit_str!(format!("player/pl_step{}.wav\0", i)),
-                index: nbit_num!(i + 1, 12), // remember to increment
-                size: nbit_num!(0, 3 * 8),
-                // TODO not sure what the flag does
-                flags: nbit_num!(0, 3),
-                md5_hash: None,
-                has_extra_info: false,
-                extra_info: None,
-            })
-            .collect();
+        messages.insert(0, wrap_message!(SvcServerInfo, server_info));
 
-        let resource_list = SvcResourceList {
-            resource_count: nbit_num!(6, 12), // remember to increase accordingly
-            resources: [vec![bsp, v_usp], pl_steps].concat(),
-            consistencies: vec![],
+        for m in get_cs_delta_msg!() {
+            messages.insert(1, wrap_message!(SvcDeltaDescription, m));
+        }
+
+        let new_movevars = SvcNewMoveVars {
+            gravity: 800.,
+            stop_speed: 75.,
+            max_speed: 320.,
+            spectator_max_speed: 500.,
+            accelerate: 5.,
+            airaccelerate: 10.,
+            water_accelerate: 10.,
+            friction: 4.,
+            edge_friction: 2.,
+            water_friction: 1.,
+            ent_garvity: 1.,
+            bounce: 1.,
+            step_size: 18.,
+            max_velocity: 2000.,
+            z_max: 409600.,
+            wave_height: 0.,
+            footsteps: 1,
+            roll_angle: 0.,
+            roll_speed: -1.9721523e-31, // have to use these magic numbers to work
+            sky_color: vec![-1.972168e-31, -1.972168e-31, 9.4e-44],
+            sky_vec: vec![-0.0, 2.68e-43, 2.7721908e20],
+            sky_name: &[0],
         };
+        messages.insert(8, wrap_message!(SvcNewMovevars, new_movevars));
 
-        messages.push(Message::EngineMessage(EngineMessage::SvcResourceList(
-            resource_list,
-        )));
+        let set_view = SvcSetView { entity_index: 1 }; // always 1
+        messages.insert(9, wrap_message!(SvcSetView, set_view));
 
         let write = write_netmsg(messages, &delta_decoders, &custom_messages);
 
@@ -224,8 +418,23 @@ pub fn insert_ghost(
     let ghost_info = get_ghost(ghost_file_name, &0.);
     // let (delta_decoders, custom_messages) = init_parse!(demo);
 
-    removing_msg(demo);
-    // insert_resourcelist(demo, 3);
+    // removing_msg(demo);
+
+    demo.directory.entries[0].frames.remove(1);
+    insert_resourcelist(demo, 2);
+
+    demo.directory.entries[0].frames.remove(0);
+    insert_server(
+        demo,
+        ServerFrame {
+            game_dir: b"cstrike\0",
+            host_name: None,
+            map_file_name: b"maps/rvp_tundra-bhop.bsp\0",
+        },
+        2,
+    );
+
+    // isolated_case(demo);
 
     // set directory entry info
     let entry1 = &mut demo.directory.entries[1];
@@ -308,49 +517,47 @@ pub fn insert_ghost(
 
         // play jump sound
         if let Some(buttons) = frame.buttons {
-            if buttons & Buttons::Jump as u32 != 0 && curr_z_vel > last_z_vel {
-                if speed > 150. {
-                    let svcsound = SvcSound {
-                        flags: bitvec![u8, Lsb0; 1, 1, 1, 0, 0, 0, 0, 0, 0].into(),
-                        volume: nbit_num!(128, 8).into(),
-                        attenuation: nbit_num!(204, 8).into(),
-                        channel: nbit_num!(5, 3).into(),
-                        entity_index: nbit_num!(1, 11).into(),
-                        sound_index_long: nbit_num!(rand_int_range!(2, 5), 16).into(),
-                        sound_index_short: None,
-                        has_x: true,
-                        has_y: true,
-                        has_z: true,
-                        origin_x: Some(OriginCoord {
-                            int_flag: true,
-                            fraction_flag: false,
-                            is_negative: frame.origin[0].is_sign_negative().into(),
-                            int_value: nbit_num!(frame.origin[0].round().abs() as i32, 12).into(),
-                            fraction_value: None,
-                        }),
-                        origin_y: Some(OriginCoord {
-                            int_flag: true,
-                            fraction_flag: false,
-                            is_negative: frame.origin[1].is_sign_negative().into(),
-                            int_value: nbit_num!(frame.origin[1].round().abs() as i32, 12).into(),
-                            fraction_value: None,
-                        }),
-                        origin_z: Some(OriginCoord {
-                            int_flag: true,
-                            fraction_flag: false,
-                            is_negative: frame.origin[2].is_sign_negative().into(),
-                            int_value: nbit_num!(frame.origin[2].round().abs() as i32, 12).into(),
-                            fraction_value: None,
-                        }),
-                        pitch: bitvec![u8, Lsb0; 1, 0, 0, 0, 0, 0, 0, 0].into(),
-                    };
+            if buttons & Buttons::Jump as u32 != 0 && curr_z_vel > last_z_vel && speed > 150. {
+                let svcsound = SvcSound {
+                    flags: bitvec![u8, Lsb0; 1, 1, 1, 0, 0, 0, 0, 0, 0].into(),
+                    volume: nbit_num!(128, 8).into(),
+                    attenuation: nbit_num!(204, 8).into(),
+                    channel: nbit_num!(5, 3).into(),
+                    entity_index: nbit_num!(1, 11).into(),
+                    sound_index_long: nbit_num!(rand_int_range!(2, 5), 16).into(),
+                    sound_index_short: None,
+                    has_x: true,
+                    has_y: true,
+                    has_z: true,
+                    origin_x: Some(OriginCoord {
+                        int_flag: true,
+                        fraction_flag: false,
+                        is_negative: frame.origin[0].is_sign_negative().into(),
+                        int_value: nbit_num!(frame.origin[0].round().abs() as i32, 12).into(),
+                        fraction_value: None,
+                    }),
+                    origin_y: Some(OriginCoord {
+                        int_flag: true,
+                        fraction_flag: false,
+                        is_negative: frame.origin[1].is_sign_negative().into(),
+                        int_value: nbit_num!(frame.origin[1].round().abs() as i32, 12).into(),
+                        fraction_value: None,
+                    }),
+                    origin_z: Some(OriginCoord {
+                        int_flag: true,
+                        fraction_flag: false,
+                        is_negative: frame.origin[2].is_sign_negative().into(),
+                        int_value: nbit_num!(frame.origin[2].round().abs() as i32, 12).into(),
+                        fraction_value: None,
+                    }),
+                    pitch: bitvec![u8, Lsb0; 1, 0, 0, 0, 0, 0, 0, 0].into(),
+                };
 
-                    let svcsound_msg = Sound::write(svcsound);
+                let svcsound_msg = Sound::write(svcsound);
 
-                    new_netmsg_data.msg = [new_netmsg_data.msg.to_owned(), svcsound_msg]
-                        .concat()
-                        .leak();
-                }
+                new_netmsg_data.msg = [new_netmsg_data.msg.to_owned(), svcsound_msg]
+                    .concat()
+                    .leak();
             }
         }
         // play step sound every 0.3 on ground
