@@ -38,12 +38,11 @@ use demosuperimpose_goldsrc::{
     types::{EngineMessage, Message, SvcDeltaDescription, SvcResourceList, SvcSound},
     utils::{NetMsgDataMethods, ResourceType},
 };
-use hldemo::parse::frame::netmsg;
 use hldemo::{
     parse::frame, ClientDataData, Demo, DemoBufferData, Frame, FrameData, MoveVars, NetMsgData,
     NetMsgFrameType, NetMsgInfo, RefParams, UserCmd,
 };
-use serde::de::IntoDeserializer;
+use nom::sequence::tuple;
 
 use crate::get_cs_delta_decoder_table;
 
@@ -84,7 +83,20 @@ struct BaselineEntity<'a> {
     modelindex: usize,
 }
 
-const BASELINE_ENTITIES: &[&str] = &["func_door", "func_illusionary", "cycler_sprite"];
+// array of allowed render objects in demo
+const BASELINE_ENTITIES_BRUSH: &[&str] = &["func_door", "func_illusionary"];
+const BASELINE_ENTITIES_CYCLER: &[&str] = &["cycler_sprite"];
+
+use nom::character::complete::i32;
+use nom::character::complete::space0;
+use nom::combinator::map;
+use nom::IResult;
+fn parse_3_i32(i: &str) -> IResult<&str, (i32, i32, i32)> {
+    map(
+        tuple((i32, space0, i32, space0, i32)),
+        |(i1, _, i2, _, i3)| (i1, i2, i3),
+    )(i)
+}
 
 /// frame 0: SvcServerInfo SvcDeltaDescription SvcSetView SvcNewMovevars
 ///
@@ -101,7 +113,7 @@ const BASELINE_ENTITIES: &[&str] = &["func_door", "func_illusionary", "cycler_sp
 /// frame 3: SvcSpawnBaseline, SvcSignOnNum(_) = 1,
 ///
 /// frame 4: svcpackent entity
-/// 
+///
 /// returns the index of game resources for ghost to generate footstep
 fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
     // add maps entities first with its models, named "*{number}" and so on until we are done
@@ -121,7 +133,11 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
         .filter(|(_, ent)| {
             ent.properties()
                 .get("classname")
-                .map(|classname| BASELINE_ENTITIES.contains(classname))
+                .map(|classname| {
+                    [BASELINE_ENTITIES_BRUSH, BASELINE_ENTITIES_CYCLER]
+                        .concat()
+                        .contains(classname)
+                })
                 .is_some_and(|x| x == true)
         })
         // after this filtering, we know which order of resourcelist will go,
@@ -259,7 +275,7 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
     };
     let resource_list = ResourceList::write(resource_list);
 
-    let bsp_entity = EntityS {
+    let worldspawn = EntityS {
         entity_index: 0, // worldspawn is index 0
         index: nbit_num!(0, 11),
         type_: nbit_num!(1, 2),
@@ -270,11 +286,62 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
         ]),
     };
 
-    let entities = vec![bsp_entity];
+    let bsp_entities_baseline: Vec<EntityS> = baseline_entities
+        .iter()
+        .map(|ent| {
+            let mut delta = Delta::new();
+
+            // from ent.properties, we don't have null terminator
+            // but inserting into our delta we need null terminator
+            if let Some(property) = ent.properties.get("rendermode") {
+                delta.insert(
+                    "rendermode\0".to_owned(),
+                    property.parse::<u32>().unwrap_or(0).to_le_bytes().to_vec(),
+                );
+            }
+
+            if let Some(property) = ent.properties.get("renderamt") {
+                delta.insert(
+                    "renderamt\0".to_owned(),
+                    property.parse::<u32>().unwrap_or(0).to_le_bytes().to_vec(),
+                );
+            }
+
+            if let Some(property) = ent.properties.get("origin") {
+                let (_, (x, y, z)) = parse_3_i32(&property).unwrap();
+
+                delta.insert("origin[0]\0".to_owned(), x.to_le_bytes().to_vec());
+                delta.insert("origin[1]\0".to_owned(), y.to_le_bytes().to_vec());
+                delta.insert("origin[2]\0".to_owned(), z.to_le_bytes().to_vec());
+            }
+
+            if let Some(property) = ent.properties.get("angles") {
+                let (_, (x, y, z)) = parse_3_i32(&property).unwrap();
+
+                delta.insert("angles[0]\0".to_owned(), x.to_le_bytes().to_vec());
+                delta.insert("angles[1]\0".to_owned(), y.to_le_bytes().to_vec());
+                delta.insert("angles[2]\0".to_owned(), z.to_le_bytes().to_vec());
+            }
+
+            delta.insert(
+                "modelindex\0".to_owned(),
+                ent.modelindex.to_le_bytes().to_vec(),
+            );
+
+            EntityS {
+                entity_index: ent.index as u16,
+                index: nbit_num!(ent.index, 11),
+                type_: nbit_num!(1, 2),
+                delta,
+            }
+        })
+        .collect();
+
+    let spawn_baseline_entities = vec![vec![worldspawn], bsp_entities_baseline].concat();
 
     // max_client should be 1 because we are playing demo and it is OK.
     let spawn_baseline = SvcSpawnBaseline {
-        entities,
+        entities: spawn_baseline_entities,
         total_extra_data: nbit_num!(0, 6),
         extra_data: vec![],
     };
@@ -283,6 +350,11 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
 
     let sign_on_num = SvcSignOnNum { sign: 1 };
     let sign_on_num = SignOnNum::write(sign_on_num);
+
+    // making entities appearing
+    // packet entities is not enough
+    // we need delta packet entities also to make the entities appear
+    // svcpacketentity is almost redundant but just add it there to make sure
 
     let mut new_netmsg_data = NetMsgData::new(2);
     new_netmsg_data.msg = [
@@ -513,7 +585,11 @@ pub fn insert_ghost(
                     attenuation: nbit_num!(204, 8).into(),
                     channel: nbit_num!(5, 3).into(),
                     entity_index: nbit_num!(1, 11).into(),
-                    sound_index_long: nbit_num!(rand_int_range!(footstep_sound_index_start, footstep_sound_index_start + 3), 16).into(),
+                    sound_index_long: nbit_num!(
+                        rand_int_range!(footstep_sound_index_start, footstep_sound_index_start + 3),
+                        16
+                    )
+                    .into(),
                     sound_index_short: None,
                     has_x: true,
                     has_y: true,
@@ -560,7 +636,11 @@ pub fn insert_ghost(
                 attenuation: nbit_num!(204, 8).into(),
                 channel: nbit_num!(5, 3).into(),
                 entity_index: nbit_num!(1, 11).into(),
-                sound_index_long: nbit_num!(rand_int_range!(footstep_sound_index_start, footstep_sound_index_start + 3), 16).into(),
+                sound_index_long: nbit_num!(
+                    rand_int_range!(footstep_sound_index_start, footstep_sound_index_start + 3),
+                    16
+                )
+                .into(),
                 sound_index_short: None,
                 has_x: true,
                 has_y: true,
