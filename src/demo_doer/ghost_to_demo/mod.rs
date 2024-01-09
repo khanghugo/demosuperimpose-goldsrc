@@ -77,9 +77,12 @@ struct ServerFrame<'a> {
     map_file_name: &'a [u8],
 }
 
-/// Including SvcServerInfo SvcDeltaDescription SvcSetView SvcNewMovevars
-fn insert_server(demo: &mut Demo, server_frame: ServerFrame, seq: i32) {
-    let mut new_netmsg_data = NetMsgData::new(seq);
+fn insert_base_demo(demo: &mut Demo) {
+    let server_frame = ServerFrame {
+        game_dir: b"cstrike\0",
+        host_name: None,
+        map_file_name: b"maps/rvp_tundra-bhop.bsp\0",
+    };
 
     let server_info = SvcServerInfo {
         protocol: 48,
@@ -131,28 +134,6 @@ fn insert_server(demo: &mut Demo, server_frame: ServerFrame, seq: i32) {
     };
     let new_movevars = NewMovevars::write(new_movevars);
 
-    new_netmsg_data.msg = [server_info, dds, set_view, new_movevars].concat().leak();
-    println!("{:?}", new_netmsg_data.msg);
-
-    let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
-    let netmsg_frame = Frame {
-        time: 0.,
-        frame: 0,
-        data: netmsg_framedata,
-    };
-
-    demo.directory.entries[0].frames.insert(0, netmsg_frame);
-    // demo.directory.entries[0].frame_count += 1;
-}
-
-/// `seq` is again to make sure things don't crash. Very sad.
-fn insert_resourcelist(demo: &mut Demo, seq: i32) {
-    // Resource list is counted by index
-    // bsp file index must be 1
-    // 1 bsp
-    // 0 = usp model
-    // 2-5 = pl_step
-
     let bsp = Resource {
         type_: nbit_num!(ResourceType::Model, 4),
         name: nbit_str!("maps/rvp_tundra-bhop.bsp\0"),
@@ -197,26 +178,9 @@ fn insert_resourcelist(demo: &mut Demo, seq: i32) {
         resources,
         consistencies: vec![],
     };
-
     let resource_list = ResourceList::write(resource_list);
 
-    let mut new_netmsg_data = NetMsgData::new(seq);
-    new_netmsg_data.msg = resource_list.leak();
-
-    let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
-    let netmsg_frame = Frame {
-        time: 0.,
-        frame: 0,
-        data: netmsg_framedata,
-    };
-
-    // demo.directory.entries[0].frames.push(netmsg_frame);
-    demo.directory.entries[0].frames.insert(1, netmsg_frame);
-    // demo.directory.entries[0].frame_count += 1;
-}
-
-fn insert_baseline(demo: &mut Demo, seq: i32) {
-    let bsp = EntityS {
+    let bsp_entity = EntityS {
         entity_index: 0, // worldspawn is index 0
         index: nbit_num!(0, 11),
         type_: nbit_num!(1, 2),
@@ -227,7 +191,7 @@ fn insert_baseline(demo: &mut Demo, seq: i32) {
         ]),
     };
 
-    let entities = vec![bsp];
+    let entities = vec![bsp_entity];
 
     // max_client should be 1 because we are playing demo and it is OK.
     let spawn_baseline = SvcSpawnBaseline {
@@ -241,8 +205,8 @@ fn insert_baseline(demo: &mut Demo, seq: i32) {
     let sign_on_num = SvcSignOnNum { sign: 1 };
     let sign_on_num = SignOnNum::write(sign_on_num);
 
-    let mut new_netmsg_data = NetMsgData::new(seq);
-    new_netmsg_data.msg = [spawn_baseline, sign_on_num].concat().leak();
+    let mut new_netmsg_data = NetMsgData::new(2);
+    new_netmsg_data.msg = [server_info, dds, set_view, new_movevars, resource_list, spawn_baseline, sign_on_num].concat().leak();
 
     let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
     let netmsg_frame = Frame {
@@ -251,7 +215,8 @@ fn insert_baseline(demo: &mut Demo, seq: i32) {
         data: netmsg_framedata,
     };
 
-    demo.directory.entries[0].frames.insert(3, netmsg_frame);
+    demo.directory.entries[0].frames.insert(0, netmsg_frame);
+
 }
 
 fn isolated_case(demo: &mut Demo) {
@@ -370,22 +335,15 @@ pub fn insert_ghost(
 
     // removing_msg(demo);
 
-    demo.directory.entries[0].frames.remove(1);
-    insert_resourcelist(demo, 2);
 
     demo.directory.entries[0].frames.remove(0);
-    insert_server(
-        demo,
-        ServerFrame {
-            game_dir: b"cstrike\0",
-            host_name: None,
-            map_file_name: b"maps/rvp_tundra-bhop.bsp\0",
-        },
-        3,
-    );
+    demo.directory.entries[0].frames.remove(0);
+    demo.directory.entries[0].frames.remove(0);
+    demo.directory.entries[0].frames.remove(0);
+    demo.directory.entries[0].frame_count -= 4;
 
-    demo.directory.entries[0].frames.remove(3);
-    insert_baseline(demo, 4);
+    insert_base_demo(demo);
+    demo.directory.entries[0].frame_count += 1;
 
     // set directory entry info
     let entry1 = &mut demo.directory.entries[1];
@@ -573,6 +531,7 @@ pub fn insert_ghost(
         time += frametime;
         time_step -= frametime;
         last_pos = frame.origin;
+        last_z_vel = curr_z_vel;
     }
 
     // demo section end :DD
