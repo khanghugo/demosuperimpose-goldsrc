@@ -1,23 +1,12 @@
 // bsp info to insert
 // ghost demo to insert
 
-/// frame 0: SvcServerInfo SvcDeltaDescription SvcSetView SvcNewMovevars
-///
-/// SvcSetView needs setting to 1 otherwise game crash
-///
-/// SvcNewMovevars is needed otherwise game black screen
-///
-/// SvcServerInfo: wrong checksum ok
-///
-/// frame 1: SvcResourceList
-/// frame 2: 8 nopes, omittable
-/// frame 3: SvcSpawnBaseline, SvcSignOnNum(_) = 1,
-/// frame 4: svcpackent entity
-///
-/// Total needed frames is 4
 use bitvec::bitvec;
 use bitvec::prelude::*;
 
+use bsp_file::bsp::LumpType;
+use bsp_file::bsp::RawMap;
+use bsp_render::level::entities::parse_entities;
 use demosuperimpose_goldsrc::get_cs_delta_msg;
 use demosuperimpose_goldsrc::netmsg_doer::delta_description::DeltaDescription;
 use demosuperimpose_goldsrc::netmsg_doer::new_movevars::NewMovevars;
@@ -60,8 +49,6 @@ use crate::get_cs_delta_decoder_table;
 
 use super::get_ghost::get_ghost;
 
-pub mod bsp;
-
 const DEMO_BUFFER_SIZE: [u8; 8] = [1, 0, 0, 0, 0, 0, 180, 66];
 const DEFAULT_IN_SEQ: i32 = 1969;
 const STEP_TIME: f32 = 0.3;
@@ -77,7 +64,79 @@ struct ServerFrame<'a> {
     map_file_name: &'a [u8],
 }
 
-fn insert_base_demo(demo: &mut Demo) {
+pub fn ghost_to_demo(ghost_file_name: &str, map_file_name: &str, demo: &mut Demo) {
+    demo.directory.entries[0].frames.remove(0);
+    demo.directory.entries[0].frames.remove(0);
+    demo.directory.entries[0].frames.remove(0);
+    demo.directory.entries[0].frames.remove(0);
+    demo.directory.entries[0].frame_count -= 4;
+
+    let game_resource_index_start = insert_base_netmsg(demo, map_file_name);
+    demo.directory.entries[0].frame_count += 1;
+
+    insert_ghost(demo, ghost_file_name, None, None, game_resource_index_start);
+}
+
+#[derive(Debug)]
+struct BaselineEntity<'a> {
+    index: usize,
+    properties: std::collections::HashMap<&'a str, &'a str>,
+    modelindex: usize,
+}
+
+const BASELINE_ENTITIES: &[&str] = &["func_door", "func_illusionary", "cycler_sprite"];
+
+/// frame 0: SvcServerInfo SvcDeltaDescription SvcSetView SvcNewMovevars
+///
+/// SvcSetView needs setting to 1 otherwise game crash
+///
+/// SvcNewMovevars is needed otherwise game black screen
+///
+/// SvcServerInfo: wrong checksum ok
+///
+/// frame 1: SvcResourceList
+///
+/// frame 2: 8 nopes, omittable
+///
+/// frame 3: SvcSpawnBaseline, SvcSignOnNum(_) = 1,
+///
+/// frame 4: svcpackent entity
+/// 
+/// returns the index of game resources for ghost to generate footstep
+fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
+    // add maps entities first with its models, named "*{number}" and so on until we are done
+    // by then we can insert our own custom files
+    // bsp is still cached first as 0
+    // each baseline_entities will have `model` key. To insert that into baseline, we have to
+    // translate that into `modelindex` instead.
+    let bsp_file = std::fs::read(map_file_name).unwrap();
+    let raw_map = RawMap::parse(bsp_file.leak()).unwrap();
+
+    let bsp_entities = parse_entities(raw_map.lump_data(LumpType::Entities)).unwrap();
+    let baseline_entities: Vec<BaselineEntity<'_>> = bsp_entities
+        .entities()
+        .iter()
+        .enumerate()
+        .skip(33) // skip 33 because 0 is bsp and 1-32 are players
+        .filter(|(_, ent)| {
+            ent.properties()
+                .get("classname")
+                .map(|classname| BASELINE_ENTITIES.contains(classname))
+                .is_some_and(|x| x == true)
+        })
+        // after this filtering, we know which order of resourcelist will go,
+        // so we can just enumerate them again and we just need to go with that order
+        .enumerate()
+        .map(|(modelindex, (index, ent))| BaselineEntity {
+            index: index + 1, // at this point the index is nicely offset by 1 just fine
+            properties: ent.properties().to_owned(),
+            modelindex: modelindex + 2, // 1 is bsp, 0 is unused.
+        })
+        .collect();
+
+    // println!("{:?}", baseline_entities);
+
+    // panic!();
     let server_frame = ServerFrame {
         game_dir: b"cstrike\0",
         host_name: None,
@@ -134,6 +193,8 @@ fn insert_base_demo(demo: &mut Demo) {
     };
     let new_movevars = NewMovevars::write(new_movevars);
 
+    // bsp is always 1, then func_door and illusionary and whatever renders
+    // maps resources first
     let bsp = Resource {
         type_: nbit_num!(ResourceType::Model, 4),
         name: nbit_str!("maps/rvp_tundra-bhop.bsp\0"),
@@ -145,10 +206,27 @@ fn insert_base_demo(demo: &mut Demo) {
         extra_info: None,
     };
 
+    let bsp_entities_resource: Vec<Resource> = baseline_entities
+        .iter()
+        .map(|ent| Resource {
+            type_: nbit_num!(ResourceType::Model, 4), // blocks and .mdl are all type 2
+            name: nbit_str!(format!("{}\0", ent.properties.get("model").unwrap())),
+            index: nbit_num!(ent.modelindex, 12), // this is modelindex
+            size: nbit_num!(0, 3 * 8),
+            flags: nbit_num!(1, 3), // this could be interpolation flag?
+            md5_hash: None,
+            has_extra_info: false,
+            extra_info: None,
+        })
+        .collect();
+
+    // after that, we can have our own models, game resources later
+    let game_resource_index_start = baseline_entities.len() + 2;
+
     let v_usp = Resource {
         type_: nbit_num!(ResourceType::Skin, 4),
         name: nbit_str!("models/v_usp.mdl\0"),
-        index: nbit_num!(0, 12),
+        index: nbit_num!(game_resource_index_start, 12),
         size: nbit_num!(0, 3 * 8),
         flags: nbit_num!(0, 3),
         md5_hash: None,
@@ -156,11 +234,11 @@ fn insert_base_demo(demo: &mut Demo) {
         extra_info: None,
     };
 
-    let pl_steps: Vec<Resource> = (1..=4)
+    let pl_steps: Vec<Resource> = (1..=4) // range like this is awkward
         .map(|i| Resource {
             type_: nbit_num!(ResourceType::Sound, 4),
             name: nbit_str!(format!("player/pl_step{}.wav\0", i)),
-            index: nbit_num!(i + 1, 12), // remember to increment
+            index: nbit_num!(game_resource_index_start + i, 12), // remember to increment
             size: nbit_num!(0, 3 * 8),
             // TODO not sure what the flag does
             flags: nbit_num!(0, 3),
@@ -171,7 +249,8 @@ fn insert_base_demo(demo: &mut Demo) {
         .collect();
 
     // add resources here
-    let resources = [vec![bsp, v_usp], pl_steps].concat();
+    // the order doesn't matter because we already specify the resource index
+    let resources = [vec![bsp, v_usp], pl_steps, bsp_entities_resource].concat();
 
     let resource_list = SvcResourceList {
         resource_count: nbit_num!(resources.len(), 12),
@@ -206,7 +285,17 @@ fn insert_base_demo(demo: &mut Demo) {
     let sign_on_num = SignOnNum::write(sign_on_num);
 
     let mut new_netmsg_data = NetMsgData::new(2);
-    new_netmsg_data.msg = [server_info, dds, set_view, new_movevars, resource_list, spawn_baseline, sign_on_num].concat().leak();
+    new_netmsg_data.msg = [
+        server_info,
+        dds,
+        set_view,
+        new_movevars,
+        resource_list,
+        spawn_baseline,
+        sign_on_num,
+    ]
+    .concat()
+    .leak();
 
     let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
     let netmsg_frame = Frame {
@@ -217,6 +306,7 @@ fn insert_base_demo(demo: &mut Demo) {
 
     demo.directory.entries[0].frames.insert(0, netmsg_frame);
 
+    game_resource_index_start
 }
 
 fn isolated_case(demo: &mut Demo) {
@@ -328,22 +418,10 @@ pub fn insert_ghost(
     ghost_file_name: &str,
     override_frametime: Option<f32>,
     override_fov: Option<f32>,
+    game_resource_index_start: usize,
 ) {
     // setup
     let ghost_info = get_ghost(ghost_file_name, &0.);
-    // let (delta_decoders, custom_messages) = init_parse!(demo);
-
-    // removing_msg(demo);
-
-
-    demo.directory.entries[0].frames.remove(0);
-    demo.directory.entries[0].frames.remove(0);
-    demo.directory.entries[0].frames.remove(0);
-    demo.directory.entries[0].frames.remove(0);
-    demo.directory.entries[0].frame_count -= 4;
-
-    insert_base_demo(demo);
-    demo.directory.entries[0].frame_count += 1;
 
     // set directory entry info
     let entry1 = &mut demo.directory.entries[1];
@@ -424,6 +502,8 @@ pub fn insert_ghost(
             time_step = STEP_TIME + 0.1;
         }
 
+        let footstep_sound_index_start = game_resource_index_start + 1;
+
         // play jump sound
         if let Some(buttons) = frame.buttons {
             if buttons & Buttons::Jump as u32 != 0 && curr_z_vel > last_z_vel && speed > 150. {
@@ -433,7 +513,7 @@ pub fn insert_ghost(
                     attenuation: nbit_num!(204, 8).into(),
                     channel: nbit_num!(5, 3).into(),
                     entity_index: nbit_num!(1, 11).into(),
-                    sound_index_long: nbit_num!(rand_int_range!(2, 5), 16).into(),
+                    sound_index_long: nbit_num!(rand_int_range!(footstep_sound_index_start, footstep_sound_index_start + 3), 16).into(),
                     sound_index_short: None,
                     has_x: true,
                     has_y: true,
@@ -480,7 +560,7 @@ pub fn insert_ghost(
                 attenuation: nbit_num!(204, 8).into(),
                 channel: nbit_num!(5, 3).into(),
                 entity_index: nbit_num!(1, 11).into(),
-                sound_index_long: nbit_num!(rand_int_range!(2, 5), 16).into(),
+                sound_index_long: nbit_num!(rand_int_range!(footstep_sound_index_start, footstep_sound_index_start + 3), 16).into(),
                 sound_index_short: None,
                 has_x: true,
                 has_y: true,
