@@ -81,6 +81,7 @@ struct BaselineEntity<'a> {
     index: usize,
     properties: std::collections::HashMap<&'a str, &'a str>,
     modelindex: usize,
+    delta: Delta,
 }
 
 // array of allowed render objects in demo
@@ -143,10 +144,49 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
         // after this filtering, we know which order of resourcelist will go,
         // so we can just enumerate them again and we just need to go with that order
         .enumerate()
-        .map(|(modelindex, (index, ent))| BaselineEntity {
-            index: index + 1, // at this point the index is nicely offset by 1 just fine
-            properties: ent.properties().to_owned(),
-            modelindex: modelindex + 2, // 1 is bsp, 0 is unused.
+        .map(|(modelindex, (index, ent))| {
+            let mut delta = Delta::new();
+
+            // from ent.properties, we don't have null terminator
+            // but inserting into our delta we need null terminator
+            if let Some(property) = ent.properties().get("rendermode") {
+                delta.insert(
+                    "rendermode\0".to_owned(),
+                    property.parse::<u32>().unwrap_or(0).to_le_bytes().to_vec(),
+                );
+            }
+
+            if let Some(property) = ent.properties().get("renderamt") {
+                delta.insert(
+                    "renderamt\0".to_owned(),
+                    property.parse::<u32>().unwrap_or(0).to_le_bytes().to_vec(),
+                );
+            }
+
+            if let Some(property) = ent.properties().get("origin") {
+                let (_, (x, y, z)) = parse_3_i32(&property).unwrap();
+
+                delta.insert("origin[0]\0".to_owned(), x.to_le_bytes().to_vec());
+                delta.insert("origin[1]\0".to_owned(), y.to_le_bytes().to_vec());
+                delta.insert("origin[2]\0".to_owned(), z.to_le_bytes().to_vec());
+            }
+
+            if let Some(property) = ent.properties().get("angles") {
+                let (_, (x, y, z)) = parse_3_i32(&property).unwrap();
+
+                delta.insert("angles[0]\0".to_owned(), x.to_le_bytes().to_vec());
+                delta.insert("angles[1]\0".to_owned(), y.to_le_bytes().to_vec());
+                delta.insert("angles[2]\0".to_owned(), z.to_le_bytes().to_vec());
+            }
+
+            delta.insert("modelindex\0".to_owned(), modelindex.to_le_bytes().to_vec());
+
+            BaselineEntity {
+                index: index + 1, // at this point the index is nicely offset by 1 just fine
+                properties: ent.properties().to_owned(),
+                modelindex: modelindex + 2, // 1 is bsp, 0 is unused.
+                delta,
+            }
         })
         .collect();
 
@@ -288,52 +328,11 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
 
     let bsp_entities_baseline: Vec<EntityS> = baseline_entities
         .iter()
-        .map(|ent| {
-            let mut delta = Delta::new();
-
-            // from ent.properties, we don't have null terminator
-            // but inserting into our delta we need null terminator
-            if let Some(property) = ent.properties.get("rendermode") {
-                delta.insert(
-                    "rendermode\0".to_owned(),
-                    property.parse::<u32>().unwrap_or(0).to_le_bytes().to_vec(),
-                );
-            }
-
-            if let Some(property) = ent.properties.get("renderamt") {
-                delta.insert(
-                    "renderamt\0".to_owned(),
-                    property.parse::<u32>().unwrap_or(0).to_le_bytes().to_vec(),
-                );
-            }
-
-            if let Some(property) = ent.properties.get("origin") {
-                let (_, (x, y, z)) = parse_3_i32(&property).unwrap();
-
-                delta.insert("origin[0]\0".to_owned(), x.to_le_bytes().to_vec());
-                delta.insert("origin[1]\0".to_owned(), y.to_le_bytes().to_vec());
-                delta.insert("origin[2]\0".to_owned(), z.to_le_bytes().to_vec());
-            }
-
-            if let Some(property) = ent.properties.get("angles") {
-                let (_, (x, y, z)) = parse_3_i32(&property).unwrap();
-
-                delta.insert("angles[0]\0".to_owned(), x.to_le_bytes().to_vec());
-                delta.insert("angles[1]\0".to_owned(), y.to_le_bytes().to_vec());
-                delta.insert("angles[2]\0".to_owned(), z.to_le_bytes().to_vec());
-            }
-
-            delta.insert(
-                "modelindex\0".to_owned(),
-                ent.modelindex.to_le_bytes().to_vec(),
-            );
-
-            EntityS {
-                entity_index: ent.index as u16,
-                index: nbit_num!(ent.index, 11),
-                type_: nbit_num!(1, 2),
-                delta,
-            }
+        .map(|ent| EntityS {
+            entity_index: ent.index as u16,
+            index: nbit_num!(ent.index, 11),
+            type_: nbit_num!(1, 2),
+            delta: ent.delta.to_owned(),
         })
         .collect();
 
