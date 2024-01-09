@@ -944,18 +944,1476 @@ macro_rules! get_cs_delta_msg {
             ],
         };
 
-        // use demosuperimpose_goldsrc::netmsg_doer::delta_description::DeltaDescription;
-        // use demosuperimpose_goldsrc::netmsg_doer::NetMsgDoerWithDelta;
-        // use demosuperimpose_goldsrc::types::DeltaDecoderTable;
-
-        // let d1 = DeltaDescription::write(d1, &DeltaDecoderTable::new());
-        // let d2 = DeltaDescription::write(d2, &DeltaDecoderTable::new());
-        // let d3 = DeltaDescription::write(d3, &DeltaDecoderTable::new());
-        // let d4 = DeltaDescription::write(d4, &DeltaDecoderTable::new());
-        // let d5 = DeltaDescription::write(d5, &DeltaDecoderTable::new());
-        // let d6 = DeltaDescription::write(d6, &DeltaDecoderTable::new());
-        // let d7 = DeltaDescription::write(d7, &DeltaDecoderTable::new());
-
         [d1, d2, d3, d4, d5, d6, d7]
+    }};
+}
+
+#[macro_export]
+macro_rules! get_cs_delta_decoder_table {
+    () => {{
+        use demosuperimpose_goldsrc::types::DeltaDecoderS;
+
+        let mut dt = DeltaDecoderTable::new();
+
+        dt.insert(
+            "event_t\0".to_owned(),
+            vec![
+                DeltaDecoderS {
+                    name: vec![101, 110, 116, 105, 110, 100, 101, 120, 0],
+                    bits: 11,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 112, 97, 114, 97, 109, 49, 0],
+                    bits: 1,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 112, 97, 114, 97, 109, 50, 0],
+                    bits: 1,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 48, 93, 0],
+                    bits: 26,
+                    divisor: 8192.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 49, 93, 0],
+                    bits: 26,
+                    divisor: 8192.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 50, 93, 0],
+                    bits: 26,
+                    divisor: 8192.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 112, 97, 114, 97, 109, 49, 0],
+                    bits: 20,
+                    divisor: 100.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 112, 97, 114, 97, 109, 50, 0],
+                    bits: 20,
+                    divisor: 100.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 112, 97, 114, 97, 109, 49, 0],
+                    bits: 18,
+                    divisor: 1.0,
+                    flags: 2147483656,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 112, 97, 114, 97, 109, 50, 0],
+                    bits: 18,
+                    divisor: 1.0,
+                    flags: 2147483656,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 48, 93, 0],
+                    bits: 26,
+                    divisor: 8192.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 49, 93, 0],
+                    bits: 26,
+                    divisor: 8192.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 50, 93, 0],
+                    bits: 26,
+                    divisor: 8192.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![100, 117, 99, 107, 105, 110, 103, 0],
+                    bits: 1,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+            ],
+        );
+
+        dt.insert(
+            "weapon_data_t\0".to_owned(),
+            vec![
+                DeltaDecoderS {
+                    name: vec![
+                        109, 95, 102, 108, 84, 105, 109, 101, 87, 101, 97, 112, 111, 110, 73, 100,
+                        108, 101, 0,
+                    ],
+                    bits: 22,
+                    divisor: 1000.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        109, 95, 102, 108, 78, 101, 120, 116, 80, 114, 105, 109, 97, 114, 121, 65,
+                        116, 116, 97, 99, 107, 0,
+                    ],
+                    bits: 22,
+                    divisor: 1000.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        109, 95, 102, 108, 78, 101, 120, 116, 82, 101, 108, 111, 97, 100, 0,
+                    ],
+                    bits: 22,
+                    divisor: 1000.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        109, 95, 102, 78, 101, 120, 116, 65, 105, 109, 66, 111, 110, 117, 115, 0,
+                    ],
+                    bits: 22,
+                    divisor: 1000.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        109, 95, 102, 108, 78, 101, 120, 116, 83, 101, 99, 111, 110, 100, 97, 114,
+                        121, 65, 116, 116, 97, 99, 107, 0,
+                    ],
+                    bits: 22,
+                    divisor: 1000.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 95, 105, 67, 108, 105, 112, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 2147483656,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 95, 102, 108, 80, 117, 109, 112, 84, 105, 109, 101, 0],
+                    bits: 22,
+                    divisor: 1000.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        109, 95, 102, 73, 110, 83, 112, 101, 99, 105, 97, 108, 82, 101, 108, 111,
+                        97, 100, 0,
+                    ],
+                    bits: 2,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        109, 95, 102, 82, 101, 108, 111, 97, 100, 84, 105, 109, 101, 0,
+                    ],
+                    bits: 16,
+                    divisor: 100.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 95, 102, 73, 110, 82, 101, 108, 111, 97, 100, 0],
+                    bits: 1,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        109, 95, 102, 65, 105, 109, 101, 100, 68, 97, 109, 97, 103, 101, 0,
+                    ],
+                    bits: 22,
+                    divisor: 1000.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 95, 102, 73, 110, 90, 111, 111, 109, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        109, 95, 105, 87, 101, 97, 112, 111, 110, 83, 116, 97, 116, 101, 0,
+                    ],
+                    bits: 7,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 95, 105, 73, 100, 0],
+                    bits: 5,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 117, 115, 101, 114, 49, 0],
+                    bits: 22,
+                    divisor: 1000.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 117, 115, 101, 114, 50, 0],
+                    bits: 22,
+                    divisor: 128.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 117, 115, 101, 114, 51, 0],
+                    bits: 22,
+                    divisor: 128.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 117, 115, 101, 114, 49, 0],
+                    bits: 16,
+                    divisor: 128.0,
+                    flags: 2147483656,
+                },
+            ],
+        );
+        dt.insert(
+            "usercmd_t\0".to_owned(),
+            vec![
+                DeltaDecoderS {
+                    name: vec![108, 101, 114, 112, 95, 109, 115, 101, 99, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 2,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 115, 101, 99, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        118, 105, 101, 119, 97, 110, 103, 108, 101, 115, 91, 49, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 16,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        118, 105, 101, 119, 97, 110, 103, 108, 101, 115, 91, 48, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 16,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 117, 116, 116, 111, 110, 115, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 2,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 111, 114, 119, 97, 114, 100, 109, 111, 118, 101, 0],
+                    bits: 12,
+                    divisor: 1.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![108, 105, 103, 104, 116, 108, 101, 118, 101, 108, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 105, 100, 101, 109, 111, 118, 101, 0],
+                    bits: 12,
+                    divisor: 1.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![117, 112, 109, 111, 118, 101, 0],
+                    bits: 12,
+                    divisor: 1.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 109, 112, 117, 108, 115, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        118, 105, 101, 119, 97, 110, 103, 108, 101, 115, 91, 50, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 16,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 109, 112, 97, 99, 116, 95, 105, 110, 100, 101, 120, 0],
+                    bits: 6,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        105, 109, 112, 97, 99, 116, 95, 112, 111, 115, 105, 116, 105, 111, 110, 91,
+                        48, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        105, 109, 112, 97, 99, 116, 95, 112, 111, 115, 105, 116, 105, 111, 110, 91,
+                        49, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        105, 109, 112, 97, 99, 116, 95, 112, 111, 115, 105, 116, 105, 111, 110, 91,
+                        50, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+            ],
+        );
+        dt.insert(
+            "clientdata_t\0".to_owned(),
+            vec![
+                DeltaDecoderS {
+                    name: vec![
+                        102, 108, 84, 105, 109, 101, 83, 116, 101, 112, 83, 111, 117, 110, 100, 0,
+                    ],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 48, 93, 0],
+                    bits: 21,
+                    divisor: 128.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 49, 93, 0],
+                    bits: 21,
+                    divisor: 128.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 101, 108, 111, 99, 105, 116, 121, 91, 48, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 101, 108, 111, 99, 105, 116, 121, 91, 49, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        109, 95, 102, 108, 78, 101, 120, 116, 65, 116, 116, 97, 99, 107, 0,
+                    ],
+                    bits: 22,
+                    divisor: 1000.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 50, 93, 0],
+                    bits: 21,
+                    divisor: 128.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 101, 108, 111, 99, 105, 116, 121, 91, 50, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 109, 109, 111, 95, 110, 97, 105, 108, 115, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 2147483656,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 109, 109, 111, 95, 115, 104, 101, 108, 108, 115, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 2147483656,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 109, 109, 111, 95, 99, 101, 108, 108, 115, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 2147483656,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 109, 109, 111, 95, 114, 111, 99, 107, 101, 116, 115, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 2147483656,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 95, 105, 73, 100, 0],
+                    bits: 5,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        112, 117, 110, 99, 104, 97, 110, 103, 108, 101, 91, 50, 93, 0,
+                    ],
+                    bits: 21,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 108, 97, 103, 115, 0],
+                    bits: 32,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![119, 101, 97, 112, 111, 110, 97, 110, 105, 109, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![104, 101, 97, 108, 116, 104, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 97, 120, 115, 112, 101, 101, 100, 0],
+                    bits: 16,
+                    divisor: 10.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 108, 68, 117, 99, 107, 84, 105, 109, 101, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 105, 101, 119, 95, 111, 102, 115, 91, 50, 93, 0],
+                    bits: 10,
+                    divisor: 4.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        112, 117, 110, 99, 104, 97, 110, 103, 108, 101, 91, 48, 93, 0,
+                    ],
+                    bits: 26,
+                    divisor: 8192.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        112, 117, 110, 99, 104, 97, 110, 103, 108, 101, 91, 49, 93, 0,
+                    ],
+                    bits: 26,
+                    divisor: 8192.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 105, 101, 119, 109, 111, 100, 101, 108, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![119, 101, 97, 112, 111, 110, 115, 0],
+                    bits: 32,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![112, 117, 115, 104, 109, 115, 101, 99, 0],
+                    bits: 11,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![100, 101, 97, 100, 102, 108, 97, 103, 0],
+                    bits: 3,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 111, 118, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![112, 104, 121, 115, 105, 110, 102, 111, 0],
+                    bits: 1,
+                    divisor: 1.0,
+                    flags: 128,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 73, 110, 68, 117, 99, 107, 0],
+                    bits: 1,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 108, 83, 119, 105, 109, 84, 105, 109, 101, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        119, 97, 116, 101, 114, 106, 117, 109, 112, 116, 105, 109, 101, 0,
+                    ],
+                    bits: 15,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![119, 97, 116, 101, 114, 108, 101, 118, 101, 108, 0],
+                    bits: 2,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 117, 115, 101, 114, 49, 0],
+                    bits: 3,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 117, 115, 101, 114, 50, 0],
+                    bits: 6,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 117, 115, 101, 114, 51, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 117, 115, 101, 114, 52, 0],
+                    bits: 2,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 117, 115, 101, 114, 50, 91, 48, 93, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 117, 115, 101, 114, 50, 91, 49, 93, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 117, 115, 101, 114, 50, 91, 50, 93, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 117, 115, 101, 114, 51, 91, 48, 93, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 117, 115, 101, 114, 51, 91, 49, 93, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 117, 115, 101, 114, 51, 91, 50, 93, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 117, 115, 101, 114, 52, 91, 48, 93, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![118, 117, 115, 101, 114, 52, 91, 49, 93, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 117, 115, 101, 114, 49, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 117, 115, 101, 114, 50, 0],
+                    bits: 14,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 117, 115, 101, 114, 51, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+            ],
+        );
+        dt.insert(
+            "entity_state_player_t\0".to_owned(),
+            vec![
+                DeltaDecoderS {
+                    name: vec![97, 110, 105, 109, 116, 105, 109, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 32,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 114, 97, 109, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 48, 93, 0],
+                    bits: 18,
+                    divisor: 32.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 48, 93, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 16,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 49, 93, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 16,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 49, 93, 0],
+                    bits: 18,
+                    divisor: 32.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 50, 93, 0],
+                    bits: 18,
+                    divisor: 32.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![103, 97, 105, 116, 115, 101, 113, 117, 101, 110, 99, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 101, 113, 117, 101, 110, 99, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 111, 100, 101, 108, 105, 110, 100, 101, 120, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 111, 118, 101, 116, 121, 112, 101, 0],
+                    bits: 4,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 111, 108, 105, 100, 0],
+                    bits: 3,
+                    divisor: 1.0,
+                    flags: 2,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 105, 110, 115, 91, 48, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 105, 110, 115, 91, 49, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 105, 110, 115, 91, 50, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 97, 120, 115, 91, 48, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 97, 120, 115, 91, 49, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 97, 120, 115, 91, 50, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![119, 101, 97, 112, 111, 110, 109, 111, 100, 101, 108, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 119, 110, 101, 114, 0],
+                    bits: 5,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![101, 102, 102, 101, 99, 116, 115, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 50, 93, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 16,
+                },
+                DeltaDecoderS {
+                    name: vec![99, 111, 108, 111, 114, 109, 97, 112, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 114, 97, 109, 101, 114, 97, 116, 101, 0],
+                    bits: 8,
+                    divisor: 16.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 107, 105, 110, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 2147483650,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        99, 111, 110, 116, 114, 111, 108, 108, 101, 114, 91, 48, 93, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        99, 111, 110, 116, 114, 111, 108, 108, 101, 114, 91, 49, 93, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        99, 111, 110, 116, 114, 111, 108, 108, 101, 114, 91, 50, 93, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        99, 111, 110, 116, 114, 111, 108, 108, 101, 114, 91, 51, 93, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 108, 101, 110, 100, 105, 110, 103, 91, 48, 93, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 108, 101, 110, 100, 105, 110, 103, 91, 49, 93, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 111, 100, 121, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![114, 101, 110, 100, 101, 114, 109, 111, 100, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![114, 101, 110, 100, 101, 114, 97, 109, 116, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![114, 101, 110, 100, 101, 114, 102, 120, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 99, 97, 108, 101, 0],
+                    bits: 16,
+                    divisor: 256.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        114, 101, 110, 100, 101, 114, 99, 111, 108, 111, 114, 46, 114, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        114, 101, 110, 100, 101, 114, 99, 111, 108, 111, 114, 46, 103, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        114, 101, 110, 100, 101, 114, 99, 111, 108, 111, 114, 46, 98, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 114, 105, 99, 116, 105, 111, 110, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![117, 115, 101, 104, 117, 108, 108, 0],
+                    bits: 1,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![103, 114, 97, 118, 105, 116, 121, 0],
+                    bits: 16,
+                    divisor: 32.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 105, 109, 101, 110, 116, 0],
+                    bits: 11,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        98, 97, 115, 101, 118, 101, 108, 111, 99, 105, 116, 121, 91, 48, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        98, 97, 115, 101, 118, 101, 108, 111, 99, 105, 116, 121, 91, 49, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        98, 97, 115, 101, 118, 101, 108, 111, 99, 105, 116, 121, 91, 50, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 112, 101, 99, 116, 97, 116, 111, 114, 0],
+                    bits: 1,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 117, 115, 101, 114, 52, 0],
+                    bits: 2,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+            ],
+        );
+        dt.insert(
+            "delta_description_t\0".to_owned(),
+            vec![
+                DeltaDecoderS {
+                    name: vec![102, 108, 97, 103, 115],
+                    bits: 32,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![110, 97, 109, 101],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 128,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 102, 102, 115, 101, 116],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 105, 122, 101],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 105, 116, 115],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![100, 105, 118, 105, 115, 111, 114],
+                    bits: 32,
+                    divisor: 4000.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        112, 114, 101, 77, 117, 108, 116, 105, 112, 108, 105, 101, 114,
+                    ],
+                    bits: 32,
+                    divisor: 4000.0,
+                    flags: 4,
+                },
+            ],
+        );
+        dt.insert(
+            "entity_state_t\0".to_owned(),
+            vec![
+                DeltaDecoderS {
+                    name: vec![97, 110, 105, 109, 116, 105, 109, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 32,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 114, 97, 109, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 48, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 48, 93, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 16,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 49, 93, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 16,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 49, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 50, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 101, 113, 117, 101, 110, 99, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 111, 100, 101, 108, 105, 110, 100, 101, 120, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 111, 118, 101, 116, 121, 112, 101, 0],
+                    bits: 4,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 111, 108, 105, 100, 0],
+                    bits: 3,
+                    divisor: 1.0,
+                    flags: 2,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 105, 110, 115, 91, 48, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 105, 110, 115, 91, 49, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 105, 110, 115, 91, 50, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 97, 120, 115, 91, 48, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 97, 120, 115, 91, 49, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 97, 120, 115, 91, 50, 93, 0],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![101, 110, 100, 112, 111, 115, 91, 48, 93, 0],
+                    bits: 13,
+                    divisor: 1.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![101, 110, 100, 112, 111, 115, 91, 49, 93, 0],
+                    bits: 13,
+                    divisor: 1.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![101, 110, 100, 112, 111, 115, 91, 50, 93, 0],
+                    bits: 13,
+                    divisor: 1.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 116, 97, 114, 116, 112, 111, 115, 91, 48, 93, 0],
+                    bits: 13,
+                    divisor: 1.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 116, 97, 114, 116, 112, 111, 115, 91, 49, 93, 0],
+                    bits: 13,
+                    divisor: 1.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 116, 97, 114, 116, 112, 111, 115, 91, 50, 93, 0],
+                    bits: 13,
+                    divisor: 1.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 109, 112, 97, 99, 116, 116, 105, 109, 101, 0],
+                    bits: 13,
+                    divisor: 100.0,
+                    flags: 64,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 116, 97, 114, 116, 116, 105, 109, 101, 0],
+                    bits: 13,
+                    divisor: 100.0,
+                    flags: 64,
+                },
+                DeltaDecoderS {
+                    name: vec![119, 101, 97, 112, 111, 110, 109, 111, 100, 101, 108, 0],
+                    bits: 10,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 119, 110, 101, 114, 0],
+                    bits: 5,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![101, 102, 102, 101, 99, 116, 115, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![101, 102, 108, 97, 103, 115, 0],
+                    bits: 1,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 50, 93, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 16,
+                },
+                DeltaDecoderS {
+                    name: vec![99, 111, 108, 111, 114, 109, 97, 112, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 114, 97, 109, 101, 114, 97, 116, 101, 0],
+                    bits: 8,
+                    divisor: 16.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 107, 105, 110, 0],
+                    bits: 9,
+                    divisor: 1.0,
+                    flags: 2147483650,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        99, 111, 110, 116, 114, 111, 108, 108, 101, 114, 91, 48, 93, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        99, 111, 110, 116, 114, 111, 108, 108, 101, 114, 91, 49, 93, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        99, 111, 110, 116, 114, 111, 108, 108, 101, 114, 91, 50, 93, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        99, 111, 110, 116, 114, 111, 108, 108, 101, 114, 91, 51, 93, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 108, 101, 110, 100, 105, 110, 103, 91, 48, 93, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 108, 101, 110, 100, 105, 110, 103, 91, 49, 93, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 111, 100, 121, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![114, 101, 110, 100, 101, 114, 109, 111, 100, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![114, 101, 110, 100, 101, 114, 97, 109, 116, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![114, 101, 110, 100, 101, 114, 102, 120, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 99, 97, 108, 101, 0],
+                    bits: 16,
+                    divisor: 256.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        114, 101, 110, 100, 101, 114, 99, 111, 108, 111, 114, 46, 114, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        114, 101, 110, 100, 101, 114, 99, 111, 108, 111, 114, 46, 103, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        114, 101, 110, 100, 101, 114, 99, 111, 108, 111, 114, 46, 98, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 105, 109, 101, 110, 116, 0],
+                    bits: 11,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        98, 97, 115, 101, 118, 101, 108, 111, 99, 105, 116, 121, 91, 48, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        98, 97, 115, 101, 118, 101, 108, 111, 99, 105, 116, 121, 91, 49, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        98, 97, 115, 101, 118, 101, 108, 111, 99, 105, 116, 121, 91, 50, 93, 0,
+                    ],
+                    bits: 16,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![105, 117, 115, 101, 114, 52, 0],
+                    bits: 2,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+            ],
+        );
+        dt.insert(
+            "custom_entity_state_t\0".to_owned(),
+            vec![
+                DeltaDecoderS {
+                    name: vec![114, 101, 110, 100, 101, 114, 109, 111, 100, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 48, 93, 0],
+                    bits: 17,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 49, 93, 0],
+                    bits: 17,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![111, 114, 105, 103, 105, 110, 91, 50, 93, 0],
+                    bits: 17,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 48, 93, 0],
+                    bits: 17,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 49, 93, 0],
+                    bits: 17,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 103, 108, 101, 115, 91, 50, 93, 0],
+                    bits: 17,
+                    divisor: 8.0,
+                    flags: 2147483652,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 101, 113, 117, 101, 110, 99, 101, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 107, 105, 110, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![109, 111, 100, 101, 108, 105, 110, 100, 101, 120, 0],
+                    bits: 16,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![115, 99, 97, 108, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![98, 111, 100, 121, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        114, 101, 110, 100, 101, 114, 99, 111, 108, 111, 114, 46, 114, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        114, 101, 110, 100, 101, 114, 99, 111, 108, 111, 114, 46, 103, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![
+                        114, 101, 110, 100, 101, 114, 99, 111, 108, 111, 114, 46, 98, 0,
+                    ],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 1,
+                },
+                DeltaDecoderS {
+                    name: vec![114, 101, 110, 100, 101, 114, 102, 120, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![114, 101, 110, 100, 101, 114, 97, 109, 116, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 8,
+                },
+                DeltaDecoderS {
+                    name: vec![102, 114, 97, 109, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+                DeltaDecoderS {
+                    name: vec![97, 110, 105, 109, 116, 105, 109, 101, 0],
+                    bits: 8,
+                    divisor: 1.0,
+                    flags: 4,
+                },
+            ],
+        );
+
+        dt
     }};
 }

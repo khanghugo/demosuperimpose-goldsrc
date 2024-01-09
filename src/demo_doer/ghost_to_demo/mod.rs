@@ -14,6 +14,7 @@
 /// frame 3: SvcSpawnBaseline, SvcSignOnNum(_) = 1,
 /// frame 4: svcpackent entity
 ///
+/// Total needed frames is 4
 use bitvec::bitvec;
 use bitvec::prelude::*;
 
@@ -22,14 +23,21 @@ use demosuperimpose_goldsrc::netmsg_doer::delta_description::DeltaDescription;
 use demosuperimpose_goldsrc::netmsg_doer::new_movevars::NewMovevars;
 use demosuperimpose_goldsrc::netmsg_doer::server_info::ServerInfo;
 use demosuperimpose_goldsrc::netmsg_doer::set_view::SetView;
+use demosuperimpose_goldsrc::netmsg_doer::sign_on_num::SignOnNum;
 use demosuperimpose_goldsrc::netmsg_doer::sound::Sound;
+use demosuperimpose_goldsrc::netmsg_doer::spawn_baseline::SpawnBaseline;
 use demosuperimpose_goldsrc::netmsg_doer::NetMsgDoerWithDelta;
+use demosuperimpose_goldsrc::netmsg_doer::NetMsgDoerWithExtraInfo;
 use demosuperimpose_goldsrc::rand_int_range;
+use demosuperimpose_goldsrc::types::Delta;
 use demosuperimpose_goldsrc::types::DeltaDecoderTable;
+use demosuperimpose_goldsrc::types::EntityS;
 use demosuperimpose_goldsrc::types::OriginCoord;
 use demosuperimpose_goldsrc::types::SvcNewMoveVars;
 use demosuperimpose_goldsrc::types::SvcServerInfo;
 use demosuperimpose_goldsrc::types::SvcSetView;
+use demosuperimpose_goldsrc::types::SvcSignOnNum;
+use demosuperimpose_goldsrc::types::SvcSpawnBaseline;
 use demosuperimpose_goldsrc::utils::Buttons;
 use demosuperimpose_goldsrc::wrap_message;
 use demosuperimpose_goldsrc::{
@@ -47,6 +55,8 @@ use hldemo::{
     NetMsgFrameType, NetMsgInfo, RefParams, UserCmd,
 };
 use serde::de::IntoDeserializer;
+
+use crate::get_cs_delta_decoder_table;
 
 use super::get_ghost::get_ghost;
 
@@ -67,106 +77,7 @@ struct ServerFrame<'a> {
     map_file_name: &'a [u8],
 }
 
-fn insert_demo_base(demo: &mut Demo) {
-    let server_frame = ServerFrame {
-        game_dir: b"cstrike\0",
-        host_name: None,
-        map_file_name: b"maps/rvp_tundra-bhop.bsp\0",
-    };
-    let server_info = SvcServerInfo {
-        protocol: 48,
-        spawn_count: 5, // ?
-        map_checksum: 0,
-        client_dll_hash: &[0u8; 16],
-        max_players: 1,
-        player_index: 0,
-        is_deathmatch: 0,
-        game_dir: server_frame.game_dir,
-        hostname: server_frame.host_name.unwrap_or(b"Ghost Demo Replay\0"),
-        map_file_name: server_frame.map_file_name,
-        map_cycle: &[
-            100, 101, 95, 97, 105, 114, 115, 116, 114, 105, 112, 13, 10, 99, 115, 95, 104, 97, 118,
-            97, 110, 97, 13, 10, 100, 101, 95, 99, 104, 97, 116, 101, 97, 117, 13, 10, 100, 101,
-            95, 97, 122, 116, 101, 99, 13, 10, 97, 115, 95, 111, 105, 108, 114, 105, 103, 13, 10,
-            99, 115, 95, 115, 105, 101, 103, 101, 13, 10, 100, 101, 95, 99, 98, 98, 108, 101, 13,
-            10, 100, 101, 95, 100, 117, 115, 116, 13, 10, 99, 115, 95, 55, 52, 55, 13, 10, 100,
-            101, 95, 112, 114, 111, 100, 105, 103, 121, 13, 10, 99, 115, 95, 97, 115, 115, 97, 117,
-            108, 116, 13, 10, 99, 115, 95, 111, 102, 102, 105, 99, 101, 13, 10, 99, 115, 95, 105,
-            116, 97, 108, 121, 13, 10, 99, 115, 95, 98, 97, 99, 107, 97, 108, 108, 101, 121, 13,
-            10, 99, 115, 95, 109, 105, 108, 105, 116, 105, 97, 13, 10, 100, 101, 95, 116, 114, 97,
-            105, 110, 13, 10, 13, 10, 13, 10, 13, 10, 13, 10, 0,
-        ], // must be null string
-        unknown: 0u8,
-    };
-
-    let server_info = ServerInfo::write(server_info);
-
-    let dds: Vec<u8> = get_cs_delta_msg!()
-        .iter()
-        .flat_map(|dd| DeltaDescription::write(dd.to_owned(), &DeltaDecoderTable::new()))
-        .collect();
-
-    let bsp = Resource {
-        type_: nbit_num!(ResourceType::Model, 4),
-        name: nbit_str!("maps/rvp_tundra-bhop.bsp\0"),
-        index: nbit_num!(1, 12),
-        size: nbit_num!(0, 3 * 8),
-        flags: nbit_num!(1, 3),
-        md5_hash: None,
-        has_extra_info: false,
-        extra_info: None,
-    };
-
-    let v_usp = Resource {
-        type_: nbit_num!(ResourceType::Skin, 4),
-        name: nbit_str!("models/v_usp.mdl\0"),
-        index: nbit_num!(0, 12),
-        size: nbit_num!(0, 3 * 8),
-        flags: nbit_num!(0, 3),
-        md5_hash: None,
-        has_extra_info: false,
-        extra_info: None,
-    };
-
-    let pl_steps: Vec<Resource> = (1..=4)
-        .map(|i| Resource {
-            type_: nbit_num!(ResourceType::Sound, 4),
-            name: nbit_str!(format!("player/pl_step{}.wav\0", i)),
-            index: nbit_num!(i + 1, 12), // remember to increment
-            size: nbit_num!(0, 3 * 8),
-            // TODO not sure what the flag does
-            flags: nbit_num!(0, 3),
-            md5_hash: None,
-            has_extra_info: false,
-            extra_info: None,
-        })
-        .collect();
-
-    // add resources here
-    let resources = [vec![bsp, v_usp], pl_steps].concat();
-
-    let resource_list = SvcResourceList {
-        resource_count: nbit_num!(resources.len(), 12),
-        resources,
-        consistencies: vec![],
-    };
-
-    let resource_list = ResourceList::write(resource_list);
-
-    let mut new_netmsg_data = NetMsgData::new(2);
-    new_netmsg_data.msg = [server_info, dds, resource_list].concat().leak();
-
-    let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
-    let netmsg_frame = Frame {
-        time: 0.,
-        frame: 0,
-        data: netmsg_framedata,
-    };
-
-    demo.directory.entries[0].frames.insert(0, netmsg_frame);
-}
-
-/// Including SvcServerInfo and SvcDeltaDescription
+/// Including SvcServerInfo SvcDeltaDescription SvcSetView SvcNewMovevars
 fn insert_server(demo: &mut Demo, server_frame: ServerFrame, seq: i32) {
     let mut new_netmsg_data = NetMsgData::new(seq);
 
@@ -304,6 +215,45 @@ fn insert_resourcelist(demo: &mut Demo, seq: i32) {
     // demo.directory.entries[0].frame_count += 1;
 }
 
+fn insert_baseline(demo: &mut Demo, seq: i32) {
+    let bsp = EntityS {
+        entity_index: 0, // worldspawn is index 0
+        index: nbit_num!(0, 11),
+        type_: nbit_num!(1, 2),
+        delta: Delta::from([
+            ("movetype\0".to_owned(), vec![7, 0, 0, 0]),
+            ("modelindex\0".to_owned(), vec![1, 0, 0, 0]), // but modelindex is 1
+            ("solid\0".to_owned(), vec![4, 0]),
+        ]),
+    };
+
+    let entities = vec![bsp];
+
+    // max_client should be 1 because we are playing demo and it is OK.
+    let spawn_baseline = SvcSpawnBaseline {
+        entities,
+        total_extra_data: nbit_num!(0, 6),
+        extra_data: vec![],
+    };
+    let spawn_baseline =
+        SpawnBaseline::write(spawn_baseline, &mut get_cs_delta_decoder_table!(), 1);
+
+    let sign_on_num = SvcSignOnNum { sign: 1 };
+    let sign_on_num = SignOnNum::write(sign_on_num);
+
+    let mut new_netmsg_data = NetMsgData::new(seq);
+    new_netmsg_data.msg = [spawn_baseline, sign_on_num].concat().leak();
+
+    let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
+    let netmsg_frame = Frame {
+        time: 0.,
+        frame: 0,
+        data: netmsg_framedata,
+    };
+
+    demo.directory.entries[0].frames.insert(3, netmsg_frame);
+}
+
 fn isolated_case(demo: &mut Demo) {
     let (mut delta_decoders, mut custom_messages) = init_parse!(demo);
     if let FrameData::NetMsg((_, data)) = &mut demo.directory.entries[0].frames[0].data {
@@ -431,10 +381,11 @@ pub fn insert_ghost(
             host_name: None,
             map_file_name: b"maps/rvp_tundra-bhop.bsp\0",
         },
-        2,
+        3,
     );
 
-    // isolated_case(demo);
+    demo.directory.entries[0].frames.remove(3);
+    insert_baseline(demo, 4);
 
     // set directory entry info
     let entry1 = &mut demo.directory.entries[1];
