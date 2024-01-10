@@ -124,20 +124,13 @@ macro_rules! append_spawnbaseline {
 }
 
 #[macro_export]
-macro_rules! append_packet_entities {
-    ($packet:ident,$entity:ident) => {{
-        $packet.entity_count = nbit_num!(packet.entity_count.to_u32() + 1, 16);
-
-        let mut other_demo_entity_state_delta = Delta::new();
-
-        // Find free entity.
-        let mut insert_index = 0;
-        for entity in &packet.entity_states {
-            if entity.entity_index > ghost.get_entity_index() {
-                break;
-            }
-
-            if entity.entity_index > insert_index {
+macro_rules! insert_packet_entity_state_with_index {
+    ($entity_states:ident,$delta:expr,$index:expr) => {{
+        // Find entity to insert before.
+        // `insert_index` is respective to the entity states vector
+        let mut insert_index: usize = 0;
+        for entity in &$entity_states {
+            if entity.entity_index > $index as u16 {
                 break;
             }
 
@@ -146,37 +139,45 @@ macro_rules! append_packet_entities {
 
         // Insert between inserted entity and the one before it
         // due to entity index difference mechanism.
-        let before_entity = &packet.entity_states[insert_index - 1];
+        // Not really inserting now per se, moreso finding good info
+        // to populate our struct.
+        use demosuperimpose_goldsrc::types::BitType;
+
+        let before_entity = &$entity_states[insert_index - 1];
         let mut is_absolute_entity_index = false;
+        // let mut increment_entity_number = false;
         let mut ghost_absolute_entity_index: Option<BitType> = None;
         let mut ghost_entity_index_difference: Option<BitType> = None;
 
         // If difference is more than 63, we do absolute entity index instead.
         // The reason is that difference is only 6 bits, so 63 max.
-        let difference = insert_index - before_entity.entity_index;
+        let difference = $index - before_entity.entity_index;
         if difference > (1 << 6) - 1 {
-            ghost_absolute_entity_index = Some(nbit_num!(insert_index, 11));
+            ghost_absolute_entity_index = Some(nbit_num!($index, 11));
             is_absolute_entity_index = true;
         } else {
-            ghost_entity_index_difference =
-                Some(nbit_num!(insert_index - before_entity.entity_index, 6));
+            ghost_entity_index_difference = Some(nbit_num!(difference, 6));
+            // increment_entity_number = true;
         }
 
-        let other_demo_entity_state = EntityStateDelta {
-            entity_index: insert_index, // This doesn't really do anything but for you to read.
-            remove_entity: false,
-            is_absolute_entity_index,
+        let ghost_entity_state = EntityState {
+            entity_index: $index,
+            increment_entity_number: false, // false if we increment more than 1
+            is_absolute_entity_index: is_absolute_entity_index.into(),
             absolute_entity_index: ghost_absolute_entity_index,
             entity_index_difference: ghost_entity_index_difference,
-            has_custom_delta: Some(false),
-            delta: Some(entity),
+            has_custom_delta: false,
+            has_baseline_index: false,
+            baseline_index: None,
+            delta: $delta,
         };
 
         // Insert between inserted entity and next entity.
         // If it is last entity then there is no need to change.
-        if insert_index < packet.entity_states.len() {
-            let next_entity = &mut packet.entity_states[insert_index];
-            let difference = next_entity.entity_index - insert_index;
+        // The reason is that the next entity needs the correct difference number
+        if insert_index < $entity_states.len() {
+            let next_entity = &mut $entity_states[insert_index];
+            let difference = next_entity.entity_index - $index;
 
             if difference > (1 << 6) - 1 {
                 // It is possible that by the time this is hit,
@@ -186,9 +187,75 @@ macro_rules! append_packet_entities {
             }
         }
 
-        packet
-            .entity_states
-            .insert(insert_index, other_demo_entity_state);
+        $entity_states.insert(insert_index, ghost_entity_state);
+    }};
+}
+
+#[macro_export]
+macro_rules! insert_packet_entity_state_delta_with_index {
+    ($entity_states:ident,$delta:expr,$index:expr) => {{
+        // $packet.entity_count = nbit_num!(packet.entity_count.to_u32() + 1, 16);
+
+        // Find entity to insert before.
+        // `insert_index` is respective to the entity states vector
+        let mut insert_index: usize = 0;
+        for entity in &$entity_states {
+            if entity.entity_index > $index as u16 {
+                break;
+            }
+
+            insert_index += 1;
+        }
+
+        // Insert between inserted entity and the one before it
+        // due to entity index difference mechanism.
+        // Not really inserting now per se, moreso finding good info
+        // to populate our struct.
+        use demosuperimpose_goldsrc::types::BitType;
+
+        let before_entity = &$entity_states[insert_index - 1];
+        let mut is_absolute_entity_index = false;
+        // let mut increment_entity_number = false;
+        let mut ghost_absolute_entity_index: Option<BitType> = None;
+        let mut ghost_entity_index_difference: Option<BitType> = None;
+
+        // If difference is more than 63, we do absolute entity index instead.
+        // The reason is that difference is only 6 bits, so 63 max.
+        let difference = $index - before_entity.entity_index;
+        if difference > (1 << 6) - 1 {
+            ghost_absolute_entity_index = Some(nbit_num!($index, 11));
+            is_absolute_entity_index = true;
+        } else {
+            ghost_entity_index_difference = Some(nbit_num!(difference, 6));
+            // increment_entity_number = true;
+        }
+
+        let ghost_entity_state = EntityStateDelta {
+            entity_index: $index,
+            remove_entity: false,
+            is_absolute_entity_index,
+            absolute_entity_index: ghost_absolute_entity_index,
+            entity_index_difference: ghost_entity_index_difference,
+            has_custom_delta: false.into(),
+            delta: $delta.into(),
+        };
+
+        // Insert between inserted entity and next entity.
+        // If it is last entity then there is no need to change.
+        // The reason is that the next entity needs the correct difference number
+        if insert_index < $entity_states.len() {
+            let next_entity = &mut $entity_states[insert_index];
+            let difference = next_entity.entity_index - $index;
+
+            if difference > (1 << 6) - 1 {
+                // It is possible that by the time this is hit,
+                // the next entity is already numbered by absolute index.
+            } else {
+                next_entity.entity_index_difference = Some(nbit_num!(difference, 6));
+            }
+        }
+
+        $entity_states.insert(insert_index, ghost_entity_state);
     }};
 }
 
