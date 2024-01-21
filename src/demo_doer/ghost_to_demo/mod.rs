@@ -55,6 +55,7 @@ use hldemo::{
     parse::frame, ClientDataData, Demo, DemoBufferData, Frame, FrameData, MoveVars, NetMsgData,
     NetMsgFrameType, NetMsgInfo, RefParams, UserCmd,
 };
+use nom::number::complete::float;
 use nom::sequence::tuple;
 use nom::AsBytes;
 
@@ -149,13 +150,12 @@ struct BaselineEntity<'a> {
 const BASELINE_ENTITIES_BRUSH: &[&str] = &["func_door", "func_illusionary"];
 const BASELINE_ENTITIES_CYCLER: &[&str] = &["cycler_sprite"];
 
-use nom::character::complete::i32;
 use nom::character::complete::space0;
 use nom::combinator::map;
 use nom::IResult;
-fn parse_3_i32(i: &str) -> IResult<&str, (i32, i32, i32)> {
+fn parse_3_f32(i: &str) -> IResult<&str, (f32, f32, f32)> {
     map(
-        tuple((i32, space0, i32, space0, i32)),
+        tuple((float, space0, float, space0, float)),
         |(i1, _, i2, _, i3)| (i1, i2, i3),
     )(i)
 }
@@ -226,7 +226,7 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
             }
 
             if let Some(property) = ent.properties().get("origin") {
-                let (_, (x, y, z)) = parse_3_i32(&property).unwrap();
+                let (_, (x, y, z)) = parse_3_f32(&property).unwrap();
 
                 delta.insert("origin[0]\0".to_owned(), x.to_le_bytes().to_vec());
                 delta.insert("origin[1]\0".to_owned(), y.to_le_bytes().to_vec());
@@ -234,7 +234,7 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
             }
 
             if let Some(property) = ent.properties().get("angles") {
-                let (_, (x, y, z)) = parse_3_i32(&property).unwrap();
+                let (_, (x, y, z)) = parse_3_f32(&property).unwrap();
 
                 delta.insert("angles[0]\0".to_owned(), x.to_le_bytes().to_vec());
                 delta.insert("angles[1]\0".to_owned(), y.to_le_bytes().to_vec());
