@@ -126,13 +126,16 @@ pub fn ghost_to_demo<'a>(ghost_file_name: &'a Path, map_file_name: &'a Path) -> 
     let mut demo = Demo { header, directory };
 
     // final steps
-    let game_resource_index_start = insert_base_netmsg(&mut demo, map_file_name);
+    let (game_resource_index_start, packet_entities, delta_packet_entities) =
+        insert_base_netmsg(&mut demo, map_file_name);
     insert_ghost(
         &mut demo,
         ghost_file_name.to_str().unwrap(),
         None,
         None,
         game_resource_index_start,
+        packet_entities,
+        delta_packet_entities,
     );
 
     demo
@@ -177,7 +180,7 @@ fn parse_3_f32(i: &str) -> IResult<&str, (f32, f32, f32)> {
 /// frame 4: svcpackent entity
 ///
 /// returns the index of game resources for ghost to generate footstep
-fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
+fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> (usize, Vec<u8>, Vec<u8>) {
     // add maps entities first with its models, named "*{number}" and so on until we are done
     // by then we can insert our own custom files
     // bsp is still cached first as 0
@@ -246,38 +249,38 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
                 ((modelindex + 2) as i32).to_le_bytes().to_vec(),
             );
 
-            if index + 1 == 45 {
-                delta.insert("maxs[2]\0".to_owned(), [0, 128, 223, 195].to_vec());
-                delta.insert("mins[2]\0".to_owned(), [0, 64, 11, 196].to_vec());
-                delta.insert("mins[0]\0".to_owned(), [0, 16, 21, 197].to_vec());
-                delta.insert("maxs[0]\0".to_owned(), [0, 240, 15, 197].to_vec());
-                delta.insert("maxs[1]\0".to_owned(), [0, 64, 1, 68].to_vec());
-                delta.insert("mins[1]\0".to_owned(), [0, 128, 207, 67].to_vec());
-                delta.insert("skin\0".to_owned(), [255, 255].to_vec());
-            }
+            // if index + 1 == 45 {
+            //     delta.insert("maxs[2]\0".to_owned(), [0, 128, 223, 195].to_vec());
+            //     delta.insert("mins[2]\0".to_owned(), [0, 64, 11, 196].to_vec());
+            //     delta.insert("mins[0]\0".to_owned(), [0, 16, 21, 197].to_vec());
+            //     delta.insert("maxs[0]\0".to_owned(), [0, 240, 15, 197].to_vec());
+            //     delta.insert("maxs[1]\0".to_owned(), [0, 64, 1, 68].to_vec());
+            //     delta.insert("mins[1]\0".to_owned(), [0, 128, 207, 67].to_vec());
+            //     delta.insert("skin\0".to_owned(), [255, 255].to_vec());
+            // }
 
-            if index + 1 == 46 {
-                delta.insert("maxs[2]\0".to_owned(), [0, 128, 223, 195].to_vec());
-                delta.insert("mins[2]\0".to_owned(), [0, 64, 11, 196].to_vec());
-                delta.insert("mins[0]\0".to_owned(), [0, 16, 21, 197].to_vec());
-                delta.insert("maxs[0]\0".to_owned(), [0, 240, 15, 197].to_vec());
-                delta.insert("maxs[1]\0".to_owned(), [0, 64, 1, 68].to_vec());
-                delta.insert("mins[1]\0".to_owned(), [0, 128, 207, 67].to_vec());
-                delta.insert("skin\0".to_owned(), [255, 255].to_vec());
-            }
+            // if index + 1 == 46 {
+            //     delta.insert("maxs[2]\0".to_owned(), [0, 128, 223, 195].to_vec());
+            //     delta.insert("mins[2]\0".to_owned(), [0, 64, 11, 196].to_vec());
+            //     delta.insert("mins[0]\0".to_owned(), [0, 16, 21, 197].to_vec());
+            //     delta.insert("maxs[0]\0".to_owned(), [0, 240, 15, 197].to_vec());
+            //     delta.insert("maxs[1]\0".to_owned(), [0, 64, 1, 68].to_vec());
+            //     delta.insert("mins[1]\0".to_owned(), [0, 128, 207, 67].to_vec());
+            //     delta.insert("skin\0".to_owned(), [255, 255].to_vec());
+            // }
 
-            if index + 1 == 95 {
-                delta.insert("maxs[2]\0".to_owned(), [0, 128, 223, 195].to_vec());
-                delta.insert("mins[2]\0".to_owned(), [0, 64, 11, 196].to_vec());
-                delta.insert("mins[0]\0".to_owned(), [0, 16, 21, 197].to_vec());
-                delta.insert("maxs[0]\0".to_owned(), [0, 240, 15, 197].to_vec());
-                delta.insert("maxs[1]\0".to_owned(), [0, 64, 1, 68].to_vec());
-                delta.insert("mins[1]\0".to_owned(), [0, 128, 207, 67].to_vec());
-                delta.insert("skin\0".to_owned(), [255, 255].to_vec());
-            }
+            // if index + 1 == 95 {
+            //     delta.insert("maxs[2]\0".to_owned(), [0, 128, 223, 195].to_vec());
+            //     delta.insert("mins[2]\0".to_owned(), [0, 64, 11, 196].to_vec());
+            //     delta.insert("mins[0]\0".to_owned(), [0, 16, 21, 197].to_vec());
+            //     delta.insert("maxs[0]\0".to_owned(), [0, 240, 15, 197].to_vec());
+            //     delta.insert("maxs[1]\0".to_owned(), [0, 64, 1, 68].to_vec());
+            //     delta.insert("mins[1]\0".to_owned(), [0, 128, 207, 67].to_vec());
+            //     delta.insert("skin\0".to_owned(), [255, 255].to_vec());
+            // }
 
             BaselineEntity {
-                index: index + 1, // at this point the index is nicely offset by 1 just fine
+                index: index + 1 + 31, // at this point the index is nicely offset by 1 just fine
                 properties: ent.properties().to_owned(),
                 modelindex: modelindex + 2, // 1 is bsp, 0 is unused.
                 delta,
@@ -296,7 +299,7 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
         spawn_count: 5, // ?
         map_checksum: 0,
         client_dll_hash: &[0u8; 16],
-        max_players: 1,
+        max_players: 32, // do 32 just to be safe
         player_index: 0,
         is_deathmatch: 0,
         game_dir: game_dir.as_bytes(),
@@ -469,7 +472,7 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
     // println!("{:?}", entity_states);
 
     let packet_entities = SvcPacketEntities {
-        entity_count: nbit_num!(entity_states.len() + 1, 16),
+        entity_count: nbit_num!(entity_states.len(), 16), // has to match the length, of EntityState
         entity_states,
     };
     let packet_entities =
@@ -488,22 +491,23 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
     let mut entity_states_delta: Vec<EntityStateDelta> = vec![player_entity_state_delta];
     // let mut entity_states_delta: Vec<EntityStateDelta> = vec![];
 
-    let mut count = 10;
+    let mut count = 50;
     baseline_entities.iter().for_each(|ent| {
         if count > 0 {
             insert_packet_entity_state_delta_with_index!(
                 entity_states_delta,
-                ent.delta.to_owned(),
+                // ent.delta.to_owned(),
+                Delta::new(),
                 ent.index as u16
             );
-        }
 
-        count -= 1;
+            count = count - 1;
+        }
     });
 
     let delta_packet_entities = SvcDeltaPacketEntities {
-        entity_count: nbit_num!(baseline_entities.len() + 1, 16),
-        delta_sequence: nbit_num!(0, 8),
+        entity_count: nbit_num!(entity_states_delta.len(), 16),
+        delta_sequence: nbit_num!(DEFAULT_IN_SEQ & 0xff - 1, 8), // otherwise entity flush happens
         entity_states: entity_states_delta,
     };
     let delta_packet_entities =
@@ -520,7 +524,7 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
         resource_list,
         spawn_baseline,
         sign_on_num,
-        packet_entities,
+        packet_entities.to_owned(),
         // delta_packet_entities,
     ]
     .concat()
@@ -536,7 +540,11 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
     demo.directory.entries[0].frames.push(netmsg_frame);
     demo.directory.entries[0].frame_count += 1;
 
-    game_resource_index_start
+    (
+        game_resource_index_start,
+        packet_entities,
+        delta_packet_entities,
+    )
 }
 
 pub fn insert_ghost(
@@ -545,16 +553,14 @@ pub fn insert_ghost(
     override_frametime: Option<f32>,
     override_fov: Option<f32>,
     game_resource_index_start: usize,
+    packet_entities: Vec<u8>,
+    delta_packet_entities: Vec<u8>,
 ) {
     // setup
     let ghost_info = get_ghost(ghost_file_name, &0.);
 
     // set directory entry info
     let entry1 = &mut demo.directory.entries[1];
-    entry1.frame_count = ghost_info.frames.len() as i32;
-
-    // nuke
-    entry1.frames.clear();
 
     // some tracking stuffs
     let mut time = 0.;
@@ -571,6 +577,8 @@ pub fn insert_ghost(
         data: start_framedata,
     };
     entry1.frames.push(start_frame);
+
+    let mut delta_msg = true;
 
     // insert :DDD
     for (frame_idx, frame) in ghost_info.frames.iter().enumerate() {
@@ -741,6 +749,18 @@ pub fn insert_ghost(
                 .leak();
         }
 
+        if delta_msg {
+            new_netmsg_data.msg = [
+                packet_entities.to_owned(),
+                delta_packet_entities.to_owned(),
+                new_netmsg_data.msg.to_owned(),
+            ]
+            .concat()
+            .leak();
+
+            delta_msg = false;
+        }
+
         let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Normal, new_netmsg_data));
         let netmsg_frame = Frame {
             time,
@@ -767,5 +787,7 @@ pub fn insert_ghost(
         frame: ghost_info.frames.len() as i32,
         data: end_framedata,
     };
+
     entry1.frames.push(end_frame);
+    entry1.frame_count = ghost_info.frames.len() as i32;
 }
