@@ -7,6 +7,12 @@ macro_rules! write_demo {
         let mut out = DemoWriter::new(String::from($demo_name));
         out.write_file($demo);
     }};
+
+    ($demo_name:ident, $demo:ident) => {{
+        use demosuperimpose_goldsrc::writer::DemoWriter;
+        let mut out = DemoWriter::new(String::from($demo_name));
+        out.write_file($demo);
+    }};
 }
 
 #[macro_export]

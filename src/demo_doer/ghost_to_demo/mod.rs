@@ -55,8 +55,8 @@ use hldemo::{
     parse::frame, ClientDataData, Demo, DemoBufferData, Frame, FrameData, MoveVars, NetMsgData,
     NetMsgFrameType, NetMsgInfo, RefParams, UserCmd,
 };
-use nom::AsBytes;
 use nom::sequence::tuple;
+use nom::AsBytes;
 
 use crate::get_cs_delta_decoder_table;
 
@@ -82,7 +82,7 @@ pub fn ghost_to_demo<'a>(ghost_file_name: &'a Path, map_file_name: &'a Path) -> 
         net_protocol: 48,
         map_name: map_name.leak(),
         game_dir: game_dir.leak(),
-        map_crc: 0, // doesnt matter
+        map_crc: 0,          // doesnt matter
         directory_offset: 1, // will be corrected when written
     };
 
@@ -126,7 +126,13 @@ pub fn ghost_to_demo<'a>(ghost_file_name: &'a Path, map_file_name: &'a Path) -> 
 
     // final steps
     let game_resource_index_start = insert_base_netmsg(&mut demo, map_file_name);
-    insert_ghost(&mut demo, ghost_file_name.to_str().unwrap(), None, None, game_resource_index_start);
+    insert_ghost(
+        &mut demo,
+        ghost_file_name.to_str().unwrap(),
+        None,
+        None,
+        game_resource_index_start,
+    );
 
     demo
 }
@@ -280,7 +286,10 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
         .collect();
 
     let game_dir = format!("{}\0", GAME_DIR);
-    let map_file_name = format!("maps/{}\0", map_file_name.file_name().unwrap().to_str().unwrap());
+    let map_file_name = format!(
+        "maps/{}\0",
+        map_file_name.file_name().unwrap().to_str().unwrap()
+    );
 
     let server_info = SvcServerInfo {
         protocol: 48,
