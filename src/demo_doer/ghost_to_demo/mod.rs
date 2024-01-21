@@ -214,14 +214,14 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
             if let Some(property) = ent.properties().get("rendermode") {
                 delta.insert(
                     "rendermode\0".to_owned(),
-                    property.parse::<u32>().unwrap_or(0).to_le_bytes().to_vec(),
+                    property.parse::<i32>().unwrap_or(0).to_le_bytes().to_vec(),
                 );
             }
 
             if let Some(property) = ent.properties().get("renderamt") {
                 delta.insert(
                     "renderamt\0".to_owned(),
-                    property.parse::<u32>().unwrap_or(0).to_le_bytes().to_vec(),
+                    property.parse::<i32>().unwrap_or(0).to_le_bytes().to_vec(),
                 );
             }
 
@@ -243,7 +243,7 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
 
             delta.insert(
                 "modelindex\0".to_owned(),
-                (modelindex + 2).to_le_bytes().to_vec(),
+                ((modelindex + 2) as i32).to_le_bytes().to_vec(),
             );
 
             if index + 1 == 45 {
