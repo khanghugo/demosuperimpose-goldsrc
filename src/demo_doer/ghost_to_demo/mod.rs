@@ -581,6 +581,17 @@ pub fn insert_ghost(
         });
 
         let fov = override_fov.unwrap_or(90.);
+        let mut vieworigin = frame.origin;
+
+        // vieworigin is not origin
+        // we dont know player's state so this is okay
+        if let Some(buttons) = frame.buttons {
+            if buttons & Buttons::Duck as u32 != 0 {
+                vieworigin[2] = vieworigin[2] + 12.;
+            } else {
+                vieworigin[2] = vieworigin[2] + 17.;
+            }
+        }
 
         // buffer because it does so.... not sure the number for now :DDD
         let buffer_framedata = FrameData::DemoBuffer(DemoBufferData {
@@ -607,7 +618,7 @@ pub fn insert_ghost(
 
         // netmsg
         let mut new_netmsg_data = NetMsgData::new(DEFAULT_IN_SEQ + frame_idx as i32);
-        new_netmsg_data.info.ref_params.vieworg = frame.origin;
+        new_netmsg_data.info.ref_params.vieworg = vieworigin;
         new_netmsg_data.info.ref_params.viewangles = frame.viewangles;
         new_netmsg_data.info.ref_params.frametime = frametime;
         new_netmsg_data.info.ref_params.time = time;
@@ -615,7 +626,7 @@ pub fn insert_ghost(
         new_netmsg_data.info.ref_params.cl_viewangles = frame.viewangles;
         new_netmsg_data.info.usercmd.viewangles = frame.viewangles;
         // new_netmsg_data.info.movevars.sky_name = hehe; // TODO... DO NOT ASSIGN to &[]
-        new_netmsg_data.info.view = frame.origin;
+        new_netmsg_data.info.view = vieworigin;
 
         let speed = ((frame.origin[0] - last_pos[0]).powi(2)
             + (frame.origin[1] - last_pos[1]).powi(2))
