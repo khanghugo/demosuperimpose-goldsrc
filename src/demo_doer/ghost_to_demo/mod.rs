@@ -345,7 +345,7 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
     // maps resources first
     let bsp = Resource {
         type_: nbit_num!(ResourceType::Model, 4),
-        name: nbit_str!("maps/rvp_tundra-bhop.bsp\0"),
+        name: nbit_str!(map_file_name),
         index: nbit_num!(1, 12),
         size: nbit_num!(0, 3 * 8),
         flags: nbit_num!(1, 3),
