@@ -1,6 +1,8 @@
 // bsp info to insert
 // ghost demo to insert
 
+use std::path::Path;
+
 use bitvec::bitvec;
 use bitvec::prelude::*;
 
@@ -46,10 +48,14 @@ use demosuperimpose_goldsrc::{
     types::{EngineMessage, Message, SvcDeltaDescription, SvcResourceList, SvcSound},
     utils::{NetMsgDataMethods, ResourceType},
 };
+use hldemo::Directory;
+use hldemo::DirectoryEntry;
+use hldemo::Header;
 use hldemo::{
     parse::frame, ClientDataData, Demo, DemoBufferData, Frame, FrameData, MoveVars, NetMsgData,
     NetMsgFrameType, NetMsgInfo, RefParams, UserCmd,
 };
+use nom::AsBytes;
 use nom::sequence::tuple;
 
 use crate::get_cs_delta_decoder_table;
@@ -60,24 +66,69 @@ const DEMO_BUFFER_SIZE: [u8; 8] = [1, 0, 0, 0, 0, 0, 180, 66];
 const DEFAULT_IN_SEQ: i32 = 1969;
 const STEP_TIME: f32 = 0.3;
 
-struct ServerFrame<'a> {
-    /// Must include null terminator
-    game_dir: &'a [u8],
-    /// Must include null terminator
-    host_name: Option<&'a [u8]>,
-    /// Must include null terminator. Path must be full path relatively from game
-    ///
-    /// E.g.: maps/rvp_tundra-bhop.bsp
-    map_file_name: &'a [u8],
-}
+// Eh, maybe someone can spot this and use for different mod.
+const GAME_DIR: &str = "cstrike";
 
-pub fn ghost_to_demo(ghost_file_name: &str, map_file_name: &str, demo: &mut Demo) {
-    demo.directory.entries[0].frames.clear();
-    demo.directory.entries[0].frame_count = 0;
+pub fn ghost_to_demo<'a>(ghost_file_name: &'a Path, map_file_name: &'a Path) -> Demo<'a> {
+    let mut map_name = vec![0u8; 260];
+    let map_file_name_stem = map_file_name.file_stem().unwrap().to_str().unwrap();
+    map_name[..map_file_name_stem.len()].copy_from_slice(map_file_name_stem.as_bytes());
 
-    let game_resource_index_start = insert_base_netmsg(demo, map_file_name);
+    let mut game_dir = vec![0u8; 260];
+    game_dir[..GAME_DIR.len()].copy_from_slice(GAME_DIR.as_bytes());
 
-    insert_ghost(demo, ghost_file_name, None, None, game_resource_index_start);
+    let header = Header {
+        demo_protocol: 5,
+        net_protocol: 48,
+        map_name: map_name.leak(),
+        game_dir: game_dir.leak(),
+        map_crc: 0, // doesnt matter
+        directory_offset: 1, // will be corrected when written
+    };
+
+    let mut entry0_desc = vec![0u8; 64];
+    let entry0_name = "LOADING";
+    entry0_desc[..entry0_name.len()].copy_from_slice(entry0_name.as_bytes());
+
+    let entry0 = DirectoryEntry {
+        entry_type: 0, // 0 for LOADING
+        description: entry0_desc.leak(),
+        flags: 0,
+        cd_track: -1,
+        track_time: 0.0, // doesnt matter
+        frame_count: 0,
+        offset: 0,      // will be corrected when written
+        file_length: 1, // doesnt matter
+        frames: vec![],
+    };
+
+    let mut entry1_desc = vec![0u8; 64];
+    let entry1_name = "Normal";
+    entry1_desc[..entry1_name.len()].copy_from_slice(entry1_name.as_bytes());
+
+    let entry1 = DirectoryEntry {
+        entry_type: 1, // 1 for Normal
+        description: entry1_desc.leak(),
+        flags: 0,
+        cd_track: -1,
+        track_time: 0.0, // doesnt matter
+        frame_count: 0,
+        offset: 0,      // will be corrected when written
+        file_length: 1, // doesnt matter
+        frames: vec![],
+    };
+
+    let directory = Directory {
+        entries: vec![entry0, entry1],
+    };
+
+    let mut demo = Demo { header, directory };
+
+    // final steps
+    let game_resource_index_start = insert_base_netmsg(&mut demo, map_file_name);
+    insert_ghost(&mut demo, ghost_file_name.to_str().unwrap(), None, None, game_resource_index_start);
+
+    demo
 }
 
 #[derive(Debug)]
@@ -120,7 +171,7 @@ fn parse_3_i32(i: &str) -> IResult<&str, (i32, i32, i32)> {
 /// frame 4: svcpackent entity
 ///
 /// returns the index of game resources for ghost to generate footstep
-fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
+fn insert_base_netmsg(demo: &mut Demo, map_file_name: &Path) -> usize {
     // add maps entities first with its models, named "*{number}" and so on until we are done
     // by then we can insert our own custom files
     // bsp is still cached first as 0
@@ -130,6 +181,7 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
     let raw_map = RawMap::parse(bsp_file.leak()).unwrap();
 
     let bsp_entities = parse_entities(raw_map.lump_data(LumpType::Entities)).unwrap();
+
     let baseline_entities: Vec<BaselineEntity<'_>> = bsp_entities
         .entities()
         .iter()
@@ -227,14 +279,8 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
         })
         .collect();
 
-    // println!("{:?}", baseline_entities);
-
-    // panic!();
-    let server_frame = ServerFrame {
-        game_dir: b"cstrike\0",
-        host_name: None,
-        map_file_name: b"maps/rvp_tundra-bhop.bsp\0",
-    };
+    let game_dir = format!("{}\0", GAME_DIR);
+    let map_file_name = format!("maps/{}\0", map_file_name.file_name().unwrap().to_str().unwrap());
 
     let server_info = SvcServerInfo {
         protocol: 48,
@@ -244,9 +290,9 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
         max_players: 1,
         player_index: 0,
         is_deathmatch: 0,
-        game_dir: server_frame.game_dir,
-        hostname: server_frame.host_name.unwrap_or(b"Ghost Demo Replay\0"),
-        map_file_name: server_frame.map_file_name,
+        game_dir: game_dir.as_bytes(),
+        hostname: b"Ghost Demo Replay\0",
+        map_file_name: map_file_name.as_bytes(),
         map_cycle: b"a\0", // must be null string
         unknown: 0u8,
     };
@@ -466,7 +512,7 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
         spawn_baseline,
         sign_on_num,
         packet_entities,
-        delta_packet_entities,
+        // delta_packet_entities,
     ]
     .concat()
     .leak();
@@ -482,110 +528,6 @@ fn insert_base_netmsg(demo: &mut Demo, map_file_name: &str) -> usize {
     demo.directory.entries[0].frame_count += 1;
 
     game_resource_index_start
-}
-
-fn isolated_case(demo: &mut Demo) {
-    let (mut delta_decoders, mut custom_messages) = init_parse!(demo);
-    if let FrameData::NetMsg((_, data)) = &mut demo.directory.entries[0].frames[0].data {
-        let (_, messages) =
-            parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
-
-        let mut messages: Vec<Message<'_>> = messages
-            .into_iter()
-            .filter(|msg| {
-                !matches!(
-                    msg,
-                    Message::EngineMessage(
-                        EngineMessage::SvcDeltaDescription(_)
-                            | EngineMessage::SvcServerInfo(_)
-                            | EngineMessage::SvcSetView(_)
-                            | EngineMessage::SvcNewMovevars(_)
-                            | EngineMessage::SvcNewUserMsg(_)
-                            | EngineMessage::SvcSendExtraInfo(_)
-                            | EngineMessage::SvcCdTrack(_)
-                            | EngineMessage::SvcStuffText(_) // | EngineMessage::SvcUpdateUserInfo(_)
-                            | EngineMessage::SvcUpdateUserInfo(_) // | EngineMessage::SvcSetView(_)
-                                                                  // | EngineMessage::SvcSetView(_)
-                    ) // | Message::UserMessage(_)
-                )
-            })
-            .collect();
-
-        let server_frame = ServerFrame {
-            game_dir: b"cstrike\0",
-            host_name: None,
-            map_file_name: b"maps/rvp_tundra-bhop.bsp\0",
-        };
-
-        let server_info = SvcServerInfo {
-            protocol: 48,
-            spawn_count: 5, // ?
-            map_checksum: 0,
-            client_dll_hash: &[0u8; 16],
-            max_players: 1,
-            player_index: 0,
-            is_deathmatch: 0,
-            game_dir: server_frame.game_dir,
-            hostname: server_frame.host_name.unwrap_or(b"Ghost Demo Replay\0"),
-            map_file_name: server_frame.map_file_name,
-            map_cycle: &[
-                100, 101, 95, 97, 105, 114, 115, 116, 114, 105, 112, 13, 10, 99, 115, 95, 104, 97,
-                118, 97, 110, 97, 13, 10, 100, 101, 95, 99, 104, 97, 116, 101, 97, 117, 13, 10,
-                100, 101, 95, 97, 122, 116, 101, 99, 13, 10, 97, 115, 95, 111, 105, 108, 114, 105,
-                103, 13, 10, 99, 115, 95, 115, 105, 101, 103, 101, 13, 10, 100, 101, 95, 99, 98,
-                98, 108, 101, 13, 10, 100, 101, 95, 100, 117, 115, 116, 13, 10, 99, 115, 95, 55,
-                52, 55, 13, 10, 100, 101, 95, 112, 114, 111, 100, 105, 103, 121, 13, 10, 99, 115,
-                95, 97, 115, 115, 97, 117, 108, 116, 13, 10, 99, 115, 95, 111, 102, 102, 105, 99,
-                101, 13, 10, 99, 115, 95, 105, 116, 97, 108, 121, 13, 10, 99, 115, 95, 98, 97, 99,
-                107, 97, 108, 108, 101, 121, 13, 10, 99, 115, 95, 109, 105, 108, 105, 116, 105, 97,
-                13, 10, 100, 101, 95, 116, 114, 97, 105, 110, 13, 10, 13, 10, 13, 10, 13, 10, 13,
-                10, 0,
-            ], // must be null string
-            unknown: 0u8,
-        };
-
-        messages.insert(0, wrap_message!(SvcServerInfo, server_info));
-
-        for m in get_cs_delta_msg!() {
-            messages.insert(1, wrap_message!(SvcDeltaDescription, m));
-        }
-
-        let new_movevars = SvcNewMoveVars {
-            gravity: 800.,
-            stop_speed: 75.,
-            max_speed: 320.,
-            spectator_max_speed: 500.,
-            accelerate: 5.,
-            airaccelerate: 10.,
-            water_accelerate: 10.,
-            friction: 4.,
-            edge_friction: 2.,
-            water_friction: 1.,
-            ent_garvity: 1.,
-            bounce: 1.,
-            step_size: 18.,
-            max_velocity: 2000.,
-            z_max: 409600.,
-            wave_height: 0.,
-            footsteps: 1,
-            roll_angle: 0.,
-            roll_speed: -1.9721523e-31, // have to use these magic numbers to work
-            sky_color: vec![-1.972168e-31, -1.972168e-31, 9.4e-44],
-            sky_vec: vec![-0.0, 2.68e-43, 2.7721908e20],
-            sky_name: &[0],
-        };
-        messages.insert(8, wrap_message!(SvcNewMovevars, new_movevars));
-
-        let set_view = SvcSetView { entity_index: 1 }; // always 1
-        messages.insert(9, wrap_message!(SvcSetView, set_view));
-
-        let write = write_netmsg(messages, &delta_decoders, &custom_messages);
-
-        data.msg = write.leak();
-    }
-
-    // demo.directory.entries[0].frame_count -= 1;
-    // demo.directory.entries[0].frames.remove(2);
 }
 
 pub fn insert_ghost(
