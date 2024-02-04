@@ -415,8 +415,11 @@ fn insert_base_netmsg(
         total_extra_data: nbit_num!(0, 6),
         extra_data: vec![],
     };
-    let spawn_baseline =
-        SpawnBaseline::write(spawn_baseline, &mut get_cs_delta_decoder_table!(), MAX_PLAYERS as u8);
+    let spawn_baseline = SpawnBaseline::write(
+        spawn_baseline,
+        &mut get_cs_delta_decoder_table!(),
+        MAX_PLAYERS as u8,
+    );
 
     let sign_on_num = SvcSignOnNum { sign: 1 };
     let sign_on_num = SignOnNum::write(sign_on_num);
@@ -451,8 +454,11 @@ fn insert_base_netmsg(
         entity_count: nbit_num!(entity_states.len(), 16), // has to match the length, of EntityState
         entity_states,
     };
-    let packet_entities =
-        PacketEntities::write(packet_entities, &mut get_cs_delta_decoder_table!(), MAX_PLAYERS as u8);
+    let packet_entities = PacketEntities::write(
+        packet_entities,
+        &mut get_cs_delta_decoder_table!(),
+        MAX_PLAYERS as u8,
+    );
 
     let player_entity_state_delta = EntityStateDelta {
         entity_index: 1,

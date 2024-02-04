@@ -13,13 +13,15 @@ use crate::{
 use self::types::GhostFrame;
 use self::types::GhostInfo;
 
-mod demo;
+pub mod demo;
 mod romanian_jumpers;
 mod simen;
 mod surf_gateway;
 
 mod types;
 
+///! Get ghost info following [`GhostInfo`] struct.
+/// Takes in path of a file and the offset of time (current unimplemented)
 pub fn get_ghost(filename: &str, offset: &f32) -> GhostInfo {
     let pathbuf = PathBuf::from(filename);
 
@@ -27,7 +29,7 @@ pub fn get_ghost(filename: &str, offset: &f32) -> GhostInfo {
 
     let ghost = if pathbuf.to_str().unwrap().ends_with(".dem") {
         let demo = open_demo!(filename);
-        demo_ghost_parse(filename, demo, *offset)
+        demo_ghost_parse(filename, &demo, *offset, true)
     } else if pathbuf.to_str().unwrap().ends_with(".simen.txt") {
         // Either this, or use enum in main file.
         simen_ghost_parse(filename.to_owned(), *offset)
@@ -45,6 +47,8 @@ pub fn get_ghost(filename: &str, offset: &f32) -> GhostInfo {
     ghost
 }
 
+///! Plurality of [`get_ghost`]
+/// TODO: use rayon
 pub fn get_ghosts(others: &Vec<(String, f32)>) -> Vec<GhostInfo> {
     others
         .iter()

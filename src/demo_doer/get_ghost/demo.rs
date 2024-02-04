@@ -8,7 +8,12 @@ use hldemo::{Demo, FrameData};
 
 use super::*;
 
-pub fn demo_ghost_parse<'a>(name: &str, demo: Demo<'a>, offset: f32) -> GhostInfo {
+pub fn demo_ghost_parse<'a>(
+    name: &str,
+    demo: &Demo<'a>,
+    offset: f32,
+    parse_anim: bool,
+) -> GhostInfo {
     // New ghost
     let mut ghost = GhostInfo::new();
     ghost.set_name(name.to_owned());
@@ -30,6 +35,10 @@ pub fn demo_ghost_parse<'a>(name: &str, demo: Demo<'a>, offset: f32) -> GhostInf
         for frame in &entry.frames {
             match &frame.data {
                 FrameData::NetMsg((_, data)) => {
+                    if !parse_anim {
+                        continue;
+                    }
+
                     let (_, messages) =
                         parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
 

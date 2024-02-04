@@ -18,6 +18,7 @@ pub mod netmsg_rewrite_test;
 pub mod offset_viewangles;
 pub mod remove_entities;
 pub mod superimpose;
+pub mod trenchbroom_player_point;
 
 // use bitvec::bitvec;
 // use bitvec::prelude::*;
