@@ -3,13 +3,16 @@ use crate::open_demo;
 use super::*;
 use std::{fs::File, io::Write, path::Path};
 
-pub fn demo_to_pointfile(demo: &Demo) {
-    let ghost = get_ghost::demo::demo_ghost_parse("trenchbroom", demo, 0., false);
-    let mut file = File::create("trenchbroom_player_point.txt").unwrap();
+
+/// Generates a pointfile (.pts) to visualize the player's path within the level editor
+/// The pointfile can be loaded into JACK or Trenchbroom
+pub fn demo_to_pointfile(demo: &Demo, output_name: &str) {
+    let ghost = get_ghost::demo::demo_ghost_parse("player_path", demo, 0., false);
+    let mut pointfile = File::create(format!("{}.pts", output_name)).unwrap();
 
     for frame in ghost.frames {
         match write!(
-            file,
+            pointfile,
             "{} {} {}\n",
             frame.origin[0], frame.origin[1], frame.origin[2]
         ) {
@@ -27,16 +30,20 @@ pub fn demo_to_pointfile_cli() {
     let help = || {
         println!(
             "\
-Output file is \"trenchbroom_player_point.txt\"
+Poinfile will be generated based on the demo file name.
+If the demo file is 'bkz_goldbhop.dem', the output file will be 'bkz_goldbhop.pts'
 
-./binary <path to demo>"
+Usage:
+  ./binary <path to demo>"
         )
     };
 
     let wrap = |demo_file_name: &str| {
         let demo_file_name = Path::new(demo_file_name);
         let demo = open_demo!(demo_file_name);
-        demo_to_pointfile(&demo);
+        let point_file_name = demo_file_name.file_stem().unwrap().to_str().unwrap();
+        demo_to_pointfile(&demo, &point_file_name);
+        println!("Pointfile successfully generated: {}", point_file_name);
     };
 
     let args: Vec<String> = env::args().collect();
