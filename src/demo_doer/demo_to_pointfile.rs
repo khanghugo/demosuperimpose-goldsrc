@@ -3,7 +3,7 @@ use crate::open_demo;
 use super::*;
 use std::{fs::File, io::Write, path::Path};
 
-pub fn trenchbroom_player_point(demo: &Demo) {
+pub fn demo_to_pointfile(demo: &Demo) {
     let ghost = get_ghost::demo::demo_ghost_parse("trenchbroom", demo, 0., false);
     let mut file = File::create("trenchbroom_player_point.txt").unwrap();
 
@@ -21,7 +21,7 @@ pub fn trenchbroom_player_point(demo: &Demo) {
     }
 }
 
-pub fn trenchbroom_player_point_cli() {
+pub fn demo_to_pointfile_cli() {
     use std::env;
 
     let help = || {
@@ -36,7 +36,7 @@ Output file is \"trenchbroom_player_point.txt\"
     let wrap = |demo_file_name: &str| {
         let demo_file_name = Path::new(demo_file_name);
         let demo = open_demo!(demo_file_name);
-        trenchbroom_player_point(&demo);
+        demo_to_pointfile(&demo);
     };
 
     let args: Vec<String> = env::args().collect();
