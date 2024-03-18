@@ -335,36 +335,53 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                         insert_index += 1;
                                     }
 
-                                    // Entity 0 is always there so there is no need to handle weird case where ghost index is 0.
-                                    // Insert between insert entity and ghost entity
-                                    let before_entity = &packet.entity_states[insert_index - 1];
-                                    let mut is_absolute_entity_index = false;
-                                    let mut ghost_absolute_entity_index: Option<BitType> = None;
-                                    let mut ghost_entity_index_difference: Option<BitType> = None;
+                                    // If there is no update, subscribing to `entity_states` array would be out of index.
+                                    let other_demo_entity_state = if insert_index > 0 {
+                                        // Insert between insert entity and ghost entity
+                                        let before_entity = &packet.entity_states[insert_index - 1];
+                                        let mut is_absolute_entity_index = false;
+                                        let mut ghost_absolute_entity_index: Option<BitType> = None;
+                                        let mut ghost_entity_index_difference: Option<BitType> =
+                                            None;
 
-                                    // If difference is more than 63, we do absolute entity index instead.
-                                    // The reason is that difference is only 6 bits, so 63 max.
-                                    let difference =
-                                        ghost.get_entity_index() - before_entity.entity_index;
-                                    if difference > (1 << 6) - 1 {
-                                        ghost_absolute_entity_index =
-                                            Some(nbit_num!(ghost.get_entity_index(), 11));
-                                        is_absolute_entity_index = true;
+                                        // If difference is more than 63, we do absolute entity index instead.
+                                        // The reason is that difference is only 6 bits, so 63 max.
+                                        let difference =
+                                            ghost.get_entity_index() - before_entity.entity_index;
+                                        if difference > (1 << 6) - 1 {
+                                            ghost_absolute_entity_index =
+                                                Some(nbit_num!(ghost.get_entity_index(), 11));
+                                            is_absolute_entity_index = true;
+                                        } else {
+                                            ghost_entity_index_difference = Some(nbit_num!(
+                                                ghost.get_entity_index()
+                                                    - before_entity.entity_index,
+                                                6
+                                            ));
+                                        }
+
+                                        EntityStateDelta {
+                                            entity_index: ghost.get_entity_index(), // This doesn't really do anything but for you to read.
+                                            remove_entity: false,
+                                            is_absolute_entity_index,
+                                            absolute_entity_index: ghost_absolute_entity_index,
+                                            entity_index_difference: ghost_entity_index_difference,
+                                            has_custom_delta: Some(false),
+                                            delta: Some(other_demo_entity_state_delta),
+                                        }
                                     } else {
-                                        ghost_entity_index_difference = Some(nbit_num!(
-                                            ghost.get_entity_index() - before_entity.entity_index,
-                                            6
-                                        ));
-                                    }
-
-                                    let other_demo_entity_state = EntityStateDelta {
-                                        entity_index: ghost.get_entity_index(), // This doesn't really do anything but for you to read.
-                                        remove_entity: false,
-                                        is_absolute_entity_index,
-                                        absolute_entity_index: ghost_absolute_entity_index,
-                                        entity_index_difference: ghost_entity_index_difference,
-                                        has_custom_delta: Some(false),
-                                        delta: Some(other_demo_entity_state_delta),
+                                        EntityStateDelta {
+                                            entity_index: ghost.get_entity_index(), // This doesn't really do anything but for you to read.
+                                            remove_entity: false,
+                                            is_absolute_entity_index: true,
+                                            absolute_entity_index: Some(nbit_num!(
+                                                ghost.get_entity_index(),
+                                                11
+                                            )),
+                                            entity_index_difference: None,
+                                            has_custom_delta: Some(false),
+                                            delta: Some(other_demo_entity_state_delta),
+                                        }
                                     };
 
                                     // Insert between ghost entity and next entity.
