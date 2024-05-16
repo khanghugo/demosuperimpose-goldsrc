@@ -1,21 +1,10 @@
-extern crate hldemo;
-
 use std::io::Read;
 use std::{fs::File, path::Path};
-
-use demo_doer::{
-    add_debug, example, ghost_to_demo,
-    kz_stats::{self, add_kz_stats, KzAddOns},
-    netmsg_rewrite_test,
-    superimpose::{self, superimpose},
-};
 
 use crate::demo_doer::ghost_to_demo::ghost_to_demo;
 
 mod demo_doer;
-mod types;
 mod utils;
-mod writer;
 
 fn main() {
     ghost_to_demo_cli();

@@ -1,3 +1,5 @@
+use dem::{parse_netmsg, write_netmsg, Aux};
+
 use crate::utils::Buttons;
 use crate::wrap_message;
 
@@ -79,8 +81,7 @@ impl<'a> KzInfo<'a> {
 }
 
 pub fn add_kz_stats(demo: &mut Demo, addons: &KzAddOns) {
-    let mut delta_decoders = get_initial_delta();
-    let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
+    let aux = Aux::new();
 
     for (entry_idx, entry) in demo.directory.entries.iter_mut().enumerate() {
         let mut curr: Option<KzInfo> = None;
@@ -89,9 +90,7 @@ pub fn add_kz_stats(demo: &mut Demo, addons: &KzAddOns) {
         for frame in &mut entry.frames {
             match &mut frame.data {
                 FrameData::NetMsg((_, netmsg)) => {
-                    let (_, mut messages) =
-                        parse_netmsg(netmsg.msg, &mut delta_decoders, &mut custom_messages)
-                            .unwrap();
+                    let (_, mut messages) = parse_netmsg(netmsg.msg, aux.clone()).unwrap();
 
                     if let Some(ref mut curr) = curr {
                         curr.forward = netmsg.info.usercmd.forwardmove;
@@ -115,7 +114,7 @@ pub fn add_kz_stats(demo: &mut Demo, addons: &KzAddOns) {
                         }
                     }
 
-                    let write = write_netmsg(messages, &mut delta_decoders, &custom_messages);
+                    let write = write_netmsg(messages, aux.clone());
                     netmsg.msg = write.leak();
                 }
                 FrameData::ClientData(client_data) => {

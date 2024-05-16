@@ -1,9 +1,13 @@
 use std::{fs, io::Write, path::PathBuf};
 
-use demosuperimpose_goldsrc::nbit_num;
-use hldemo::{Demo, FrameData};
+use dem::{
+    bit::{BitSliceCast, BitWriter},
+    parse_netmsg,
+    types::{BitVec, Delta, EngineMessage, EntityS, EntityState, EntityStateDelta, NetMessage},
+    write_netmsg, Aux,
+};
 
-use crate::{demo_doer::superimpose::get_ghost::get_ghosts, open_demo, writer::BitWriter};
+use crate::{demo_doer::superimpose::get_ghost::get_ghosts, nbit_num, open_demo};
 
 use super::*;
 
@@ -26,8 +30,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
     // New line for our print finally
     println!("");
 
-    let mut delta_decoders = get_initial_delta();
-    let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
+    let aux = Aux::new();
 
     let mut main_demo_player_delta = Delta::new();
 
@@ -47,13 +50,12 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
             std::io::stdout().flush().unwrap();
 
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
-                let (_, mut messages) =
-                    parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
+                let (_, mut messages) = parse_netmsg(data.msg, aux.clone()).unwrap();
 
                 for message in &mut messages {
                     match message {
-                        Message::EngineMessage(what) => match what {
-                            EngineMessage::SvcSpawnBaseline(baseline) => {
+                        NetMessage::EngineMessage(what) => match **what {
+                            EngineMessage::SvcSpawnBaseline(ref mut baseline) => {
                                 for ghost in &mut ghosts {
                                     // Find free entities indices.
                                     let mut current_free_entity = 0;
@@ -108,7 +110,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     );
                                 }
                             }
-                            EngineMessage::SvcPacketEntities(packet) => {
+                            EngineMessage::SvcPacketEntities(ref mut packet) => {
                                 for what in &packet.entity_states {
                                     if what.entity_index == 1 {
                                         if what.delta.get("modelindex\0").is_some() {
@@ -183,8 +185,8 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     // Insert between insert entity and ghost entity
                                     let before_entity = &packet.entity_states[insert_index - 1];
                                     let mut is_absolute_entity_index = false;
-                                    let mut ghost_absolute_entity_index: Option<BitType> = None;
-                                    let mut ghost_entity_index_difference: Option<BitType> = None;
+                                    let mut ghost_absolute_entity_index: Option<BitVec> = None;
+                                    let mut ghost_entity_index_difference: Option<BitVec> = None;
 
                                     // If difference is more than 63, we do absolute entity index instead.
                                     // The reason is that difference is only 6 bits, so 63 max.
@@ -248,7 +250,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                     panic!("Exceeding 256 entities update limit ({} entities). Demo will not work.", packet.entity_count.to_u16())
                                 }
                             }
-                            EngineMessage::SvcDeltaPacketEntities(packet) => {
+                            EngineMessage::SvcDeltaPacketEntities(ref mut packet) => {
                                 for ghost in ghosts.iter_mut() {
                                     // Increment entity count because we have ghost
                                     // Should increase before the continue line because we don't remove entity.
@@ -340,8 +342,8 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                                         // Insert between insert entity and ghost entity
                                         let before_entity = &packet.entity_states[insert_index - 1];
                                         let mut is_absolute_entity_index = false;
-                                        let mut ghost_absolute_entity_index: Option<BitType> = None;
-                                        let mut ghost_entity_index_difference: Option<BitType> =
+                                        let mut ghost_absolute_entity_index: Option<BitVec> = None;
+                                        let mut ghost_entity_index_difference: Option<BitVec> =
                                             None;
 
                                         // If difference is more than 63, we do absolute entity index instead.
@@ -419,7 +421,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                     }
                 }
 
-                let write = write_netmsg(messages, &mut delta_decoders, &custom_messages);
+                let write = write_netmsg(messages, aux.clone());
                 data.msg = write.leak();
             }
         }

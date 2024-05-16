@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-
-use demosuperimpose_goldsrc::{
-    netmsg_doer::{parse_netmsg, utils::get_initial_delta},
-    types::{EngineMessage, Message, SvcNewUserMsg},
+use dem::{
+    hldemo::{Demo, FrameData},
+    parse_netmsg,
+    types::{EngineMessage, NetMessage},
+    Aux,
 };
-use hldemo::{Demo, FrameData};
 
 use super::*;
 
@@ -19,8 +18,7 @@ pub fn demo_ghost_parse<'a>(
     ghost.set_name(name.to_owned());
     ghost.reset_ghost_anim_frame();
 
-    let mut delta_decoders = get_initial_delta();
-    let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
+    let aux = Aux::new();
 
     // Help with checking out which demo is unparse-able.
     // println!("Last parsed demo {}", ghost.get_name());
@@ -39,12 +37,11 @@ pub fn demo_ghost_parse<'a>(
                         continue;
                     }
 
-                    let (_, messages) =
-                        parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
+                    let (_, messages) = parse_netmsg(data.msg, aux.clone()).unwrap();
 
                     for message in messages {
                         match message {
-                            Message::EngineMessage(what) => match what {
+                            NetMessage::EngineMessage(what) => match *what {
                                 EngineMessage::SvcDeltaPacketEntities(what) => {
                                     for entity in &what.entity_states {
                                         if entity.entity_index == 1 && entity.delta.is_some() {

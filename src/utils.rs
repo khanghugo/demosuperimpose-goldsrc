@@ -1,15 +1,17 @@
-use hldemo::{MoveVars, NetMsgData, NetMsgInfo, RefParams, UserCmd};
+use dem::hldemo::{MoveVars, NetMsgData, NetMsgInfo, RefParams, UserCmd};
 
 #[macro_export]
 macro_rules! write_demo {
     ($demo_name:literal, $demo:ident) => {{
-        use demosuperimpose_goldsrc::writer::DemoWriter;
+        use dem::demo_writer::DemoWriter;
+
         let mut out = DemoWriter::new(String::from($demo_name));
         out.write_file($demo);
     }};
 
     ($demo_name:ident, $demo:ident) => {{
-        use demosuperimpose_goldsrc::writer::DemoWriter;
+        use dem::demo_writer::DemoWriter;
+
         let mut out = DemoWriter::new(String::from($demo_name));
         out.write_file($demo);
     }};
@@ -18,8 +20,11 @@ macro_rules! write_demo {
 #[macro_export]
 macro_rules! wrap_message {
     ($svc:ident, $msg:ident) => {{
+        use dem::types::EngineMessage;
+        use dem::types::NetMessage;
+
         let huh = EngineMessage::$svc($msg);
-        let hah = Message::EngineMessage(huh);
+        let hah = NetMessage::EngineMessage(Box::new(huh));
         hah
     }};
 }
@@ -31,7 +36,7 @@ macro_rules! open_demo {
         let mut f = File::open($name).unwrap();
         f.read_to_end(&mut bytes).unwrap();
 
-        hldemo::Demo::parse(bytes.leak()).unwrap()
+        dem::hldemo::Demo::parse(bytes.leak()).unwrap()
     }};
 
     ($name:ident) => {{
@@ -39,14 +44,15 @@ macro_rules! open_demo {
         let mut f = File::open($name).unwrap();
         f.read_to_end(&mut bytes).unwrap();
 
-        hldemo::Demo::parse(bytes.leak()).unwrap()
+        dem::hldemo::Demo::parse(bytes.leak()).unwrap()
     }};
 }
 
 #[macro_export]
 macro_rules! nbit_num {
     ($num:expr, $bit:expr) => {{
-        use crate::writer::BitWriter;
+        use dem::bit::BitWriter;
+
         let mut writer = BitWriter::new();
         writer.append_u32_range($num as u32, $bit);
         writer.data
@@ -56,7 +62,8 @@ macro_rules! nbit_num {
 #[macro_export]
 macro_rules! nbit_str {
     ($name:expr) => {{
-        use crate::writer::BitWriter;
+        use dem::bit::BitWriter;
+
         let mut writer = BitWriter::new();
         $name.as_bytes().iter().for_each(|s| writer.append_u8(*s));
         writer.data
@@ -66,12 +73,10 @@ macro_rules! nbit_str {
 #[macro_export]
 macro_rules! init_parse {
     ($demo:ident) => {{
-        use crate::demo_doer::{
-            get_initial_delta, parse_netmsg, FrameData, HashMap, SvcNewUserMsg,
-        };
+        use dem::parse_netmsg;
+        use dem::Aux;
 
-        let mut delta_decoders = get_initial_delta();
-        let mut custom_messages = HashMap::<u8, SvcNewUserMsg>::new();
+        let aux = Aux::new();
 
         // use hldemo::Demo;
         for frame in $demo
@@ -84,13 +89,13 @@ macro_rules! init_parse {
         {
             match &mut frame.data {
                 FrameData::NetMsg((_, data)) => {
-                    parse_netmsg(data.msg, &mut delta_decoders, &mut custom_messages).unwrap();
+                    parse_netmsg(data.msg, aux.clone()).unwrap();
                 }
                 _ => (),
             }
         }
 
-        (delta_decoders, custom_messages)
+        aux
     }};
 }
 
@@ -147,13 +152,13 @@ macro_rules! insert_packet_entity_state_with_index {
         // due to entity index difference mechanism.
         // Not really inserting now per se, moreso finding good info
         // to populate our struct.
-        use demosuperimpose_goldsrc::types::BitType;
+        use dem::types::BitVec;
 
         let before_entity = &$entity_states[insert_index - 1];
         let mut is_absolute_entity_index = false;
         // let mut increment_entity_number = false;
-        let mut ghost_absolute_entity_index: Option<BitType> = None;
-        let mut ghost_entity_index_difference: Option<BitType> = None;
+        let mut ghost_absolute_entity_index: Option<BitVec> = None;
+        let mut ghost_entity_index_difference: Option<BitVec> = None;
 
         // If difference is more than 63, we do absolute entity index instead.
         // The reason is that difference is only 6 bits, so 63 max.
@@ -217,13 +222,13 @@ macro_rules! insert_packet_entity_state_delta_with_index {
         // due to entity index difference mechanism.
         // Not really inserting now per se, moreso finding good info
         // to populate our struct.
-        use demosuperimpose_goldsrc::types::BitType;
+        use dem::types::BitVec;
 
         let before_entity = &$entity_states[insert_index - 1];
         let mut is_absolute_entity_index = false;
         // let mut increment_entity_number = false;
-        let mut ghost_absolute_entity_index: Option<BitType> = None;
-        let mut ghost_entity_index_difference: Option<BitType> = None;
+        let mut ghost_absolute_entity_index: Option<BitVec> = None;
+        let mut ghost_entity_index_difference: Option<BitVec> = None;
 
         // If difference is more than 63, we do absolute entity index instead.
         // The reason is that difference is only 6 bits, so 63 max.
@@ -664,11 +669,13 @@ impl<'a> NetMsgDataMethods for NetMsgData<'a> {
 #[macro_export]
 macro_rules! get_cs_delta_msg {
     () => {{
+        use dem::types::SvcDeltaDescription;
+
         let d1 = SvcDeltaDescription {
-            name: &[101, 118, 101, 110, 116, 95, 116, 0],
+            name: (&[101, 118, 101, 110, 116, 95, 116, 0]).to_vec(),
             total_fields: 14,
             fields: vec![],
-            clone: &[
+            clone: (&[
                 249, 67, 0, 0, 0, 40, 115, 163, 75, 115, 35, 43, 195, 3, 32, 0, 8, 88, 0, 125, 0,
                 0, 0, 125, 0, 0, 200, 31, 2, 0, 0, 128, 24, 92, 152, 92, 88, 91, 12, 0, 16, 64, 64,
                 0, 232, 3, 0, 0, 232, 3, 0, 64, 254, 16, 0, 0, 0, 196, 224, 194, 228, 194, 218,
@@ -687,16 +694,18 @@ macro_rules! get_cs_delta_msg {
                 144, 63, 2, 0, 0, 192, 48, 183, 51, 182, 178, 185, 45, 153, 46, 0, 14, 128, 0, 13,
                 0, 0, 250, 0, 208, 7, 0, 128, 252, 33, 0, 0, 0, 144, 213, 141, 173, 165, 185, 157,
                 1, 176, 0, 4, 4, 128, 62, 0, 0, 128, 62, 0, 0, 0,
-            ],
+            ])
+                .to_vec(),
         };
 
         let d2 = SvcDeltaDescription {
-            name: &[
+            name: (&[
                 119, 101, 97, 112, 111, 110, 95, 100, 97, 116, 97, 95, 116, 0,
-            ],
+            ])
+                .to_vec(),
             total_fields: 18,
             fields: vec![],
-            clone: &[
+            clone: (&[
                 249, 35, 0, 0, 0, 108, 251, 50, 99, 163, 74, 107, 43, 187, 42, 11, 131, 123, 115,
                 75, 34, 99, 43, 3, 128, 0, 8, 176, 0, 72, 232, 1, 0, 125, 0, 0, 200, 31, 1, 0, 0,
                 96, 219, 151, 25, 155, 83, 25, 30, 29, 148, 92, 90, 91, 152, 92, 94, 16, 29, 93,
@@ -724,14 +733,15 @@ macro_rules! get_cs_delta_msg {
                 50, 0, 76, 0, 1, 22, 0, 208, 7, 0, 160, 15, 0, 0, 249, 35, 0, 0, 0, 52, 171, 155,
                 43, 147, 155, 1, 128, 2, 8, 176, 0, 128, 62, 0, 0, 125, 0, 0, 200, 31, 2, 0, 0, 96,
                 90, 221, 92, 153, 92, 12, 0, 14, 64, 0, 4, 0, 244, 1, 0, 232, 3, 0, 0,
-            ],
+            ])
+                .to_vec(),
         };
 
         let d3 = SvcDeltaDescription {
-            name: &[117, 115, 101, 114, 99, 109, 100, 95, 116, 0],
+            name: (&[117, 115, 101, 114, 99, 109, 100, 95, 116, 0]).to_vec(),
             total_fields: 15,
             fields: vec![],
-            clone: &[
+            clone: (&[
                 217, 19, 0, 0, 0, 96, 43, 147, 131, 251, 106, 155, 43, 27, 3, 8, 72, 0, 125, 0, 0,
                 0, 125, 0, 0, 200, 95, 0, 0, 0, 64, 219, 92, 217, 24, 128, 0, 64, 0, 2, 232, 3, 0,
                 0, 232, 3, 0, 64, 254, 32, 0, 0, 0, 236, 210, 202, 238, 194, 220, 206, 216, 202,
@@ -754,17 +764,19 @@ macro_rules! get_cs_delta_msg {
                 116, 1, 176, 0, 4, 64, 0, 244, 1, 0, 128, 62, 0, 0, 228, 143, 0, 0, 0, 48, 173, 13,
                 46, 108, 140, 238, 11, 238, 109, 46, 141, 46, 237, 205, 109, 75, 166, 11, 0, 6, 32,
                 0, 2, 160, 15, 0, 0, 244, 1, 0, 0,
-            ],
+            ])
+                .to_vec(),
         };
 
         let d4 = SvcDeltaDescription {
-            name: &[
+            name: (&[
                 99, 117, 115, 116, 111, 109, 95, 101, 110, 116, 105, 116, 121, 95, 115, 116, 97,
                 116, 101, 95, 116, 0,
-            ],
+            ])
+                .to_vec(),
             total_fields: 19,
             fields: vec![],
-            clone: &[
+            clone: (&[
                 249, 67, 0, 0, 0, 144, 43, 115, 35, 43, 147, 107, 123, 35, 43, 3, 64, 2, 8, 64, 0,
                 125, 0, 0, 0, 125, 0, 0, 200, 31, 1, 0, 0, 224, 155, 92, 218, 89, 154, 219, 22, 76,
                 23, 0, 4, 64, 64, 4, 64, 31, 0, 0, 232, 3, 0, 64, 254, 8, 0, 0, 0, 223, 228, 210,
@@ -790,17 +802,19 @@ macro_rules! get_cs_delta_msg {
                 0, 0, 0, 125, 0, 0, 200, 31, 1, 0, 0, 128, 153, 92, 88, 91, 25, 0, 12, 64, 0, 2,
                 232, 3, 0, 0, 232, 3, 0, 64, 254, 8, 0, 0, 0, 194, 220, 210, 218, 232, 210, 218,
                 202, 0, 184, 0, 2, 16, 64, 31, 0, 0, 32, 3, 0, 0, 0,
-            ],
+            ])
+                .to_vec(),
         };
 
         let d5 = SvcDeltaDescription {
-            name: &[
+            name: (&[
                 101, 110, 116, 105, 116, 121, 95, 115, 116, 97, 116, 101, 95, 112, 108, 97, 121,
                 101, 114, 95, 116, 0,
-            ],
+            ])
+                .to_vec(),
             total_fields: 48,
             fields: vec![],
-            clone: &[
+            clone: (&[
                 249, 3, 1, 0, 0, 8, 115, 75, 107, 163, 75, 107, 43, 3, 224, 2, 8, 64, 0, 125, 0, 0,
                 0, 125, 0, 0, 200, 31, 1, 0, 0, 128, 153, 92, 88, 91, 25, 0, 12, 64, 0, 2, 232, 3,
                 0, 0, 232, 3, 0, 64, 254, 8, 0, 0, 0, 223, 228, 210, 206, 210, 220, 182, 96, 186,
@@ -865,16 +879,18 @@ macro_rules! get_cs_delta_msg {
                 14, 174, 108, 140, 46, 140, 238, 77, 14, 0, 22, 32, 32, 0, 244, 1, 0, 0, 244, 1, 0,
                 32, 127, 8, 0, 0, 0, 105, 117, 115, 101, 114, 52, 0, 16, 1, 1, 2, 160, 15, 0, 0,
                 160, 15, 0, 0,
-            ],
+            ])
+                .to_vec(),
         };
 
         let d6 = SvcDeltaDescription {
-            name: &[
+            name: (&[
                 101, 110, 116, 105, 116, 121, 95, 115, 116, 97, 116, 101, 95, 116, 0,
-            ],
+            ])
+                .to_vec(),
             total_fields: 52,
             fields: vec![],
-            clone: &[
+            clone: (&[
                 249, 3, 1, 0, 0, 8, 115, 75, 107, 163, 75, 107, 43, 3, 224, 2, 8, 64, 0, 125, 0, 0,
                 0, 125, 0, 0, 200, 31, 1, 0, 0, 128, 153, 92, 88, 91, 25, 0, 12, 64, 0, 2, 232, 3,
                 0, 0, 232, 3, 0, 64, 254, 8, 0, 0, 0, 223, 228, 210, 206, 210, 220, 182, 96, 186,
@@ -944,14 +960,15 @@ macro_rules! get_cs_delta_msg {
                 197, 194, 230, 202, 236, 202, 216, 222, 198, 210, 232, 242, 182, 100, 186, 0, 136,
                 1, 2, 32, 0, 250, 0, 0, 64, 31, 0, 0, 242, 135, 0, 0, 0, 144, 86, 55, 87, 38, 71,
                 3, 0, 17, 16, 32, 0, 250, 0, 0, 0, 250, 0, 0, 0,
-            ],
+            ])
+                .to_vec(),
         };
 
         let d7 = SvcDeltaDescription {
-            name: &[99, 108, 105, 101, 110, 116, 100, 97, 116, 97, 95, 116, 0],
+            name: (&[99, 108, 105, 101, 110, 116, 100, 97, 116, 97, 95, 116, 0]).to_vec(),
             total_fields: 47,
             fields: vec![],
-            clone: &[
+            clone: (&[
                 249, 67, 0, 0, 0, 48, 99, 163, 74, 107, 43, 155, 162, 43, 131, 155, 122, 171, 115,
                 35, 3, 96, 2, 8, 80, 0, 125, 0, 0, 0, 125, 0, 0, 200, 30, 1, 0, 0, 224, 155, 92,
                 218, 89, 154, 219, 22, 76, 23, 64, 64, 5, 0, 244, 1, 0, 232, 3, 0, 64, 254, 8, 0,
@@ -1014,7 +1031,8 @@ macro_rules! get_cs_delta_msg {
                 24, 0, 206, 128, 128, 4, 208, 7, 0, 0, 208, 7, 0, 128, 252, 17, 0, 0, 0, 152, 213,
                 205, 149, 201, 201, 0, 128, 6, 4, 56, 128, 62, 0, 0, 128, 62, 0, 0, 228, 143, 0, 0,
                 0, 192, 172, 110, 174, 76, 110, 6, 128, 52, 32, 64, 1, 244, 1, 0, 0, 244, 1, 0, 0,
-            ],
+            ])
+                .to_vec(),
         };
 
         [d1, d2, d3, d4, d5, d6, d7]
@@ -1024,7 +1042,7 @@ macro_rules! get_cs_delta_msg {
 #[macro_export]
 macro_rules! get_cs_delta_decoder_table {
     () => {{
-        use demosuperimpose_goldsrc::types::DeltaDecoderS;
+        use dem::types::DeltaDecoderS;
 
         let mut dt = DeltaDecoderTable::new();
 

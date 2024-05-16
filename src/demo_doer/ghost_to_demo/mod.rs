@@ -9,57 +9,48 @@ use bitvec::prelude::*;
 use bsp_file::bsp::LumpType;
 use bsp_file::bsp::RawMap;
 use bsp_render::level::entities::parse_entities;
-use demosuperimpose_goldsrc::get_cs_delta_msg;
-use demosuperimpose_goldsrc::insert_packet_entity_state_delta_with_index;
-use demosuperimpose_goldsrc::insert_packet_entity_state_with_index;
-use demosuperimpose_goldsrc::netmsg_doer::delta_description::DeltaDescription;
-use demosuperimpose_goldsrc::netmsg_doer::delta_packet_entities::DeltaPacketEntities;
-use demosuperimpose_goldsrc::netmsg_doer::new_movevars::NewMovevars;
-use demosuperimpose_goldsrc::netmsg_doer::packet_entities::PacketEntities;
-use demosuperimpose_goldsrc::netmsg_doer::server_info::ServerInfo;
-use demosuperimpose_goldsrc::netmsg_doer::set_view::SetView;
-use demosuperimpose_goldsrc::netmsg_doer::sign_on_num::SignOnNum;
-use demosuperimpose_goldsrc::netmsg_doer::sound::Sound;
-use demosuperimpose_goldsrc::netmsg_doer::spawn_baseline::SpawnBaseline;
-use demosuperimpose_goldsrc::netmsg_doer::NetMsgDoerWithDelta;
-use demosuperimpose_goldsrc::netmsg_doer::NetMsgDoerWithExtraInfo;
-use demosuperimpose_goldsrc::rand_int_range;
-use demosuperimpose_goldsrc::types::Delta;
-use demosuperimpose_goldsrc::types::DeltaDecoderTable;
-use demosuperimpose_goldsrc::types::EntityS;
-use demosuperimpose_goldsrc::types::EntityState;
-use demosuperimpose_goldsrc::types::EntityStateDelta;
-use demosuperimpose_goldsrc::types::OriginCoord;
-use demosuperimpose_goldsrc::types::SvcDeltaPacketEntities;
-use demosuperimpose_goldsrc::types::SvcNewMoveVars;
-use demosuperimpose_goldsrc::types::SvcPacketEntities;
-use demosuperimpose_goldsrc::types::SvcServerInfo;
-use demosuperimpose_goldsrc::types::SvcSetView;
-use demosuperimpose_goldsrc::types::SvcSignOnNum;
-use demosuperimpose_goldsrc::types::SvcSpawnBaseline;
-use demosuperimpose_goldsrc::utils::Buttons;
-use demosuperimpose_goldsrc::wrap_message;
-use demosuperimpose_goldsrc::{
-    init_parse, nbit_num, nbit_str,
-    netmsg_doer::{
-        parse_netmsg, parse_netmsg_immutable, resource_list::ResourceList, write_netmsg, NetMsgDoer,
-    },
-    types::Resource,
-    types::{EngineMessage, Message, SvcDeltaDescription, SvcResourceList, SvcSound},
-    utils::{NetMsgDataMethods, ResourceType},
-};
-use hldemo::Directory;
-use hldemo::DirectoryEntry;
-use hldemo::Header;
-use hldemo::{
-    parse::frame, ClientDataData, Demo, DemoBufferData, Frame, FrameData, MoveVars, NetMsgData,
-    NetMsgFrameType, NetMsgInfo, RefParams, UserCmd,
-};
+use dem::hldemo::ClientDataData;
+use dem::hldemo::Demo;
+use dem::hldemo::DemoBufferData;
+use dem::hldemo::Directory;
+use dem::hldemo::DirectoryEntry;
+use dem::hldemo::Frame;
+use dem::hldemo::FrameData;
+use dem::hldemo::Header;
+use dem::hldemo::NetMsgData;
+use dem::hldemo::NetMsgFrameType;
+use dem::netmsg_doer::Doer;
+use dem::types::Delta;
+use dem::types::DeltaDecoderTable;
+use dem::types::EntityS;
+use dem::types::EntityState;
+use dem::types::EntityStateDelta;
+use dem::types::OriginCoord;
+use dem::types::Resource;
+use dem::types::SvcDeltaPacketEntities;
+use dem::types::SvcNewMovevars;
+use dem::types::SvcPacketEntities;
+use dem::types::SvcResourceList;
+use dem::types::SvcServerInfo;
+use dem::types::SvcSetView;
+use dem::types::SvcSignOnNum;
+use dem::types::SvcSound;
+use dem::types::SvcSpawnBaseline;
+use dem::Aux;
 use nom::number::complete::float;
 use nom::sequence::tuple;
 use nom::AsBytes;
 
 use crate::get_cs_delta_decoder_table;
+use crate::get_cs_delta_msg;
+use crate::insert_packet_entity_state_delta_with_index;
+use crate::insert_packet_entity_state_with_index;
+use crate::nbit_num;
+use crate::nbit_str;
+use crate::rand_int_range;
+use crate::utils::Buttons;
+use crate::utils::NetMsgDataMethods;
+use crate::utils::ResourceType;
 
 use super::get_ghost::get_ghost;
 
@@ -73,6 +64,8 @@ const MAX_PLAYERS: i32 = 1;
 const GAME_DIR: &str = "cstrike";
 
 pub fn ghost_to_demo<'a>(ghost_file_name: &'a Path, map_file_name: &'a Path) -> Demo<'a> {
+    let aux = Aux::new();
+
     let mut map_name = vec![0u8; 260];
     let map_file_name_stem = map_file_name.file_stem().unwrap().to_str().unwrap();
     map_name[..map_file_name_stem.len()].copy_from_slice(map_file_name_stem.as_bytes());
@@ -129,7 +122,7 @@ pub fn ghost_to_demo<'a>(ghost_file_name: &'a Path, map_file_name: &'a Path) -> 
 
     // final steps
     let (game_resource_index_start, packet_entities, delta_packet_entities) =
-        insert_base_netmsg(&mut demo, map_file_name);
+        insert_base_netmsg(&mut demo, map_file_name, aux.clone());
     insert_ghost(
         &mut demo,
         ghost_file_name.to_str().unwrap(),
@@ -138,6 +131,7 @@ pub fn ghost_to_demo<'a>(ghost_file_name: &'a Path, map_file_name: &'a Path) -> 
         game_resource_index_start,
         packet_entities,
         delta_packet_entities,
+        aux,
     );
 
     demo
@@ -185,6 +179,7 @@ fn parse_3_f32(i: &str) -> IResult<&str, (f32, f32, f32)> {
 fn insert_base_netmsg(
     demo: &mut Demo,
     map_file_name: &Path,
+    aux: Aux,
 ) -> (usize, Vec<u8>, SvcDeltaPacketEntities) {
     // add maps entities first with its models, named "*{number}" and so on until we are done
     // by then we can insert our own custom files
@@ -274,27 +269,27 @@ fn insert_base_netmsg(
         protocol: 48,
         spawn_count: 5, // ?
         map_checksum: 0,
-        client_dll_hash: &[0u8; 16],
+        client_dll_hash: vec![0u8; 16],
         max_players: MAX_PLAYERS as u8,
         player_index: 0,
         is_deathmatch: 0,
-        game_dir: game_dir.as_bytes(),
-        hostname: b"Ghost Demo Replay\0",
-        map_file_name: map_file_name.as_bytes(),
-        map_cycle: b"a\0", // must be null string
+        game_dir: game_dir.as_bytes().to_vec(),
+        hostname: b"Ghost Demo Replay\0".to_vec(),
+        map_file_name: map_file_name.as_bytes().to_vec(),
+        map_cycle: b"a\0".to_vec(), // must be null string
         unknown: 0u8,
     };
-    let server_info = ServerInfo::write(server_info);
+    let server_info = server_info.write(aux.clone());
 
     let dds: Vec<u8> = get_cs_delta_msg!()
         .iter()
-        .flat_map(|dd| DeltaDescription::write(dd.to_owned(), &DeltaDecoderTable::new()))
+        .flat_map(|dd| dd.write(aux.clone()))
         .collect();
 
     let set_view = SvcSetView { entity_index: 1 }; // always 1
-    let set_view = SetView::write(set_view);
+    let set_view = set_view.write(aux.clone());
 
-    let new_movevars = SvcNewMoveVars {
+    let new_movevars = SvcNewMovevars {
         gravity: 800.,
         stop_speed: 75.,
         max_speed: 320.,
@@ -316,9 +311,9 @@ fn insert_base_netmsg(
         roll_speed: -1.9721523e-31, // have to use these magic numbers to work
         sky_color: vec![-1.972168e-31, -1.972168e-31, 9.4e-44],
         sky_vec: vec![-0.0, 2.68e-43, 2.7721908e20],
-        sky_name: &[0],
+        sky_name: (&[0]).to_vec(),
     };
-    let new_movevars = NewMovevars::write(new_movevars);
+    let new_movevars = new_movevars.write(aux.clone());
 
     // bsp is always 1, then func_door and illusionary and whatever renders
     // maps resources first
@@ -384,7 +379,7 @@ fn insert_base_netmsg(
         resources,
         consistencies: vec![],
     };
-    let resource_list = ResourceList::write(resource_list);
+    let resource_list = resource_list.write(aux.clone());
 
     let worldspawn = EntityS {
         entity_index: 0, // worldspawn is index 0
@@ -415,14 +410,10 @@ fn insert_base_netmsg(
         total_extra_data: nbit_num!(0, 6),
         extra_data: vec![],
     };
-    let spawn_baseline = SpawnBaseline::write(
-        spawn_baseline,
-        &mut get_cs_delta_decoder_table!(),
-        MAX_PLAYERS as u8,
-    );
+    let spawn_baseline = spawn_baseline.write(aux.clone());
 
     let sign_on_num = SvcSignOnNum { sign: 1 };
-    let sign_on_num = SignOnNum::write(sign_on_num);
+    let sign_on_num = sign_on_num.write(aux.clone());
 
     // making entities appearing
     // packet entities is not enough
@@ -454,11 +445,7 @@ fn insert_base_netmsg(
         entity_count: nbit_num!(entity_states.len(), 16), // has to match the length, of EntityState
         entity_states,
     };
-    let packet_entities = PacketEntities::write(
-        packet_entities,
-        &mut get_cs_delta_decoder_table!(),
-        MAX_PLAYERS as u8,
-    );
+    let packet_entities = packet_entities.write(aux.clone());
 
     let player_entity_state_delta = EntityStateDelta {
         entity_index: 1,
@@ -536,7 +523,8 @@ pub fn insert_ghost(
     override_fov: Option<f32>,
     game_resource_index_start: usize,
     packet_entities: Vec<u8>,
-    delta_packet_entities: SvcDeltaPacketEntities,
+    mut delta_packet_entities: SvcDeltaPacketEntities,
+    aux: Aux,
 ) {
     // setup
     let ghost_info = get_ghost(ghost_file_name, &0.);
@@ -673,7 +661,7 @@ pub fn insert_ghost(
                     pitch: bitvec![u8, Lsb0; 1, 0, 0, 0, 0, 0, 0, 0].into(),
                 };
 
-                let svcsound_msg = Sound::write(svcsound);
+                let svcsound_msg = svcsound.write(aux.clone());
 
                 new_netmsg_data.msg = [new_netmsg_data.msg.to_owned(), svcsound_msg]
                     .concat()
@@ -724,7 +712,7 @@ pub fn insert_ghost(
                 pitch: nbit_num!(1, 8).into(),
             };
 
-            let svcsound_msg = Sound::write(svcsound);
+            let svcsound_msg = svcsound.write(aux.clone());
 
             new_netmsg_data.msg = [new_netmsg_data.msg.to_owned(), svcsound_msg]
                 .concat()
@@ -744,16 +732,12 @@ pub fn insert_ghost(
         }
 
         if frame_idx % 100 == 0 {
-            let mut delta_packet_entities = delta_packet_entities.clone();
+            // let mut delta_packet_entities = delta_packet_entities;
             // println!("{} {}", delta_packet_entities.entity_states.len(), delta_packet_entities.entity_count.to_u32());
             // delta_sequence: nbit_num!(DEFAULT_IN_SEQ & 0xff - 1, 8), // otherwise entity flush happens
             delta_packet_entities.delta_sequence =
                 nbit_num!((DEFAULT_IN_SEQ + frame_idx as i32 - 1) & 0xff, 8);
-            let delta_packet_entities_byte = DeltaPacketEntities::write(
-                delta_packet_entities.clone(),
-                &mut get_cs_delta_decoder_table!(),
-                MAX_PLAYERS as u8,
-            );
+            let delta_packet_entities_byte = delta_packet_entities.write(aux.clone());
 
             new_netmsg_data.msg = [
                 // packet_entities.to_owned(),

@@ -3,12 +3,16 @@ use crate::wrap_message;
 
 use super::*;
 
-use demosuperimpose_goldsrc::netmsg_doer::parse_netmsg_immutable;
+use dem::parse_netmsg;
+use dem::types::SvcTempEntity;
+use dem::types::TeTextMessage;
+use dem::types::TempEntity;
+use dem::write_netmsg;
 use rayon::prelude::*;
 
 /// Adds entry index and frame_index on screen.
 pub fn add_debug(demo: &mut Demo) {
-    let (delta_decoders, custom_messages) = init_parse!(demo);
+    let aux = init_parse!(demo);
 
     for (entry_idx, entry) in demo.directory.entries.iter_mut().skip(1).enumerate() {
         entry
@@ -18,9 +22,7 @@ pub fn add_debug(demo: &mut Demo) {
             .for_each(|(frame_idx, frame)| {
                 match &mut frame.data {
                     FrameData::NetMsg((_, data)) => {
-                        let (_, mut messages) =
-                            parse_netmsg_immutable(data.msg, &delta_decoders, &custom_messages)
-                                .unwrap();
+                        let (_, mut messages) = parse_netmsg(data.msg, aux.clone()).unwrap();
 
                         let message = format!(
                             "{} {} \n {} {}\0",
@@ -37,23 +39,23 @@ pub fn add_debug(demo: &mut Demo) {
                             x: 0.48f32.coord_conversion(),
                             y: 0.50f32.coord_conversion(),
                             effect: 0,
-                            text_color: &[255, 255, 255, 0],
-                            effect_color: &[255, 255, 255, 0],
+                            text_color: vec![255, 255, 255, 0],
+                            effect_color: vec![255, 255, 255, 0],
                             fade_in_time: 25,
                             fade_out_time: 76,
                             hold_time: 60,
                             effect_time: None,
-                            message,
+                            message: message.to_vec(),
                         };
 
                         let temp_entity = SvcTempEntity {
                             entity_type: 29,
-                            entity: TempEntityEntity::TeTextMessage(text),
+                            entity: TempEntity::TeTextMessage(text),
                         };
 
                         messages.push(wrap_message!(SvcTempEntity, temp_entity));
 
-                        let write = write_netmsg(messages, &delta_decoders, &custom_messages);
+                        let write = write_netmsg(messages, aux.clone());
 
                         data.msg = write.leak();
                     }

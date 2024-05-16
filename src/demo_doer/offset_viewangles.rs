@@ -1,3 +1,5 @@
+use dem::hldemo::Frame;
+
 use super::*;
 
 /// Offset the yaw for `amount` starting at `over_end` but with `over_start` to smoothly change.
@@ -225,7 +227,7 @@ pub fn pause_view(demo: &mut Demo, start: usize, end: usize) {
 // Specify how far we search for the frame.
 const SEARCH_RANGE: usize = 3;
 
-fn search_client_data_frame(frames: &Vec<hldemo::Frame>, target: usize) -> (usize, [f32; 3]) {
+fn search_client_data_frame(frames: &Vec<Frame>, target: usize) -> (usize, [f32; 3]) {
     if frames.get(target - SEARCH_RANGE).is_none() || frames.get(target + SEARCH_RANGE).is_none() {
         panic!("Offset viewangles: Input frame for change over does not exist.")
     }
