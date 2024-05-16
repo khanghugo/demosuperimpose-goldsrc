@@ -2,7 +2,9 @@
 
 Demo superimpose/ghost reimplementation of [demsuperimpose](https://github.com/matthewearl/demsuperimpose) and [demogobbler](https://github.com/lipsanen/demogobbler) for GoldSrc.
 
-Beside that functionality, this thing can also write and parse demo.
+~~Beside that functionality, this thing can also write and parse demo~~.It will be moving to a different repository [dem](https://github.com/khanghugo/dem)
+
+demosuperimpose-goldsrc will be purely for implementation of demo tools.
 
 ## Why
 
