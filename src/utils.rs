@@ -76,7 +76,7 @@ macro_rules! init_parse {
         use dem::parse_netmsg;
         use dem::Aux;
 
-        let aux = Aux::new();
+        let mut aux = Aux::new();
 
         // use hldemo::Demo;
         for frame in $demo
@@ -89,7 +89,7 @@ macro_rules! init_parse {
         {
             match &mut frame.data {
                 FrameData::NetMsg((_, data)) => {
-                    parse_netmsg(data.msg, aux.clone()).unwrap();
+                    parse_netmsg(data.msg, &mut aux).unwrap();
                 }
                 _ => (),
             }

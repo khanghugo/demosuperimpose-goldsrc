@@ -9,12 +9,12 @@ use super::*;
 #[allow(dead_code)]
 /// Simply parses netmsg.
 pub fn netmsg_parse(demo: &mut Demo) {
-    let aux: Aux = Aux::new();
+    let mut aux: Aux = Aux::new();
 
     for entry in &mut demo.directory.entries {
         for frame in &mut entry.frames {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
-                let (_, _netmsg) = parse_netmsg(data.msg, aux.clone()).unwrap();
+                let (_, _netmsg) = parse_netmsg(data.msg, &mut aux).unwrap();
             }
         }
     }
@@ -23,7 +23,7 @@ pub fn netmsg_parse(demo: &mut Demo) {
 #[allow(dead_code)]
 /// Simply prints netmsg.
 pub fn print_netmsg(demo: &mut Demo) {
-    let aux: Aux = Aux::new();
+    let mut aux: Aux = Aux::new();
 
     let mut i = 0;
     let mut j = 0;
@@ -31,7 +31,7 @@ pub fn print_netmsg(demo: &mut Demo) {
     for (entry_idx, entry) in demo.directory.entries.iter_mut().enumerate() {
         for (frame_idx, frame) in entry.frames.iter_mut().enumerate() {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
-                let (_, netmsg) = parse_netmsg(data.msg, aux.clone()).unwrap();
+                let (_, netmsg) = parse_netmsg(data.msg, &mut aux).unwrap();
 
                 for what in &netmsg {
                     match what {
@@ -52,7 +52,9 @@ pub fn print_netmsg(demo: &mut Demo) {
                     };
                 }
 
+                println!("{:?}", aux);
                 println!("{} {} {:?}", i, j, netmsg);
+                println!("");
             }
 
             j += 1;
@@ -66,7 +68,7 @@ pub fn print_netmsg(demo: &mut Demo) {
 #[allow(dead_code)]
 /// Simply parse-write netmsg.
 pub fn netmsg_parse_write(demo: &mut Demo) {
-    let aux: Aux = Aux::new();
+    let mut aux: Aux = Aux::new();
 
     let mut i = 0;
     let mut j = 0;
@@ -75,7 +77,7 @@ pub fn netmsg_parse_write(demo: &mut Demo) {
         for frame in &mut entry.frames {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
                 println!("{} {}", i, j);
-                let (_, messages) = parse_netmsg(data.msg, aux.clone()).unwrap();
+                let (_, messages) = parse_netmsg(data.msg, &mut aux).unwrap();
 
                 let write = write_netmsg(messages, aux.clone());
 
@@ -92,9 +94,9 @@ pub fn netmsg_parse_write(demo: &mut Demo) {
 #[allow(dead_code)]
 /// Simply parse-write-parse netmsg.
 pub fn netmsg_parse_write_parse(demo: &mut Demo) {
-    let aux: Aux = Aux::new();
+    let mut aux: Aux = Aux::new();
 
-    let aux2: Aux = Aux::new();
+    let mut aux2: Aux = Aux::new();
 
     let mut i = 0;
     let mut j = 0;
@@ -103,13 +105,13 @@ pub fn netmsg_parse_write_parse(demo: &mut Demo) {
         for frame in &mut entry.frames {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
                 println!("{} {}", i, j);
-                let (_, messages) = parse_netmsg(data.msg, aux.clone()).unwrap();
+                let (_, messages) = parse_netmsg(data.msg, &mut aux).unwrap();
 
                 println!("{:?}", messages);
 
                 let write = write_netmsg(messages, aux.clone());
 
-                let (_, _parse_write) = parse_netmsg(write.leak(), aux2.clone()).unwrap();
+                let (_, _parse_write) = parse_netmsg(write.leak(), &mut aux2).unwrap();
             }
             j += 1;
         }

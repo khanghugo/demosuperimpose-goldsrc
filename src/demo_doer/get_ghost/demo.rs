@@ -18,7 +18,7 @@ pub fn demo_ghost_parse<'a>(
     ghost.set_name(name.to_owned());
     ghost.reset_ghost_anim_frame();
 
-    let aux = Aux::new();
+    let mut aux = Aux::new();
 
     // Help with checking out which demo is unparse-able.
     // println!("Last parsed demo {}", ghost.get_name());
@@ -37,7 +37,7 @@ pub fn demo_ghost_parse<'a>(
                         continue;
                     }
 
-                    let (_, messages) = parse_netmsg(data.msg, aux.clone()).unwrap();
+                    let (_, messages) = parse_netmsg(data.msg, &mut aux).unwrap();
 
                     for message in messages {
                         match message {

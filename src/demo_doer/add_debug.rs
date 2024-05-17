@@ -12,7 +12,7 @@ use rayon::prelude::*;
 
 /// Adds entry index and frame_index on screen.
 pub fn add_debug(demo: &mut Demo) {
-    let aux = init_parse!(demo);
+    let mut aux = init_parse!(demo);
 
     for (entry_idx, entry) in demo.directory.entries.iter_mut().skip(1).enumerate() {
         entry
@@ -22,7 +22,7 @@ pub fn add_debug(demo: &mut Demo) {
             .for_each(|(frame_idx, frame)| {
                 match &mut frame.data {
                     FrameData::NetMsg((_, data)) => {
-                        let (_, mut messages) = parse_netmsg(data.msg, aux.clone()).unwrap();
+                        let (_, mut messages) = parse_netmsg(data.msg, &mut aux.clone()).unwrap();
 
                         let message = format!(
                             "{} {} \n {} {}\0",

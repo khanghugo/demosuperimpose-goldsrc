@@ -30,7 +30,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
     // New line for our print finally
     println!("");
 
-    let aux = Aux::new();
+    let mut aux = Aux::new();
 
     let mut main_demo_player_delta = Delta::new();
 
@@ -50,7 +50,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
             std::io::stdout().flush().unwrap();
 
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
-                let (_, mut messages) = parse_netmsg(data.msg, aux.clone()).unwrap();
+                let (_, mut messages) = parse_netmsg(data.msg, &mut aux).unwrap();
 
                 for message in &mut messages {
                     match message {
