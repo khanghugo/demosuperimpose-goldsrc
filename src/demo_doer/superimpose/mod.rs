@@ -47,7 +47,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
             std::io::stdout().flush().unwrap();
 
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
-                let (_, mut messages) = parse_netmsg(data.msg, &mut aux).unwrap();
+                let (_, mut messages) = parse_netmsg(data.msg, &aux).unwrap();
 
                 for message in &mut messages {
                     match message {
@@ -418,7 +418,7 @@ pub fn superimpose<'a>(main: String, others: Vec<(String, f32)>) -> Demo<'a> {
                     }
                 }
 
-                let write = write_netmsg(messages, aux.clone());
+                let write = write_netmsg(messages, &aux);
                 data.msg = write.leak();
             }
         }

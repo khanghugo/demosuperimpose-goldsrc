@@ -90,7 +90,7 @@ pub fn add_kz_stats(demo: &mut Demo, addons: &KzAddOns) {
         for frame in &mut entry.frames {
             match &mut frame.data {
                 FrameData::NetMsg((_, netmsg)) => {
-                    let (_, mut messages) = parse_netmsg(netmsg.msg, &mut aux).unwrap();
+                    let (_, mut messages) = parse_netmsg(netmsg.msg, &aux).unwrap();
 
                     if let Some(ref mut curr) = curr {
                         curr.forward = netmsg.info.usercmd.forwardmove;
@@ -114,7 +114,7 @@ pub fn add_kz_stats(demo: &mut Demo, addons: &KzAddOns) {
                         }
                     }
 
-                    let write = write_netmsg(messages, aux.clone());
+                    let write = write_netmsg(messages, &aux);
                     netmsg.msg = write.leak();
                 }
                 FrameData::ClientData(client_data) => {

@@ -17,12 +17,12 @@ pub fn add_debug(demo: &mut Demo) {
     for (entry_idx, entry) in demo.directory.entries.iter_mut().skip(1).enumerate() {
         entry
             .frames
-            .par_iter_mut()
+            .iter_mut()
             .enumerate()
             .for_each(|(frame_idx, frame)| {
                 match &mut frame.data {
                     FrameData::NetMsg((_, data)) => {
-                        let (_, mut messages) = parse_netmsg(data.msg, &mut aux.clone()).unwrap();
+                        let (_, mut messages) = parse_netmsg(data.msg, &aux).unwrap();
 
                         let message = format!(
                             "{} {} \n {} {}\0",
@@ -55,7 +55,7 @@ pub fn add_debug(demo: &mut Demo) {
 
                         messages.push(wrap_message!(SvcTempEntity, temp_entity));
 
-                        let write = write_netmsg(messages, aux.clone());
+                        let write = write_netmsg(messages, &aux);
 
                         data.msg = write.leak();
                     }

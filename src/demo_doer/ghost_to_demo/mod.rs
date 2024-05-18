@@ -1,6 +1,7 @@
 // bsp info to insert
 // ghost demo to insert
 
+use std::cell::RefCell;
 use std::path::Path;
 
 use bitvec::bitvec;
@@ -121,7 +122,7 @@ pub fn ghost_to_demo<'a>(ghost_file_name: &'a Path, map_file_name: &'a Path) -> 
 
     // final steps
     let (game_resource_index_start, packet_entities, delta_packet_entities) =
-        insert_base_netmsg(&mut demo, map_file_name, aux.clone());
+        insert_base_netmsg(&mut demo, map_file_name, &aux);
     insert_ghost(
         &mut demo,
         ghost_file_name.to_str().unwrap(),
@@ -130,7 +131,7 @@ pub fn ghost_to_demo<'a>(ghost_file_name: &'a Path, map_file_name: &'a Path) -> 
         game_resource_index_start,
         packet_entities,
         delta_packet_entities,
-        aux,
+        &aux,
     );
 
     demo
@@ -178,7 +179,7 @@ fn parse_3_f32(i: &str) -> IResult<&str, (f32, f32, f32)> {
 fn insert_base_netmsg(
     demo: &mut Demo,
     map_file_name: &Path,
-    aux: Aux,
+    aux: &RefCell<Aux>,
 ) -> (usize, Vec<u8>, SvcDeltaPacketEntities) {
     // add maps entities first with its models, named "*{number}" and so on until we are done
     // by then we can insert our own custom files
@@ -278,15 +279,15 @@ fn insert_base_netmsg(
         map_cycle: b"a\0".to_vec(), // must be null string
         unknown: 0u8,
     };
-    let server_info = server_info.write(aux.clone());
+    let server_info = server_info.write(&aux);
 
     let dds: Vec<u8> = get_cs_delta_msg!()
         .iter()
-        .flat_map(|dd| dd.write(aux.clone()))
+        .flat_map(|dd| dd.write(&aux))
         .collect();
 
     let set_view = SvcSetView { entity_index: 1 }; // always 1
-    let set_view = set_view.write(aux.clone());
+    let set_view = set_view.write(&aux);
 
     let new_movevars = SvcNewMovevars {
         gravity: 800.,
@@ -312,7 +313,7 @@ fn insert_base_netmsg(
         sky_vec: vec![-0.0, 2.68e-43, 2.7721908e20],
         sky_name: (&[0]).to_vec(),
     };
-    let new_movevars = new_movevars.write(aux.clone());
+    let new_movevars = new_movevars.write(&aux);
 
     // bsp is always 1, then func_door and illusionary and whatever renders
     // maps resources first
@@ -378,7 +379,7 @@ fn insert_base_netmsg(
         resources,
         consistencies: vec![],
     };
-    let resource_list = resource_list.write(aux.clone());
+    let resource_list = resource_list.write(&aux);
 
     let worldspawn = EntityS {
         entity_index: 0, // worldspawn is index 0
@@ -409,10 +410,10 @@ fn insert_base_netmsg(
         total_extra_data: nbit_num!(0, 6),
         extra_data: vec![],
     };
-    let spawn_baseline = spawn_baseline.write(aux.clone());
+    let spawn_baseline = spawn_baseline.write(&aux);
 
     let sign_on_num = SvcSignOnNum { sign: 1 };
-    let sign_on_num = sign_on_num.write(aux.clone());
+    let sign_on_num = sign_on_num.write(&aux);
 
     // making entities appearing
     // packet entities is not enough
@@ -444,7 +445,7 @@ fn insert_base_netmsg(
         entity_count: nbit_num!(entity_states.len(), 16), // has to match the length, of EntityState
         entity_states,
     };
-    let packet_entities = packet_entities.write(aux.clone());
+    let packet_entities = packet_entities.write(&aux);
 
     let player_entity_state_delta = EntityStateDelta {
         entity_index: 1,
@@ -523,7 +524,7 @@ pub fn insert_ghost(
     game_resource_index_start: usize,
     packet_entities: Vec<u8>,
     mut delta_packet_entities: SvcDeltaPacketEntities,
-    aux: Aux,
+    aux: &RefCell<Aux>,
 ) {
     // setup
     let ghost_info = get_ghost(ghost_file_name, &0.);
@@ -660,7 +661,7 @@ pub fn insert_ghost(
                     pitch: bitvec![u8, Lsb0; 1, 0, 0, 0, 0, 0, 0, 0].into(),
                 };
 
-                let svcsound_msg = svcsound.write(aux.clone());
+                let svcsound_msg = svcsound.write(&aux);
 
                 new_netmsg_data.msg = [new_netmsg_data.msg.to_owned(), svcsound_msg]
                     .concat()
@@ -711,7 +712,7 @@ pub fn insert_ghost(
                 pitch: nbit_num!(1, 8).into(),
             };
 
-            let svcsound_msg = svcsound.write(aux.clone());
+            let svcsound_msg = svcsound.write(&aux);
 
             new_netmsg_data.msg = [new_netmsg_data.msg.to_owned(), svcsound_msg]
                 .concat()
@@ -736,7 +737,7 @@ pub fn insert_ghost(
             // delta_sequence: nbit_num!(DEFAULT_IN_SEQ & 0xff - 1, 8), // otherwise entity flush happens
             delta_packet_entities.delta_sequence =
                 nbit_num!((DEFAULT_IN_SEQ + frame_idx as i32 - 1) & 0xff, 8);
-            let delta_packet_entities_byte = delta_packet_entities.write(aux.clone());
+            let delta_packet_entities_byte = delta_packet_entities.write(&aux);
 
             new_netmsg_data.msg = [
                 // packet_entities.to_owned(),

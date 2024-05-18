@@ -67,7 +67,7 @@ macro_rules! init_parse {
         {
             match &mut frame.data {
                 FrameData::NetMsg((_, data)) => {
-                    parse_netmsg(data.msg, &mut aux).unwrap();
+                    parse_netmsg(data.msg, &aux).unwrap();
                 }
                 _ => (),
             }

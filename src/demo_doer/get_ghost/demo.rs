@@ -37,7 +37,7 @@ pub fn demo_ghost_parse<'a>(
                         continue;
                     }
 
-                    let (_, messages) = parse_netmsg(data.msg, &mut aux).unwrap();
+                    let (_, messages) = parse_netmsg(data.msg, &aux).unwrap();
 
                     for message in messages {
                         match message {
