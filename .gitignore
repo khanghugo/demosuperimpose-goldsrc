@@ -1,4 +1,5 @@
 /target
 /example
+Cargo.lock
 
 out
