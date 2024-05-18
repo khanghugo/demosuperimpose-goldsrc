@@ -1,13 +1,10 @@
 use std::{fs, io::Write, path::PathBuf};
 
 use dem::{
-    bit::{BitSliceCast, BitWriter},
-    parse_netmsg,
-    types::{BitVec, Delta, EngineMessage, EntityS, EntityState, EntityStateDelta, NetMessage},
-    write_netmsg, Aux,
+    bit::{BitSliceCast, BitWriter}, nbit_num, parse_netmsg, types::{BitVec, Delta, EngineMessage, EntityS, EntityState, EntityStateDelta, NetMessage}, write_netmsg, Aux
 };
 
-use crate::{demo_doer::superimpose::get_ghost::get_ghosts, nbit_num, open_demo};
+use crate::{demo_doer::superimpose::get_ghost::get_ghosts, open_demo};
 
 use super::*;
 
