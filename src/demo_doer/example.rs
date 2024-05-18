@@ -33,26 +33,6 @@ pub fn print_netmsg(demo: &mut Demo) {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
                 let (_, netmsg) = parse_netmsg(data.msg, &aux).unwrap();
 
-                for what in &netmsg {
-                    match what {
-                        NetMessage::EngineMessage(huh) => match **huh {
-                            EngineMessage::SvcNewUserMsg(_) => {
-                                println!("1 {} {}", entry_idx, frame_idx)
-                            }
-                            EngineMessage::SvcDeltaDescription(_) => {
-                                println!("2 {} {}", entry_idx, frame_idx)
-                            }
-                            EngineMessage::SvcServerInfo(_) => {
-                                println!("3 {} {}", entry_idx, frame_idx)
-                            }
-
-                            _ => (),
-                        },
-                        _ => (),
-                    };
-                }
-
-                println!("{:?}", aux);
                 println!("{} {} {:?}", i, j, netmsg);
                 println!("");
             }
@@ -76,7 +56,6 @@ pub fn netmsg_parse_write(demo: &mut Demo) {
     for entry in &mut demo.directory.entries {
         for frame in &mut entry.frames {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
-                // println!("{} {}", i, j);
                 let (_, messages) = parse_netmsg(data.msg, &aux).unwrap();
 
                 let write = write_netmsg(messages, &aux);
@@ -104,10 +83,7 @@ pub fn netmsg_parse_write_parse(demo: &mut Demo) {
     for entry in &mut demo.directory.entries {
         for frame in &mut entry.frames {
             if let FrameData::NetMsg((_, data)) = &mut frame.data {
-                println!("{} {}", i, j);
                 let (_, messages) = parse_netmsg(data.msg, &aux).unwrap();
-
-                println!("{:?}", messages);
 
                 let write = write_netmsg(messages, &aux);
 
