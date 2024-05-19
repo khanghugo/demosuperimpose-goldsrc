@@ -48,35 +48,6 @@ macro_rules! open_demo {
     }};
 }
 
-#[macro_export]
-macro_rules! init_parse {
-    ($demo:ident) => {{
-        use dem::parse_netmsg;
-        use dem::Aux;
-
-        let mut aux = Aux::new();
-
-        // use hldemo::Demo;
-        for frame in $demo
-            .directory
-            .entries
-            .get_mut(0)
-            .unwrap()
-            .frames
-            .iter_mut()
-        {
-            match &mut frame.data {
-                FrameData::NetMsg((_, data)) => {
-                    parse_netmsg(data.msg, &aux).unwrap();
-                }
-                _ => (),
-            }
-        }
-
-        aux
-    }};
-}
-
 // usually spawnbaseline is very packed so there won't be gaps unlike packet entities
 #[macro_export]
 macro_rules! append_spawnbaseline {

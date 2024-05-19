@@ -1,8 +1,8 @@
-use crate::init_parse;
 use crate::wrap_message;
 
 use super::*;
 
+use dem::init_parse;
 use dem::parse_netmsg;
 use dem::types::SvcTempEntity;
 use dem::types::TeTextMessage;
