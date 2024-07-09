@@ -1,4 +1,9 @@
-use dem::hldemo::{MoveVars, NetMsgData, NetMsgInfo, RefParams, UserCmd};
+use bitvec::field::BitField;
+use dem::{
+    bit::BitSlice,
+    hldemo::{MoveVars, NetMsgData, NetMsgInfo, RefParams, UserCmd},
+};
+use nom::AsChar;
 
 #[macro_export]
 macro_rules! write_demo {
@@ -2456,4 +2461,21 @@ macro_rules! get_cs_delta_decoder_table {
 
         dt
     }};
+}
+
+pub fn bitslice_to_string(bitslice: &BitSlice) -> String {
+    assert_eq!(bitslice.len() % 8, 0);
+
+    let byte_count = bitslice.len() / 8;
+    let mut res_string = String::new();
+
+    for i in 0..byte_count {
+        res_string += bitslice[(i * 8)..((i + 1) * 8)]
+            .load::<u8>()
+            .as_char()
+            .to_string()
+            .as_str();
+    }
+
+    res_string
 }
