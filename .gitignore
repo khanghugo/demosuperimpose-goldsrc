@@ -2,4 +2,4 @@
 /example
 Cargo.lock
 
-out
+/out*
