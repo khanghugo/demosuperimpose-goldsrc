@@ -7,9 +7,6 @@ use std::path::Path;
 use bitvec::bitvec;
 use bitvec::prelude::*;
 
-use bsp_file::bsp::LumpType;
-use bsp_file::bsp::RawMap;
-use bsp_render::level::entities::parse_entities;
 use dem::hldemo::ClientDataData;
 use dem::hldemo::Demo;
 use dem::hldemo::DemoBufferData;
@@ -181,339 +178,341 @@ fn insert_base_netmsg(
     map_file_name: &Path,
     aux: &RefCell<Aux>,
 ) -> (usize, Vec<u8>, SvcDeltaPacketEntities) {
-    // add maps entities first with its models, named "*{number}" and so on until we are done
-    // by then we can insert our own custom files
-    // bsp is still cached first as 0
-    // each baseline_entities will have `model` key. To insert that into baseline, we have to
-    // translate that into `modelindex` instead.
-    let bsp_file = std::fs::read(map_file_name).unwrap();
-    let raw_map = RawMap::parse(bsp_file.leak()).unwrap();
+    return todo!();
 
-    let bsp_entities = parse_entities(raw_map.lump_data(LumpType::Entities)).unwrap();
-    // println!("{:?}", bsp_entities);
+    // // add maps entities first with its models, named "*{number}" and so on until we are done
+    // // by then we can insert our own custom files
+    // // bsp is still cached first as 0
+    // // each baseline_entities will have `model` key. To insert that into baseline, we have to
+    // // translate that into `modelindex` instead.
+    // let bsp_file = std::fs::read(map_file_name).unwrap();
+    // let raw_map = RawMap::parse(bsp_file.leak()).unwrap();
 
-    let baseline_entities: Vec<BaselineEntity<'_>> = bsp_entities
-        .entities()
-        .iter()
-        .enumerate()
-        // .skip(33) // skip 33 because 0 is bsp and 1-32 are players
-        .filter(|(_, ent)| {
-            ent.properties()
-                .get("classname")
-                .map(|classname| {
-                    [BASELINE_ENTITIES_BRUSH, BASELINE_ENTITIES_CYCLER]
-                        .concat()
-                        .contains(classname)
-                })
-                .is_some_and(|x| x == true)
-        })
-        // after this filtering, we know which order of resourcelist will go,
-        // so we can just enumerate them again and we just need to go with that order
-        .enumerate()
-        .map(|(modelindex, (index, ent))| {
-            let mut delta = Delta::new();
+    // let bsp_entities = parse_entities(raw_map.lump_data(LumpType::Entities)).unwrap();
+    // // println!("{:?}", bsp_entities);
 
-            // from ent.properties, we don't have null terminator
-            // but inserting into our delta we need null terminator
-            if let Some(property) = ent.properties().get("rendermode") {
-                delta.insert(
-                    "rendermode\0".to_owned(),
-                    property.parse::<i32>().unwrap_or(0).to_le_bytes().to_vec(),
-                );
-            }
+    // let baseline_entities: Vec<BaselineEntity<'_>> = bsp_entities
+    //     .entities()
+    //     .iter()
+    //     .enumerate()
+    //     // .skip(33) // skip 33 because 0 is bsp and 1-32 are players
+    //     .filter(|(_, ent)| {
+    //         ent.properties()
+    //             .get("classname")
+    //             .map(|classname| {
+    //                 [BASELINE_ENTITIES_BRUSH, BASELINE_ENTITIES_CYCLER]
+    //                     .concat()
+    //                     .contains(classname)
+    //             })
+    //             .is_some_and(|x| x == true)
+    //     })
+    //     // after this filtering, we know which order of resourcelist will go,
+    //     // so we can just enumerate them again and we just need to go with that order
+    //     .enumerate()
+    //     .map(|(modelindex, (index, ent))| {
+    //         let mut delta = Delta::new();
 
-            if let Some(property) = ent.properties().get("renderamt") {
-                delta.insert(
-                    "renderamt\0".to_owned(),
-                    property.parse::<i32>().unwrap_or(0).to_le_bytes().to_vec(),
-                );
-            }
+    //         // from ent.properties, we don't have null terminator
+    //         // but inserting into our delta we need null terminator
+    //         if let Some(property) = ent.properties().get("rendermode") {
+    //             delta.insert(
+    //                 "rendermode\0".to_owned(),
+    //                 property.parse::<i32>().unwrap_or(0).to_le_bytes().to_vec(),
+    //             );
+    //         }
 
-            if let Some(property) = ent.properties().get("origin") {
-                let (_, (x, y, z)) = parse_3_f32(&property).unwrap();
+    //         if let Some(property) = ent.properties().get("renderamt") {
+    //             delta.insert(
+    //                 "renderamt\0".to_owned(),
+    //                 property.parse::<i32>().unwrap_or(0).to_le_bytes().to_vec(),
+    //             );
+    //         }
 
-                delta.insert("origin[0]\0".to_owned(), x.to_le_bytes().to_vec());
-                delta.insert("origin[1]\0".to_owned(), y.to_le_bytes().to_vec());
-                delta.insert("origin[2]\0".to_owned(), z.to_le_bytes().to_vec());
-            }
+    //         if let Some(property) = ent.properties().get("origin") {
+    //             let (_, (x, y, z)) = parse_3_f32(&property).unwrap();
 
-            if let Some(property) = ent.properties().get("angles") {
-                let (_, (x, y, z)) = parse_3_f32(&property).unwrap();
+    //             delta.insert("origin[0]\0".to_owned(), x.to_le_bytes().to_vec());
+    //             delta.insert("origin[1]\0".to_owned(), y.to_le_bytes().to_vec());
+    //             delta.insert("origin[2]\0".to_owned(), z.to_le_bytes().to_vec());
+    //         }
 
-                delta.insert("angles[0]\0".to_owned(), x.to_le_bytes().to_vec());
-                delta.insert("angles[1]\0".to_owned(), y.to_le_bytes().to_vec());
-                delta.insert("angles[2]\0".to_owned(), z.to_le_bytes().to_vec());
-            }
+    //         if let Some(property) = ent.properties().get("angles") {
+    //             let (_, (x, y, z)) = parse_3_f32(&property).unwrap();
 
-            delta.insert(
-                "modelindex\0".to_owned(),
-                ((modelindex + 2) as i32).to_le_bytes().to_vec(),
-            );
+    //             delta.insert("angles[0]\0".to_owned(), x.to_le_bytes().to_vec());
+    //             delta.insert("angles[1]\0".to_owned(), y.to_le_bytes().to_vec());
+    //             delta.insert("angles[2]\0".to_owned(), z.to_le_bytes().to_vec());
+    //         }
 
-            BaselineEntity {
-                index: index + MAX_PLAYERS as usize, // at this point the index is nicely offset by 1 just fine
-                properties: ent.properties().to_owned(),
-                modelindex: modelindex + 2, // 1 is bsp, 0 is unused.
-                delta,
-            }
-        })
-        .collect();
+    //         delta.insert(
+    //             "modelindex\0".to_owned(),
+    //             ((modelindex + 2) as i32).to_le_bytes().to_vec(),
+    //         );
 
-    let game_dir = format!("{}\0", GAME_DIR);
-    let map_file_name = format!(
-        "maps/{}\0",
-        map_file_name.file_name().unwrap().to_str().unwrap()
-    );
+    //         BaselineEntity {
+    //             index: index + MAX_PLAYERS as usize, // at this point the index is nicely offset by 1 just fine
+    //             properties: ent.properties().to_owned(),
+    //             modelindex: modelindex + 2, // 1 is bsp, 0 is unused.
+    //             delta,
+    //         }
+    //     })
+    //     .collect();
 
-    let server_info = SvcServerInfo {
-        protocol: 48,
-        spawn_count: 5, // ?
-        map_checksum: 0,
-        client_dll_hash: vec![0u8; 16],
-        max_players: MAX_PLAYERS as u8,
-        player_index: 0,
-        is_deathmatch: 0,
-        game_dir: game_dir.as_bytes().to_vec(),
-        hostname: b"Ghost Demo Replay\0".to_vec(),
-        map_file_name: map_file_name.as_bytes().to_vec(),
-        map_cycle: b"a\0".to_vec(), // must be null string
-        unknown: 0u8,
-    };
-    let server_info = server_info.write(&aux);
+    // let game_dir = format!("{}\0", GAME_DIR);
+    // let map_file_name = format!(
+    //     "maps/{}\0",
+    //     map_file_name.file_name().unwrap().to_str().unwrap()
+    // );
 
-    let dds: Vec<u8> = get_cs_delta_msg!()
-        .iter()
-        .flat_map(|dd| dd.write(&aux))
-        .collect();
+    // let server_info = SvcServerInfo {
+    //     protocol: 48,
+    //     spawn_count: 5, // ?
+    //     map_checksum: 0,
+    //     client_dll_hash: vec![0u8; 16],
+    //     max_players: MAX_PLAYERS as u8,
+    //     player_index: 0,
+    //     is_deathmatch: 0,
+    //     game_dir: game_dir.as_bytes().to_vec(),
+    //     hostname: b"Ghost Demo Replay\0".to_vec(),
+    //     map_file_name: map_file_name.as_bytes().to_vec(),
+    //     map_cycle: b"a\0".to_vec(), // must be null string
+    //     unknown: 0u8,
+    // };
+    // let server_info = server_info.write(&aux);
 
-    let set_view = SvcSetView { entity_index: 1 }; // always 1
-    let set_view = set_view.write(&aux);
+    // let dds: Vec<u8> = get_cs_delta_msg!()
+    //     .iter()
+    //     .flat_map(|dd| dd.write(&aux))
+    //     .collect();
 
-    let new_movevars = SvcNewMovevars {
-        gravity: 800.,
-        stop_speed: 75.,
-        max_speed: 320.,
-        spectator_max_speed: 500.,
-        accelerate: 5.,
-        airaccelerate: 10.,
-        water_accelerate: 10.,
-        friction: 4.,
-        edge_friction: 2.,
-        water_friction: 1.,
-        ent_garvity: 1.,
-        bounce: 1.,
-        step_size: 18.,
-        max_velocity: 2000.,
-        z_max: 409600.,
-        wave_height: 0.,
-        footsteps: 1,
-        roll_angle: 0.,
-        roll_speed: -1.9721523e-31, // have to use these magic numbers to work
-        sky_color: vec![-1.972168e-31, -1.972168e-31, 9.4e-44],
-        sky_vec: vec![-0.0, 2.68e-43, 2.7721908e20],
-        sky_name: (&[0]).to_vec(),
-    };
-    let new_movevars = new_movevars.write(&aux);
+    // let set_view = SvcSetView { entity_index: 1 }; // always 1
+    // let set_view = set_view.write(&aux);
 
-    // bsp is always 1, then func_door and illusionary and whatever renders
-    // maps resources first
-    let bsp = Resource {
-        type_: nbit_num!(ResourceType::Model, 4),
-        name: nbit_str!(map_file_name),
-        index: nbit_num!(1, 12),
-        size: nbit_num!(0, 3 * 8),
-        flags: nbit_num!(1, 3),
-        md5_hash: None,
-        has_extra_info: false,
-        extra_info: None,
-    };
+    // let new_movevars = SvcNewMovevars {
+    //     gravity: 800.,
+    //     stop_speed: 75.,
+    //     max_speed: 320.,
+    //     spectator_max_speed: 500.,
+    //     accelerate: 5.,
+    //     airaccelerate: 10.,
+    //     water_accelerate: 10.,
+    //     friction: 4.,
+    //     edge_friction: 2.,
+    //     water_friction: 1.,
+    //     ent_garvity: 1.,
+    //     bounce: 1.,
+    //     step_size: 18.,
+    //     max_velocity: 2000.,
+    //     z_max: 409600.,
+    //     wave_height: 0.,
+    //     footsteps: 1,
+    //     roll_angle: 0.,
+    //     roll_speed: -1.9721523e-31, // have to use these magic numbers to work
+    //     sky_color: vec![-1.972168e-31, -1.972168e-31, 9.4e-44],
+    //     sky_vec: vec![-0.0, 2.68e-43, 2.7721908e20],
+    //     sky_name: (&[0]).to_vec(),
+    // };
+    // let new_movevars = new_movevars.write(&aux);
 
-    let bsp_entities_resource: Vec<Resource> = baseline_entities
-        .iter()
-        .map(|ent| Resource {
-            type_: nbit_num!(ResourceType::Model, 4), // blocks and .mdl are all type 2
-            name: nbit_str!(format!("{}\0", ent.properties.get("model").unwrap())),
-            index: nbit_num!(ent.modelindex, 12), // this is modelindex
-            size: nbit_num!(0, 3 * 8),
-            flags: nbit_num!(1, 3), // this could be interpolation flag?
-            md5_hash: None,
-            has_extra_info: false,
-            extra_info: None,
-        })
-        .collect();
+    // // bsp is always 1, then func_door and illusionary and whatever renders
+    // // maps resources first
+    // let bsp = Resource {
+    //     type_: nbit_num!(ResourceType::Model, 4),
+    //     name: nbit_str!(map_file_name),
+    //     index: nbit_num!(1, 12),
+    //     size: nbit_num!(0, 3 * 8),
+    //     flags: nbit_num!(1, 3),
+    //     md5_hash: None,
+    //     has_extra_info: false,
+    //     extra_info: None,
+    // };
 
-    // after that, we can have our own models, game resources later
-    let game_resource_index_start = baseline_entities.len() + 2;
+    // let bsp_entities_resource: Vec<Resource> = baseline_entities
+    //     .iter()
+    //     .map(|ent| Resource {
+    //         type_: nbit_num!(ResourceType::Model, 4), // blocks and .mdl are all type 2
+    //         name: nbit_str!(format!("{}\0", ent.properties.get("model").unwrap())),
+    //         index: nbit_num!(ent.modelindex, 12), // this is modelindex
+    //         size: nbit_num!(0, 3 * 8),
+    //         flags: nbit_num!(1, 3), // this could be interpolation flag?
+    //         md5_hash: None,
+    //         has_extra_info: false,
+    //         extra_info: None,
+    //     })
+    //     .collect();
 
-    let v_usp = Resource {
-        type_: nbit_num!(ResourceType::Skin, 4),
-        name: nbit_str!("models/v_usp.mdl\0"),
-        index: nbit_num!(game_resource_index_start, 12),
-        size: nbit_num!(0, 3 * 8),
-        flags: nbit_num!(0, 3),
-        md5_hash: None,
-        has_extra_info: false,
-        extra_info: None,
-    };
+    // // after that, we can have our own models, game resources later
+    // let game_resource_index_start = baseline_entities.len() + 2;
 
-    let pl_steps: Vec<Resource> = (1..=4) // range like this is awkward
-        .map(|i| Resource {
-            type_: nbit_num!(ResourceType::Sound, 4),
-            name: nbit_str!(format!("player/pl_step{}.wav\0", i)),
-            index: nbit_num!(game_resource_index_start + i, 12), // remember to increment
-            size: nbit_num!(0, 3 * 8),
-            // TODO not sure what the flag does
-            flags: nbit_num!(0, 3),
-            md5_hash: None,
-            has_extra_info: false,
-            extra_info: None,
-        })
-        .collect();
+    // let v_usp = Resource {
+    //     type_: nbit_num!(ResourceType::Skin, 4),
+    //     name: nbit_str!("models/v_usp.mdl\0"),
+    //     index: nbit_num!(game_resource_index_start, 12),
+    //     size: nbit_num!(0, 3 * 8),
+    //     flags: nbit_num!(0, 3),
+    //     md5_hash: None,
+    //     has_extra_info: false,
+    //     extra_info: None,
+    // };
 
-    // add resources here
-    // the order doesn't matter because we already specify the resource index
-    let resources = [vec![bsp, v_usp], pl_steps, bsp_entities_resource].concat();
+    // let pl_steps: Vec<Resource> = (1..=4) // range like this is awkward
+    //     .map(|i| Resource {
+    //         type_: nbit_num!(ResourceType::Sound, 4),
+    //         name: nbit_str!(format!("player/pl_step{}.wav\0", i)),
+    //         index: nbit_num!(game_resource_index_start + i, 12), // remember to increment
+    //         size: nbit_num!(0, 3 * 8),
+    //         // TODO not sure what the flag does
+    //         flags: nbit_num!(0, 3),
+    //         md5_hash: None,
+    //         has_extra_info: false,
+    //         extra_info: None,
+    //     })
+    //     .collect();
 
-    let resource_list = SvcResourceList {
-        resource_count: nbit_num!(resources.len(), 12),
-        resources,
-        consistencies: vec![],
-    };
-    let resource_list = resource_list.write(&aux);
+    // // add resources here
+    // // the order doesn't matter because we already specify the resource index
+    // let resources = [vec![bsp, v_usp], pl_steps, bsp_entities_resource].concat();
 
-    let worldspawn = EntityS {
-        entity_index: 0, // worldspawn is index 0
-        index: nbit_num!(0, 11),
-        type_: nbit_num!(1, 2),
-        delta: Delta::from([
-            ("movetype\0".to_owned(), vec![7, 0, 0, 0]),
-            ("modelindex\0".to_owned(), vec![1, 0, 0, 0]), // but modelindex is 1
-            ("solid\0".to_owned(), vec![4, 0]),
-        ]),
-    };
+    // let resource_list = SvcResourceList {
+    //     resource_count: nbit_num!(resources.len(), 12),
+    //     resources,
+    //     consistencies: vec![],
+    // };
+    // let resource_list = resource_list.write(&aux);
 
-    let bsp_entities_baseline: Vec<EntityS> = baseline_entities
-        .iter()
-        .map(|ent| EntityS {
-            entity_index: ent.index as u16,
-            index: nbit_num!(ent.index, 11),
-            type_: nbit_num!(1, 2),
-            delta: ent.delta.to_owned(),
-        })
-        .collect();
+    // let worldspawn = EntityS {
+    //     entity_index: 0, // worldspawn is index 0
+    //     index: nbit_num!(0, 11),
+    //     type_: nbit_num!(1, 2),
+    //     delta: Delta::from([
+    //         ("movetype\0".to_owned(), vec![7, 0, 0, 0]),
+    //         ("modelindex\0".to_owned(), vec![1, 0, 0, 0]), // but modelindex is 1
+    //         ("solid\0".to_owned(), vec![4, 0]),
+    //     ]),
+    // };
 
-    let spawn_baseline_entities = vec![vec![worldspawn], bsp_entities_baseline].concat();
+    // let bsp_entities_baseline: Vec<EntityS> = baseline_entities
+    //     .iter()
+    //     .map(|ent| EntityS {
+    //         entity_index: ent.index as u16,
+    //         index: nbit_num!(ent.index, 11),
+    //         type_: nbit_num!(1, 2),
+    //         delta: ent.delta.to_owned(),
+    //     })
+    //     .collect();
 
-    // max_client should be 1 because we are playing demo and it is OK.
-    let spawn_baseline = SvcSpawnBaseline {
-        entities: spawn_baseline_entities,
-        total_extra_data: nbit_num!(0, 6),
-        extra_data: vec![],
-    };
-    let spawn_baseline = spawn_baseline.write(&aux);
+    // let spawn_baseline_entities = vec![vec![worldspawn], bsp_entities_baseline].concat();
 
-    let sign_on_num = SvcSignOnNum { sign: 1 };
-    let sign_on_num = sign_on_num.write(&aux);
+    // // max_client should be 1 because we are playing demo and it is OK.
+    // let spawn_baseline = SvcSpawnBaseline {
+    //     entities: spawn_baseline_entities,
+    //     total_extra_data: nbit_num!(0, 6),
+    //     extra_data: vec![],
+    // };
+    // let spawn_baseline = spawn_baseline.write(&aux);
 
-    // making entities appearing
-    // packet entities is not enough
-    // we need delta packet entities also to make the entities appear
-    // svcpacketentity is almost redundant but just add it there to make sure
-    let player_entity_state = EntityState {
-        entity_index: 1,
-        increment_entity_number: true,
-        is_absolute_entity_index: false.into(),
-        absolute_entity_index: None,
-        entity_index_difference: None,
-        has_custom_delta: false,
-        has_baseline_index: false,
-        baseline_index: None,
-        delta: Delta::new(),
-    };
+    // let sign_on_num = SvcSignOnNum { sign: 1 };
+    // let sign_on_num = sign_on_num.write(&aux);
 
-    let mut entity_states = vec![player_entity_state];
+    // // making entities appearing
+    // // packet entities is not enough
+    // // we need delta packet entities also to make the entities appear
+    // // svcpacketentity is almost redundant but just add it there to make sure
+    // let player_entity_state = EntityState {
+    //     entity_index: 1,
+    //     increment_entity_number: true,
+    //     is_absolute_entity_index: false.into(),
+    //     absolute_entity_index: None,
+    //     entity_index_difference: None,
+    //     has_custom_delta: false,
+    //     has_baseline_index: false,
+    //     baseline_index: None,
+    //     delta: Delta::new(),
+    // };
 
-    // macro aboose
-    baseline_entities.iter().for_each(|ent| {
-        // println!("{}", ent.index);
-        insert_packet_entity_state_with_index!(entity_states, Delta::new(), ent.index as u16);
-    });
+    // let mut entity_states = vec![player_entity_state];
 
-    // println!("{:?}", entity_states);
+    // // macro aboose
+    // baseline_entities.iter().for_each(|ent| {
+    //     // println!("{}", ent.index);
+    //     insert_packet_entity_state_with_index!(entity_states, Delta::new(), ent.index as u16);
+    // });
 
-    let packet_entities = SvcPacketEntities {
-        entity_count: nbit_num!(entity_states.len(), 16), // has to match the length, of EntityState
-        entity_states,
-    };
-    let packet_entities = packet_entities.write(&aux);
+    // // println!("{:?}", entity_states);
 
-    let player_entity_state_delta = EntityStateDelta {
-        entity_index: 1,
-        remove_entity: false,
-        is_absolute_entity_index: false.into(),
-        absolute_entity_index: None,
-        entity_index_difference: nbit_num!(1, 6).into(),
-        has_custom_delta: false.into(),
-        delta: Delta::new().into(),
-    };
+    // let packet_entities = SvcPacketEntities {
+    //     entity_count: nbit_num!(entity_states.len(), 16), // has to match the length, of EntityState
+    //     entity_states,
+    // };
+    // let packet_entities = packet_entities.write(&aux);
 
-    let mut entity_states_delta: Vec<EntityStateDelta> = vec![player_entity_state_delta];
-    // let mut entity_states_delta: Vec<EntityStateDelta> = vec![];
+    // let player_entity_state_delta = EntityStateDelta {
+    //     entity_index: 1,
+    //     remove_entity: false,
+    //     is_absolute_entity_index: false.into(),
+    //     absolute_entity_index: None,
+    //     entity_index_difference: nbit_num!(1, 6).into(),
+    //     has_custom_delta: false.into(),
+    //     delta: Delta::new().into(),
+    // };
 
-    // let mut count = 50;
-    baseline_entities.iter().for_each(|ent| {
-        // if count > 0 {
-        insert_packet_entity_state_delta_with_index!(
-            entity_states_delta,
-            ent.delta.to_owned(),
-            // Delta::new(),
-            ent.index as u16
-        );
+    // let mut entity_states_delta: Vec<EntityStateDelta> = vec![player_entity_state_delta];
+    // // let mut entity_states_delta: Vec<EntityStateDelta> = vec![];
 
-        // count = count - 1;
-        // }
-    });
+    // // let mut count = 50;
+    // baseline_entities.iter().for_each(|ent| {
+    //     // if count > 0 {
+    //     insert_packet_entity_state_delta_with_index!(
+    //         entity_states_delta,
+    //         ent.delta.to_owned(),
+    //         // Delta::new(),
+    //         ent.index as u16
+    //     );
 
-    let delta_packet_entities = SvcDeltaPacketEntities {
-        entity_count: nbit_num!(entity_states_delta.len(), 16),
-        delta_sequence: nbit_num!(DEFAULT_IN_SEQ & 0xff - 1, 8), // otherwise entity flush happens
-        entity_states: entity_states_delta,
-    };
-    // let delta_packet_entities_byte =
-    // DeltaPacketEntities::write(delta_packet_entities, &mut get_cs_delta_decoder_table!(), 1);
+    //     // count = count - 1;
+    //     // }
+    // });
 
-    // println!("{}", baseline_entities.len());
+    // let delta_packet_entities = SvcDeltaPacketEntities {
+    //     entity_count: nbit_num!(entity_states_delta.len(), 16),
+    //     delta_sequence: nbit_num!(DEFAULT_IN_SEQ & 0xff - 1, 8), // otherwise entity flush happens
+    //     entity_states: entity_states_delta,
+    // };
+    // // let delta_packet_entities_byte =
+    // // DeltaPacketEntities::write(delta_packet_entities, &mut get_cs_delta_decoder_table!(), 1);
 
-    let mut new_netmsg_data = NetMsgData::new(2);
-    new_netmsg_data.msg = [
-        server_info,
-        dds,
-        set_view,
-        new_movevars,
-        resource_list,
-        spawn_baseline,
-        sign_on_num,
-        packet_entities.to_owned(),
-        // delta_packet_entities,
-    ]
-    .concat()
-    .leak();
+    // // println!("{}", baseline_entities.len());
 
-    let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
-    let netmsg_frame = Frame {
-        time: 0.,
-        frame: 0,
-        data: netmsg_framedata,
-    };
+    // let mut new_netmsg_data = NetMsgData::new(2);
+    // new_netmsg_data.msg = [
+    //     server_info,
+    //     dds,
+    //     set_view,
+    //     new_movevars,
+    //     resource_list,
+    //     spawn_baseline,
+    //     sign_on_num,
+    //     packet_entities.to_owned(),
+    //     // delta_packet_entities,
+    // ]
+    // .concat()
+    // .leak();
 
-    demo.directory.entries[0].frames.push(netmsg_frame);
-    demo.directory.entries[0].frame_count += 1;
+    // let netmsg_framedata = FrameData::NetMsg((NetMsgFrameType::Start, new_netmsg_data));
+    // let netmsg_frame = Frame {
+    //     time: 0.,
+    //     frame: 0,
+    //     data: netmsg_framedata,
+    // };
 
-    (
-        game_resource_index_start,
-        packet_entities,
-        delta_packet_entities,
-    )
+    // demo.directory.entries[0].frames.push(netmsg_frame);
+    // demo.directory.entries[0].frame_count += 1;
+
+    // (
+    //     game_resource_index_start,
+    //     packet_entities,
+    //     delta_packet_entities,
+    // )
 }
 
 pub fn insert_ghost(
