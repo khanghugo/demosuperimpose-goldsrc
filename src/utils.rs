@@ -37,6 +37,9 @@ macro_rules! wrap_message {
 #[macro_export]
 macro_rules! open_demo {
     ($name:literal) => {{
+        use std::fs::File;
+        use std::io::Read;
+
         let mut bytes = Vec::new();
         let mut f = File::open($name).unwrap();
         f.read_to_end(&mut bytes).unwrap();
@@ -45,6 +48,9 @@ macro_rules! open_demo {
     }};
 
     ($name:ident) => {{
+        use std::fs::File;
+        use std::io::Read;
+
         let mut bytes = Vec::new();
         let mut f = File::open($name).unwrap();
         f.read_to_end(&mut bytes).unwrap();
