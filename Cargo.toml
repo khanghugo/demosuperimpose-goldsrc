@@ -7,9 +7,7 @@ edition = "2021"
 
 [dependencies]
 bitvec = "1.0.1"
-bsp_file = { package = "file", path = "./hlbsp-viewer/file" }
-bsp_render = { package = "render", path = "./hlbsp-viewer/render" }
-dem = {git = "https://github.com/khanghugo/dem.git"}
+dem = {path = "/home/khang/dem"}
 nom = "7.1.3"
 rand = "0.8.5"
 rayon = "1.8.0"
